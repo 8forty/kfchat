@@ -4,12 +4,12 @@ from dataclasses import dataclass
 
 from fastapi import Request
 
-import config
+import version
 
 
 @dataclass
 class LogPrefixData:
-    version: str = config.version
+    version: str = version.version
     host: str | None = None
     client_ip: str | None = None
 

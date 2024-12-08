@@ -10,9 +10,6 @@ logging_level = logging.INFO
 
 name = 'kfchat'
 
-with open('VERSION', 'r') as vfile:
-    version = vfile.read().strip()
-
 chat_exchanges_circular_list_count = 10
 
 

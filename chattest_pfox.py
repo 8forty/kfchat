@@ -39,7 +39,7 @@ start = timeit.default_timer()
 api_type_name = ['openai', 'azure', 'ollama'][2]
 api_type = ModelAPI(api_type_name, env_values)
 env_client = api_type.client()
-env_model_name = data.apis[api_type_name]['qwq'][0]
+env_model_name = ['llama3.2:1b', 'llama3.2:3b', 'llama3.3:70b', 'qwen2.5:0.5b', 'gemma2:2b', 'qwq'][1]
 
 print(f'---- generating response from {api_type.type()}:{env_model_name}')
 response = chat_single(sysmsg="You are a helpful assistant that talks like Carl Sagan.",

@@ -1,6 +1,6 @@
 from nicegui import ui
 
-import config
+import version
 
 
 def menu() -> None:
@@ -9,5 +9,5 @@ def menu() -> None:
             ui.menu_item('Chat', lambda: ui.navigate.to('/'))
             # ui.menu_item('test api_router', lambda: ui.navigate.to('/c'))
             ui.separator()
-            version_item = ui.menu_item(f'[version: {config.version}]').classes('text-xs italic')
+            version_item = ui.menu_item(f'[version: {version.version}]').classes('text-xs italic')
     version_item.disable()
