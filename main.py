@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from nicegui import ui
 
 import chatpage
+import chromadbpage
 import config
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -20,8 +21,11 @@ async def root():
 def init_with_fastapi(fastapi_app: FastAPI) -> None:
     log.info('init_with_fastapi')
     ui.run_with(fastapi_app, storage_secret='pick your private secret here')
+
     cp = chatpage.ChatPage('ollama')
     cp.setup('/', 'Chat')
+
+    chromadbpage.setup('/chromadb')
 
 
 def run():
