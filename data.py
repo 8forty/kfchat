@@ -1,4 +1,3 @@
-
 import os
 
 from dotenv import load_dotenv
@@ -14,9 +13,11 @@ warmup_data = {
     'max_tokens': 800,
 }
 
-apis = {
+# dict[api-name, dict[set-name or 'parms', list-of-model-names or dict[parm-name, parm-value]]]
+model_sets = {
     'ollama': {
         'll1b': ['llama3.2:1b'],
+        'll33': ['llama3.3:70b'],
 
         'qwq': ['qwq'],
 
@@ -40,7 +41,7 @@ apis = {
                   'qwen2.5:0.5b', 'qwen2.5:1.5b', 'qwen2.5:3b', 'qwen2.5:7b', 'qwen2.5:14b', 'qwen2.5:32b', 'qwen2.5:72b',
                   ],
         'parms': {
-            'OLLAMA_ENDPOINT': 'http://localhost:11434/v1/',
+            'OLLAMA_ENDPOINT': os.getenv('OLLAMA_ENDPOINT'),
         },
     },
     'openai': {
@@ -57,7 +58,16 @@ apis = {
             'AZURE_OPENAI_API_VERSION': os.getenv('AZURE_OPENAI_API_VERSION'),
             'AZURE_OPENAI_ENDPOINT': os.getenv('AZURE_OPENAI_ENDPOINT'),
         }
-    }
+    },
+    'groq': {
+        'll1b': ['llama-3.2-1b-preview'],
+        'll33': ['llama-3.3-70b-versatile'],
+        'mistral7b': ['mixtral-8x7b-32768'],
+        'parms': {
+            'GROQ_API_KEY': os.getenv('GROQ_API_KEY'),
+            'GROQ_ENDPOINT': os.getenv('GROQ_ENDPOINT'),
+        }
+    },
 }
 
 settings_sets = {

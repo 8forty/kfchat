@@ -3,7 +3,7 @@ import openai
 
 class ModelAPI:
     def __init__(self, api_type: str, parms: dict[str, str]):
-        if api_type in ['azure', 'ollama', 'openai']:
+        if api_type in ['azure', 'ollama', 'openai', 'groq']:
             self.api_type = api_type
             self.parms = parms
             self.api_client = None
@@ -35,9 +35,14 @@ class ModelAPI:
                 api_key="nokeyneeded",
             )
         elif self.api_type == "openai":
-            self.api_client = openai.OpenAI(api_key=self.parms.get("OPENAI_API_KEY"))
+            self.api_client = openai.OpenAI(base_url=self.parms.get("OPENAI_ENDPOINT"),
+                                            api_key=self.parms.get("OPENAI_API_KEY"))
+        elif self.api_type == "groq":
+            self.api_client = openai.OpenAI(base_url=self.parms.get("GROQ_ENDPOINT"),
+                                            api_key=self.parms.get("GROQ_API_KEY"))
         elif self.api_type == "github":
-            self.api_client = openai.OpenAI(base_url="https://models.inference.ai.azure.com", api_key=self.parms.get("GITHUB_TOKEN"))
+            self.api_client = openai.OpenAI(base_url="https://models.inference.ai.azure.com",
+                                            api_key=self.parms.get("GITHUB_TOKEN"))
         else:
             raise ValueError(f'invalid api_type! {self.api_type}')
 

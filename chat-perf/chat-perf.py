@@ -20,39 +20,52 @@ def chat(message_set: list[tuple[str, str]], client: openai.OpenAI, model_name: 
     messages: list[dict[str, str]] = []
     for i in message_set:
         messages.append({'role': i[0], 'content': i[1]})
-    return client.chat.completions.create(
-        model=model_name,
-        temperature=temp,  # default 1.0, 0.0->2.0
-        messages=messages,
-        max_tokens=max_tokens,  # default 16?
+    try:
+        return client.chat.completions.create(
+            model=model_name,
+            temperature=temp,  # default 1.0, 0.0->2.0
+            messages=messages,
+            max_tokens=max_tokens,  # default 16?
 
-        stream=False,
+            stream=False,
 
-        # seed=27,
-        # n=1,
-        # top_p=1,  # default 1, ~0.01->1.0
-        # frequency_penalty=1,  # default 0, -2.0->2.0
-        # presence_penalty=1,  # default 0, -2.0->2.0
-        # stop=[],
+            # seed=27,
+            # n=1,
+            # top_p=1,  # default 1, ~0.01->1.0
+            # frequency_penalty=1,  # default 0, -2.0->2.0
+            # presence_penalty=1,  # default 0, -2.0->2.0
+            # stop=[],
 
-    )
+        )
+    except (Exception,):
+        e = f'{sys.exc_info()[0].__name__}: {sys.exc_info()[1]}'
+        print(f'chat Exception! {model_name}:  {e}')
+        raise
 
 
 def run(api: str, model_set_name: str, settings_set_name: str, message_sets_name: str):
     csv_data = []
 
     # API
+    print(f'---- running {api} {model_set_name} {settings_set_name} {message_sets_name}...')
     api_start = timeit.default_timer()
 
     # model
     all_start = timeit.default_timer()
-    for model in data.apis[api][model_set_name]:
+    for model in data.model_sets[api][model_set_name]:
+        print(f'    {api}:{model}')
         model_start = timeit.default_timer()
-        api_type = ModelAPI(api, parms=data.apis[api]['parms'])
+        api_type = ModelAPI(api, parms=data.model_sets[api]['parms'])
         client = api_type.client()
 
         # warmup the model
-        model_warmup(client, model)
+        try:
+            model_warmup(client, model)
+        except (Exception,):
+            e = f'{sys.exc_info()[0].__name__}: {sys.exc_info()[1]}'
+            print(f'warmup Exception! {api}:{model}: {e} skipping...')
+            break
+
         print(f'{config.secs_string(all_start)}: [{api_type.type()}:{model}] model-warmup: [{timeit.default_timer() - model_start:.0f}]s')
         csv_data.append([api_type.type(), model, '', '', '(warm-up)', '', '', str(int(timeit.default_timer() - model_start)), ''])
 
@@ -70,22 +83,23 @@ def run(api: str, model_set_name: str, settings_set_name: str, message_sets_name
                                     max_tokens=settings_set['max_tokens'])
                 except (Exception,):
                     e = f'{sys.exc_info()[0].__name__}: {sys.exc_info()[1]}'
-                    print(f'Exception! {api}:{model} {settings_set_name} {message_set["name"]}: {e} skipping...')
+                    print(f'run Exception! {api}:{model} {settings_set_name} {message_set["name"]}: {e} skipping...')
                     break
 
                 ms_end = timeit.default_timer()
 
-                print(f'{config.secs_string(all_start)}: [{api_type.type()}:{model}] [{settings_set['temp']}] [{settings_set['max_tokens']}] [{message_set["name"]}]: '
-                      f'[{response.usage.prompt_tokens}+{response.usage.completion_tokens}] '
-                      f'[{ms_end - ms_start:.0f}]s')
-                response_1line = str(response.choices[0].message.content).replace("\n", "  ").replace('"', '""')
-                print(f'{config.secs_string(all_start)}:     {response_1line}')
-                csv_data.append([api_type.type(), model, str(settings_set['temp']), str(settings_set['max_tokens']),
-                                 message_set["name"],
-                                 str(response.usage.prompt_tokens), str(response.usage.completion_tokens),
-                                 str(int(ms_end - ms_start)),
-                                 '"' + response_1line + '"'],
-                                )
+                if response is not None:
+                    print(f'{config.secs_string(all_start)}: [{api_type.type()}:{model}] [{settings_set['temp']}] [{settings_set['max_tokens']}] [{message_set["name"]}]: '
+                          f'[{response.usage.prompt_tokens}+{response.usage.completion_tokens}] '
+                          f'[{ms_end - ms_start:.0f}]s')
+                    response_1line = str(response.choices[0].message.content).replace("\n", "  ").replace('"', '""')
+                    print(f'{config.secs_string(all_start)}:     {response_1line}')
+                    csv_data.append([api_type.type(), model, str(settings_set['temp']), str(settings_set['max_tokens']),
+                                     message_set["name"],
+                                     str(response.usage.prompt_tokens), str(response.usage.completion_tokens),
+                                     str(int(ms_end - ms_start)),
+                                     '"' + response_1line + '"'],
+                                    )
 
         model_end = timeit.default_timer()
         print(f'{config.secs_string(all_start)}: [{api_type.type()}:{model}] [{model_end - model_start:.0f}]s')
@@ -100,7 +114,11 @@ def run(api: str, model_set_name: str, settings_set_name: str, message_sets_name
         print(','.join(line))
 
 
-run(api='ollama', model_set_name='ll1b', settings_set_name='1:800', message_sets_name='text')
+run(api='ollama', model_set_name='ll33', settings_set_name='1:800', message_sets_name='text')
+run(api='groq', model_set_name='ll33', settings_set_name='1:800', message_sets_name='text')
+
+# run(api='ollama', model_set_name='ll33', settings_set_name='1:800', message_sets_name='std7')
+# run(api='groq', model_set_name='ll33', settings_set_name='1:800', message_sets_name='std7')
 
 # run(api='ollama', model_set_name='std8', settings_set_name='1:800', message_sets_name='text')
 # run(api='ollama', model_set_name='std8', settings_set_name='std4', message_sets_name='std7')

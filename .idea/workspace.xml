@@ -5,31 +5,31 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e0a6e3b3-c951-44a3-9ee0-0cb5a6236917" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/chromadbpage.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/examples/chromadb_test.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/rag.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/kfchat.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kfchat.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/chat_perf.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/chat_perf.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/chattest_pfox.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/chattest_pfox.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/main.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/main.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/chat-perf/chat-perf-azure-4omini.csv" beforeDir="false" afterPath="$PROJECT_DIR$/chat-perf/chat-perf-azure-4omini.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/chat-perf/chat-perf-i9-13900H.csv" beforeDir="false" afterPath="$PROJECT_DIR$/chat-perf/chat-perf-i9-13900H.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/chat-perf/chat-perf-openai-4omini.csv" beforeDir="false" afterPath="$PROJECT_DIR$/chat-perf/chat-perf-openai-4omini.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/chat-perf/chat-perf-u9-185H.csv" beforeDir="false" afterPath="$PROJECT_DIR$/chat-perf/chat-perf-u9-185H.csv" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chat-perf/chat-perf-azure-4omini.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/chat-perf/chat-perf-i9-13900H.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/chat-perf/chat-perf-openai-4omini.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/chat-perf/chat-perf-u9-185H.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/chat-perf/chat-perf.py" beforeDir="false" afterPath="$PROJECT_DIR$/chat-perf/chat-perf.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/chat-perf/chat-perf.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/chat-perf/chat-perf.xlsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/chat.py" beforeDir="false" afterPath="$PROJECT_DIR$/chat.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/chatexchange.py" beforeDir="false" afterPath="$PROJECT_DIR$/chatexchange.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/chatpage.py" beforeDir="false" afterPath="$PROJECT_DIR$/chatpage.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/chromadbpage.py" beforeDir="false" afterPath="$PROJECT_DIR$/chromadbpage.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/data.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examples/NiceguiPageClass.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/NiceguiPageClass.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examples/chat_app_main.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/chat_app_main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/chromadb_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/chromadb_test.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examples/nicegui_page_class_tester.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/nicegui_page_class_tester.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examples/refresh_local_scope.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/refresh_local_scope.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frame.py" beforeDir="false" afterPath="$PROJECT_DIR$/frame.py" afterDir="false" />
@@ -39,6 +39,7 @@
       <change beforePath="$PROJECT_DIR$/modelapi.py" beforeDir="false" afterPath="$PROJECT_DIR$/modelapi.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/pluto.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/pluto.jpg" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/prompt-files/q1.txt" beforeDir="false" afterPath="$PROJECT_DIR$/prompt-files/q1.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/test_main.http" beforeDir="false" afterPath="$PROJECT_DIR$/test_main.http" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/version.py" beforeDir="false" afterPath="$PROJECT_DIR$/version.py" afterDir="false" />
     </list>
@@ -92,7 +93,7 @@
       <recent name="C:\cygwin64\home\8fort\dev\kfchat" />
     </key>
   </component>
-  <component name="RunManager" selected="FastAPI.main">
+  <component name="RunManager" selected="Python.chat-perf">
     <configuration name="chromadb_test" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="kfchat" />
       <option name="ENV_FILES" value="" />
@@ -148,17 +149,33 @@
       <workItem from="1733680411272" duration="128000" />
       <workItem from="1733681992170" duration="2993000" />
       <workItem from="1733689961878" duration="3550000" />
-      <workItem from="1733716000086" duration="1713000" />
+      <workItem from="1733716000086" duration="9007000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/chat-perf/chat-perf.py</url>
+          <line>41</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/chat-perf/chat-perf.py</url>
+          <line>85</line>
+          <option name="timeStamp" value="2" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/kfchat$chattest_pfox.coverage" NAME="chattest_pfox Coverage Results" MODIFIED="1733680374025" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/kfchat$chromadb_test.coverage" NAME="chromadb_test Coverage Results" MODIFIED="1733720290455" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
-    <SUITE FILE_PATH="coverage/kfchat$main.coverage" NAME="main Coverage Results" MODIFIED="1733720305452" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
-    <SUITE FILE_PATH="coverage/kfchat$chat_perf.coverage" NAME="chat-perf Coverage Results" MODIFIED="1733680257042" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/chat-perf" />
+    <SUITE FILE_PATH="coverage/kfchat$main.coverage" NAME="main Coverage Results" MODIFIED="1733720417738" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/kfchat$chat_perf.coverage" NAME="chat-perf Coverage Results" MODIFIED="1733773879092" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/chat-perf" />
   </component>
 </project>
