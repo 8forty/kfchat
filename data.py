@@ -17,7 +17,10 @@ warmup_data = {
 model_sets = {
     'ollama': {
         'll1b': ['llama3.2:1b'],
+        'll3b': ['llama3.2:3b'],
         'll33': ['llama3.3:70b'],
+        'mistral7b': ['mistral:7b'],
+        'gemma29b': ['gemma2:9b'],
 
         'qwq': ['qwq'],
 
@@ -63,6 +66,7 @@ model_sets = {
         'll1b': ['llama-3.2-1b-preview'],
         'll33': ['llama-3.3-70b-versatile'],
         'mistral7b': ['mixtral-8x7b-32768'],
+        'gemma29b': ['gemma2-9b-it'],
         'parms': {
             'GROQ_API_KEY': os.getenv('GROQ_API_KEY'),
             'GROQ_ENDPOINT': os.getenv('GROQ_ENDPOINT'),

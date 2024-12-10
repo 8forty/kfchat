@@ -114,8 +114,10 @@ def run(api: str, model_set_name: str, settings_set_name: str, message_sets_name
         print(','.join(line))
 
 
-run(api='ollama', model_set_name='ll33', settings_set_name='1:800', message_sets_name='text')
-run(api='groq', model_set_name='ll33', settings_set_name='1:800', message_sets_name='text')
+# run(api='ollama', model_set_name='mstl7b', settings_set_name='1:800', message_sets_name='text')
+# run(api='groq', model_set_name='ll33', settings_set_name='1:800', message_sets_name='text')
+
+run(api='ollama', model_set_name='mistral7b', settings_set_name='std4', message_sets_name='std7')
 
 # run(api='ollama', model_set_name='ll33', settings_set_name='1:800', message_sets_name='std7')
 # run(api='groq', model_set_name='ll33', settings_set_name='1:800', message_sets_name='std7')

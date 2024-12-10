@@ -6,6 +6,7 @@ from nicegui import ui
 
 import config
 import logstuff
+import rbui
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(config.logging_level)
@@ -18,11 +19,33 @@ def setup(path: str):
         log.debug(f'chromadbpage route triggered')
         ui.label('chromadb page')
 
+        # with ui.column().classes('gap-y-0 w-full mx-10'):
+        #     with rbui.table():
+        #         with rbui.tr():  # table header row
+        #             rbui.th('Your Question')
+        #             rbui.th('General Info')
+        #             rbui.th('Q1')
+        #             rbui.th('Q2')
+        #             rbui.th('Q3')
+        #
+        #         chat_response: ChatResponse
+        #         for chat_response in chat_exchange.responses:
+        #             with rbui.tr():  # table header row
+        #                 rbui.td(chat_response.question)
+        #                 rbui.td(chat_response.gi.gis[0].content if chat_response.gi is not None and len(chat_response.gi.gis) > 0 else ' ')
+        #                 for i in range(0, 3):
+        #                     if len(chat_response.qi.qis) > i:
+        #                         rbui.td(chat_response.qi.qis[i].answer, tt_text=chat_response.qi.qis[i].question)
+        #                     else:
+        #                         rbui.td(' ')
+
         client = await chromadb.AsyncHttpClient(host='localhost', port=8888)
-        for coll in await client.list_collections():
-            ui.label(f'collection [{coll.name}]:{coll.metadata}')
-            results = await coll.query(
-                query_texts=["This is a query document about hawaii"],  # Chroma will embed this for you
-                n_results=2  # how many results to return
-            )
-            ui.label(f'results: {results}')
+        with rbui.table():
+            for coll in await client.list_collections():
+                with rbui.tr():
+                    rbui.td(f'collection [{coll.name}]:{coll.metadata}')
+                    results = await coll.query(
+                        query_texts=["This is a query document about hawaii"],  # Chroma will embed this for you
+                        n_results=2  # how many results to return
+                    )
+                    rbui.td(f'results: {results}')
