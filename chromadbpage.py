@@ -44,8 +44,19 @@ def setup(path: str):
             for coll in await client.list_collections():
                 with rbui.tr():
                     rbui.td(f'collection [{coll.name}]:{coll.metadata}')
-                    results = await coll.query(
+                    results: dict = await coll.query(
                         query_texts=["This is a query document about hawaii"],  # Chroma will embed this for you
                         n_results=2  # how many results to return
                     )
-                    rbui.td(f'results: {results}')
+                    with rbui.table():
+                        for key in results.keys():
+                            val = results[key]
+                            if key == 'documents':  # these are likely too big, just show the lengths
+                                docval: str = 'lengths: ['
+                                for doclist in val:
+                                    docval += '[' + ','.join([str(len(doc)) for doc in doclist]) + ']\n'
+                                docval = docval[0:-1] + ']'
+                                val = docval
+                            with rbui.tr():
+                                rbui.td(key)
+                                rbui.td(str(val))
