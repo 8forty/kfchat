@@ -1,4 +1,4 @@
-from langchain_core.globals import set_verbose, set_debug
+import langchain_core.globals as lcglobals
 from langchain_community.vectorstores import Chroma
 from langchain_community.chat_models import ChatOllama
 from langchain_community.embeddings import FastEmbedEmbeddings
@@ -9,8 +9,8 @@ from langchain.schema.runnable import RunnablePassthrough
 from langchain_community.vectorstores.utils import filter_complex_metadata
 from langchain_core.prompts import ChatPromptTemplate
 
-set_debug(True)
-set_verbose(True)
+lcglobals.set_debug(True)
+lcglobals.set_verbose(True)
 
 
 class ChatPDF:
@@ -45,17 +45,14 @@ class ChatPDF:
         chunks = self.text_splitter.split_documents(docs)
         chunks = filter_complex_metadata(chunks)
 
-        self.vector_store = Chroma.from_documents(
-            documents=chunks,
-            embedding=FastEmbedEmbeddings(),
-            persist_directory="chroma_db",
-        )
+        self.vector_store = Chroma.from_documents(documents=chunks,
+                                                  embedding=FastEmbedEmbeddings(),
+                                                  persist_directory="chroma_db", )
 
     def ask(self, query: str):
         if not self.vector_store:
-            self.vector_store = Chroma(
-                persist_directory="chroma_db", embedding=FastEmbedEmbeddings()
-            )
+            self.vector_store = Chroma(persist_directory="chroma_db",
+                                       embedding_function=FastEmbedEmbeddings(), )
 
         self.retriever = self.vector_store.as_retriever(
             search_type="similarity_score_threshold",

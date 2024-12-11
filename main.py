@@ -25,7 +25,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
     cp = chatpage.ChatPage('ollama')
     cp.setup('/', 'Chat')
 
-    chromadbpage.setup('/chromadb')
+    chromadbpage.setup('/chromadb', 'ChromaDB Page')
 
 
 def run():

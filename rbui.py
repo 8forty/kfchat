@@ -28,8 +28,10 @@ class th(ui.element):
     th_base_classes = 'font-bold border-solid border border-black p-2'
     label_base_classes = 'text-base'
 
-    def __init__(self, label: str, th_classes: str = None, label_classes: str = None):
-        super().__init__('th')
+    def __init__(self, label: str, th_classes: str = None, label_classes: str = None, th_props: str = None):
+        super().__init__(f'th')
+        if th_props is not None:  # for html attributes
+            self.props(th_props)
         self.classes(self.th_base_classes if th_classes is None else th_classes)
         with self:
             ui.label(label).classes(self.label_base_classes if label_classes is None else label_classes)
@@ -41,8 +43,10 @@ class td(ui.element):
     label_base_classes = 'text-base'
     tt_base_classes = 'bg-white text-blue border border-black text-base max-w-80'
 
-    def __init__(self, label: str, td_classes: str = None, label_classes: str = None, tt_text: str = None, tt_classes: str = None):
+    def __init__(self, label: str, td_classes: str = None, label_classes: str = None, td_props: str = None, tt_text: str = None, tt_classes: str = None):
         super().__init__('td')
+        if td_props is not None:
+            self.props(td_props)
 
         self.classes(self.td_base_classes if td_classes is None else td_classes)
         with self:
