@@ -1,3 +1,6 @@
+import logging
+
+import chromadb
 import langchain_core.globals as lcglobals
 from langchain_community.vectorstores import Chroma
 from langchain_community.chat_models import ChatOllama
@@ -8,6 +11,11 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema.runnable import RunnablePassthrough
 from langchain_community.vectorstores.utils import filter_complex_metadata
 from langchain_core.prompts import ChatPromptTemplate
+
+import config
+
+log: logging.Logger = logging.getLogger(__name__)
+log.setLevel(config.logging_level)
 
 lcglobals.set_debug(True)
 lcglobals.set_verbose(True)
@@ -40,14 +48,24 @@ class ChatPDF:
         self.retriever = None
         self.chain = None
 
-    def ingest(self, pdf_file_path: str):
+    # todo: async?
+    def ingest(self, pdf_file_path: str, pdf_name: str):
         docs = PyPDFLoader(file_path=pdf_file_path).load()
         chunks = self.text_splitter.split_documents(docs)
         chunks = filter_complex_metadata(chunks)
 
-        self.vector_store = Chroma.from_documents(documents=chunks,
+        # todo: configure this
+        # client = chromadb.AsyncHttpClient(host='localhost', port=8888)
+        client = chromadb.HttpClient(host='localhost', port=8888)
+        self.vector_store = Chroma.from_documents(client=client,
+                                                  collection_name=pdf_name,
+                                                  documents=chunks,
                                                   embedding=FastEmbedEmbeddings(),
-                                                  persist_directory="chroma_db", )
+                                                  collection_metadata={'pdf_file_path': pdf_file_path, 'pdf_name': pdf_name}
+                                                  )
+        # self.vector_store = Chroma.from_documents(documents=chunks,
+        #                                           embedding=FastEmbedEmbeddings(),
+        #                                           persist_directory="chroma_db", )
 
     def ask(self, query: str):
         if not self.vector_store:
