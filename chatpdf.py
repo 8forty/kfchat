@@ -1,9 +1,13 @@
 import logging
+import os
 
 import chromadb
+import dotenv
 import langchain_core.globals as lcglobals
 from langchain_community.vectorstores import Chroma
-from langchain_community.chat_models import ChatOllama
+from langchain_ollama import ChatOllama
+from langchain_groq import ChatGroq
+from langchain_openai import ChatOpenAI, AzureChatOpenAI
 from langchain_community.embeddings import FastEmbedEmbeddings
 from langchain.schema.output_parser import StrOutputParser
 from langchain_community.document_loaders import PyPDFLoader
@@ -17,8 +21,11 @@ import logstuff
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
+# langchain settings
 lcglobals.set_debug(True)
 lcglobals.set_verbose(True)
+
+dotenv.load_dotenv()
 
 
 class ChatPDF:
@@ -26,9 +33,22 @@ class ChatPDF:
     retriever = None
     chain = None
 
-    def __init__(self, llm_model: str = "llama3.2:3b"):
+    def __init__(self):
 
-        self.model = ChatOllama(model=llm_model)
+        # todo: configure/arg this
+        # self.model = ChatOllama(model='llama3.2:3b')
+
+        self.model = ChatGroq(model_name='llama-3.3-70b-versatile',
+                              groq_api_key=os.getenv('GROQ_API_KEY'))
+        # groq_api_base=os.getenv('GROQ_ENDPOINT' # only use this if "using a proxy or service emulator"
+
+        # self.model = ChatOpenAI(model_name='llama-3.3-70b-versatile',
+        #                         openai_api_key=os.getenv('GROQ_API_KEY'),
+        #                         openai_api_base=os.getenv('GROQ_ENDPOINT'))  # huh, endpoint instead of base for the openai emulation in groq
+
+        # self.model = ChatOpenAI(model_name='gpt-4o-mini',
+        #                         openai_api_key=os.getenv("OPENAI_API_KEY"),
+        #                         openai_api_base=os.getenv('OPENAI_API_BASE'))
 
         self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=100)
         self.prompt = ChatPromptTemplate(
@@ -63,18 +83,15 @@ class ChatPDF:
                                                   embedding=FastEmbedEmbeddings(),
                                                   collection_metadata={'pdf_file_path': pdf_file_path, 'pdf_name': pdf_name}
                                                   )
-        # self.vector_store = Chroma.from_documents(documents=chunks,
-        #                                           embedding=FastEmbedEmbeddings(),
-        #                                           persist_directory="chroma_db", )
 
+    # todo: get the model and parameters right in the post-response info
     def ask(self, query: str):
         if not self.vector_store:
             self.vector_store = Chroma(client=self.chroma_client,
                                        # collection_name='northwind-2023-Benefits-At-A-Glance.pdf',  # todo: arg this
-                                       collection_name='citizens-energy-benefits.pdf',
+                                       # collection_name='citizens-energy-benefits.pdf',
+                                       collection_name='oregon.pdf',
                                        embedding_function=FastEmbedEmbeddings(), )
-            # self.vector_store = Chroma(persist_directory="chroma_db",
-            #                            embedding_function=FastEmbedEmbeddings(), )
 
         self.retriever = self.vector_store.as_retriever(
             search_type="similarity_score_threshold",

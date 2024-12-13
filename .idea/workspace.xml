@@ -5,7 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e0a6e3b3-c951-44a3-9ee0-0cb5a6236917" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/UploadPDFDialog.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/kfchat.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kfchat.iml" afterDir="false" />
@@ -16,6 +15,7 @@
       <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/main.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/main.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/UploadPDFDialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/UploadPDFDialog.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/chat-perf/chat-perf.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/chat-perf/chat-perf.xlsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/chat.py" beforeDir="false" afterPath="$PROJECT_DIR$/chat.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/chatexchange.py" beforeDir="false" afterPath="$PROJECT_DIR$/chatexchange.py" afterDir="false" />
@@ -204,7 +204,7 @@
       <workItem from="1733716000086" duration="12263000" />
       <workItem from="1733866920172" duration="21880000" />
       <workItem from="1734018755719" duration="2454000" />
-      <workItem from="1734047376154" duration="2963000" />
+      <workItem from="1734047376154" duration="8937000" />
     </task>
     <servers />
   </component>
@@ -227,7 +227,7 @@
     <SUITE FILE_PATH="coverage/kfchat$menu.coverage" NAME="menu Coverage Results" MODIFIED="1733939474647" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/kfchat$refresh_xp.coverage" NAME="refresh_xp Coverage Results" MODIFIED="1733941688188" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
     <SUITE FILE_PATH="coverage/kfchat$chromadb_test.coverage" NAME="chromadb_test Coverage Results" MODIFIED="1733960055463" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
-    <SUITE FILE_PATH="coverage/kfchat$main.coverage" NAME="main Coverage Results" MODIFIED="1734050374794" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/kfchat$main.coverage" NAME="main Coverage Results" MODIFIED="1734068014504" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/kfchat$chat_perf.coverage" NAME="chat-perf Coverage Results" MODIFIED="1733856776556" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/chat-perf" />
   </component>
 </project>
