@@ -17,7 +17,7 @@ import logstuff
 from chatexchange import ChatExchange, ChatExchanges
 
 log: logging.Logger = logging.getLogger(__name__)
-log.setLevel(config.logging_level)
+log.setLevel(logstuff.logging_level)
 
 
 class LLMConfig:
@@ -87,18 +87,19 @@ class ChatPage:
                                          prompt=prompt,
                                          convo=convo)
 
-        async def handle_enter(request, prompt_input: Input, spinner: Spinner, idata: InstanceData) -> None:
+        async def handle_enter_chat(request, prompt_input: Input, spinner: Spinner, idata: InstanceData) -> None:
             prompt = prompt_input.value.strip()
             log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({self.api_type}:{self.llm_config.model_name},{self.llm_config.temp},{self.llm_config.max_tokens}): {prompt}')
             prompt_input.disable()
             logstuff.update_from_request(request)  # updates logging prefix with info from each request
 
+            start = timeit.default_timer()
+            spinner.set_visibility(True)
+
             # todo: file of prompts
             # if prompt.startswith('*'):  # load a file of prompts
             #     with
 
-            start = timeit.default_timer()
-            spinner.set_visibility(True)
             response = None
             try:
                 response = await run.io_bound(handle_prompt, prompt, idata)
@@ -116,6 +117,45 @@ class ChatPage:
                                                         (response.usage.prompt_tokens, response.usage.completion_tokens),
                                                         timeit.default_timer() - start,
                                                         chat.Chat.check_for_stop_problems(response)))
+                else:
+                    log.warning(f'exchanges list is None!  prompt/response not saved')
+
+            prompt_input.value = ''
+            prompt_input.enable()
+            idata.refresh_chat_exchanges.refresh(self.llm_config)
+            await prompt_input.run_method('focus')
+
+        async def handle_enter_vector_search(request, prompt_input: Input, spinner: Spinner, idata: InstanceData) -> None:
+            prompt = prompt_input.value.strip()
+            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt(): {prompt}')
+            prompt_input.disable()
+            logstuff.update_from_request(request)  # updates logging prefix with info from each request
+
+            start = timeit.default_timer()
+            spinner.set_visibility(True)
+
+            # todo: file of prompts
+            # if prompt.startswith('*'):  # load a file of prompts
+            #     with
+
+            response = None
+            try:
+                response = await run.io_bound(config.chat_pdf.ask, prompt)
+                print(f'~~~~ response[{type(response)}]: {response}')
+            except (Exception,):
+                e = f'{sys.exc_info()[0].__name__}: {sys.exc_info()[1]}'
+                traceback.print_exc(file=sys.stdout)
+                log.warning(f'vector-search error! {e}')
+                ui.notify(message=f'vector-search error! {e}', position='top', type='negative', close_button='Dismiss', timeout=0)
+
+            spinner.set_visibility(False)
+
+            if response is not None:
+                if idata.exchanges is not None:
+                    idata.exchanges.append(ChatExchange(prompt, response,
+                                                        (-1, -1),
+                                                        timeit.default_timer() - start,
+                                                        {}))
                 else:
                     log.warning(f'exchanges list is None!  prompt/response not saved')
 
@@ -143,7 +183,8 @@ class ChatPage:
                                     .props('color=primary')
                                     .props('bg-color=white')
                                     )
-                    prompt_input.on('keydown.enter', lambda req=request, i=idata: handle_enter(req, prompt_input, spinner, i))
+                    # prompt_input.on('keydown.enter', lambda req=request, i=idata: handle_enter_chat(req, prompt_input, spinner, i))
+                    prompt_input.on('keydown.enter', lambda req=request, i=idata: handle_enter_vector_search(req, prompt_input, spinner, i))
 
             with frame.frame(f'{config.name} {pagename}', 'bg-white'):
                 with ui.column().classes('w-full flex-grow'):  # .classes('w-full max-w-2xl mx-auto items-stretch'):

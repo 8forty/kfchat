@@ -4,13 +4,16 @@ import random
 import time
 import timeit
 
-random.seed(27)
+from chatpdf import ChatPDF
 
-logging_level = logging.INFO
+random.seed(27)
 
 name = 'kfchat'
 
 chat_exchanges_circular_list_count = 10
+
+# todo: this should be moved
+chat_pdf = ChatPDF()
 
 
 def now_datetime() -> str:

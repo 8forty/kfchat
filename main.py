@@ -6,9 +6,10 @@ from nicegui import ui
 import chatpage
 import chromadbpage
 import config
+import logstuff
 
 log: logging.Logger = logging.getLogger(__name__)
-log.setLevel(config.logging_level)
+log.setLevel(logstuff.logging_level)
 
 app = FastAPI()
 

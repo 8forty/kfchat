@@ -12,10 +12,10 @@ from langchain.schema.runnable import RunnablePassthrough
 from langchain_community.vectorstores.utils import filter_complex_metadata
 from langchain_core.prompts import ChatPromptTemplate
 
-import config
+import logstuff
 
 log: logging.Logger = logging.getLogger(__name__)
-log.setLevel(config.logging_level)
+log.setLevel(logstuff.logging_level)
 
 lcglobals.set_debug(True)
 lcglobals.set_verbose(True)
@@ -43,6 +43,7 @@ class ChatPDF:
                 ),
             ]
         )
+        self.chroma_client = chromadb.HttpClient(host='localhost', port=8888)
 
         self.vector_store = None
         self.retriever = None
@@ -56,8 +57,7 @@ class ChatPDF:
 
         # todo: configure this
         # client = chromadb.AsyncHttpClient(host='localhost', port=8888)
-        client = chromadb.HttpClient(host='localhost', port=8888)
-        self.vector_store = Chroma.from_documents(client=client,
+        self.vector_store = Chroma.from_documents(client=self.chroma_client,
                                                   collection_name=pdf_name,
                                                   documents=chunks,
                                                   embedding=FastEmbedEmbeddings(),
@@ -69,8 +69,12 @@ class ChatPDF:
 
     def ask(self, query: str):
         if not self.vector_store:
-            self.vector_store = Chroma(persist_directory="chroma_db",
+            self.vector_store = Chroma(client=self.chroma_client,
+                                       # collection_name='northwind-2023-Benefits-At-A-Glance.pdf',  # todo: arg this
+                                       collection_name='citizens-energy-benefits.pdf',
                                        embedding_function=FastEmbedEmbeddings(), )
+            # self.vector_store = Chroma(persist_directory="chroma_db",
+            #                            embedding_function=FastEmbedEmbeddings(), )
 
         self.retriever = self.vector_store.as_retriever(
             search_type="similarity_score_threshold",

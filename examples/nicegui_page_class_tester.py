@@ -4,10 +4,11 @@ from fastapi import FastAPI
 from nicegui import ui
 
 import config
+import logstuff
 from examples.NiceguiPageClass import NiceguiPageClass
 
 log: logging.Logger = logging.getLogger(__name__)
-log.setLevel(config.logging_level)
+log.setLevel(logstuff.logging_level)
 
 app = FastAPI()
 

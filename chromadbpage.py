@@ -11,7 +11,7 @@ import logstuff
 import rbui
 
 log: logging.Logger = logging.getLogger(__name__)
-log.setLevel(config.logging_level)
+log.setLevel(logstuff.logging_level)
 
 
 def setup(path: str, pagename: str):

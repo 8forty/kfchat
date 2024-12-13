@@ -6,6 +6,8 @@ from fastapi import Request
 
 import version
 
+logging_level = logging.INFO
+
 
 @dataclass
 class LogPrefixData:

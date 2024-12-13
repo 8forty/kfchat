@@ -7,10 +7,11 @@ import openai
 from openai.types.chat import ChatCompletion
 
 import config
+import logstuff
 from modelapi import ModelAPI
 
 log: logging.Logger = logging.getLogger(__name__)
-log.setLevel(config.logging_level)
+log.setLevel(logstuff.logging_level)
 
 
 @dataclass
