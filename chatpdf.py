@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 
 import chromadb
 import dotenv
@@ -63,7 +64,14 @@ class ChatPDF:
                 ),
             ]
         )
-        self.chroma_client = chromadb.HttpClient(host='localhost', port=8888)
+
+        while True:
+            try:
+                self.chroma_client = chromadb.HttpClient(host='localhost', port=8888)  # todo: configure this
+                break
+            except (Exception,) as e:
+                print(f'!!! Chroma client error, will retry in {15} secs: {e}')
+            time.sleep(15)  # todo: configure this
 
         self.vector_store = None
         self.retriever = None
