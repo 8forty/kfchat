@@ -2,7 +2,7 @@ import logging
 import os
 import tempfile
 
-from nicegui import events
+from nicegui import events, ui
 from nicegui.elements.dialog import Dialog
 
 import config
@@ -22,7 +22,14 @@ class UploadPDFDialog(Dialog):
             tmp.write(evt.content.read())
             tmp_name = tmp.name
         self.close()
-        config.chat_pdf.ingest(tmp_name, evt.name)
+
+        try:
+            config.chat_pdf.ingest(tmp_name, evt.name)
+        except (Exception,) as e:
+            errmsg = f'Error ingesting {evt.name}: {e}'
+            log.error(errmsg)
+            ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
+
         os.remove(tmp_name)
         log.info(f'ingested {evt.name} via {tmp_name}')
 

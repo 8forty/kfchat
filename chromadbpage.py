@@ -20,16 +20,25 @@ def setup(path: str, pagename: str):
         # todo: make this once?
         client = await chromadb.AsyncHttpClient(host='localhost', port=8888)
         with rbui.table():
-            for coll in await client.list_collections():
+            for collection in await client.list_collections():
                 with rbui.tr():
-                    with rbui.td(f'collection [{coll.name}]'):
-                        ui.button(text='delete', on_click=lambda c=coll: delete_coll(client, c.name))
+                    with rbui.td(f'collection [{collection.name}]'):
+                        ui.button(text='delete', on_click=lambda c=collection: delete_coll(client, c.name))
 
                     # details table
                     with rbui.table():
+                        with rbui.tr():
+                            rbui.td('document/chunk count')
+                            rbui.td(f'{await collection.count()}')
+                        with rbui.tr():
+                            rbui.td('peek.documents')
+                            peek = await collection.peek(limit=3)
+                            docs = '\n-----[doc]-----\n'.join(peek['documents'])  # 'ids', 'embeddings', 'metadatas', 'documents', 'data', 'uris', 'included'
+                            rbui.td(f'{docs}')
+
                         # _client, _model, _embedding_function, _data_loader, ?
-                        for key in coll.__dict__['_model'].__dict__.keys():
-                            val = coll.__dict__['_model'].__dict__[key]
+                        for key in collection.__dict__['_model'].__dict__.keys():
+                            val = collection.__dict__['_model'].__dict__[key]
                             with rbui.tr():
                                 rbui.td(f'_model.{key}')
                                 rbui.td(str(val))

@@ -4,7 +4,7 @@ import random
 import time
 import timeit
 
-from chatpdf import ChatPDF
+from pdfvectorized import PDFVectorized
 
 random.seed(27)
 
@@ -13,7 +13,7 @@ name = 'kfchat'
 chat_exchanges_circular_list_count = 10
 
 # todo: this should be moved
-chat_pdf = ChatPDF()
+chat_pdf = PDFVectorized()
 
 
 def now_datetime() -> str:

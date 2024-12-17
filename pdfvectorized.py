@@ -6,6 +6,7 @@ import chromadb
 import dotenv
 import langchain_core.globals as lcglobals
 from langchain_community.vectorstores import Chroma
+from langchain_core.documents import Document
 from langchain_ollama import ChatOllama
 from langchain_groq import ChatGroq
 from langchain_openai import ChatOpenAI, AzureChatOpenAI
@@ -29,7 +30,7 @@ lcglobals.set_verbose(True)
 dotenv.load_dotenv()
 
 
-class ChatPDF:
+class PDFVectorized:
     vector_store = None
     retriever = None
     chain = None
@@ -51,7 +52,6 @@ class ChatPDF:
         #                         openai_api_key=os.getenv("OPENAI_API_KEY"),
         #                         openai_api_base=os.getenv('OPENAI_API_BASE'))
 
-        self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=100)
         self.prompt = ChatPromptTemplate(
             [
                 (
@@ -79,28 +79,45 @@ class ChatPDF:
 
     # todo: async?
     def ingest(self, pdf_file_path: str, pdf_name: str):
-        docs = PyPDFLoader(file_path=pdf_file_path).load()
-        chunks = self.text_splitter.split_documents(docs)
+        # collection name:
+        # (1) contains 3-63 characters,
+        # (2) starts and ends with an alphanumeric character,
+        # (3) otherwise contains only alphanumeric characters, underscores or hyphens (-) [NO SPACES!],
+        # (4) contains no two consecutive periods (..) and
+        # (5) is not a valid IPv4 address
+        collection_name = pdf_name.replace(' ', '-')
+        collection_name = collection_name.replace('..', '._')
+        if len(collection_name) > 63:
+            collection_name = collection_name[:63]
+
+        # load the PDF into LC Document's (qsa: Doc = page, 48 of each)
+        docs: list[Document] = PyPDFLoader(file_path=pdf_file_path).load()
+
+        # split into chunks, also LC Document's (qsa/1024/100: 135 chunks for 48 pages)
+        chunks = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=100).split_documents(docs)
+
+        # remove complex metadata not supported by ChromaDB
         chunks = filter_complex_metadata(chunks)
 
         # todo: configure this
-        # client = chromadb.AsyncHttpClient(host='localhost', port=8888)
+        # create Chroma vectorstore from the chunks
         self.vector_store = Chroma.from_documents(client=self.chroma_client,
-                                                  collection_name=pdf_name,
+                                                  collection_name=collection_name,
                                                   documents=chunks,
-                                                  embedding=FastEmbedEmbeddings(),
-                                                  collection_metadata={'pdf_file_path': pdf_file_path, 'pdf_name': pdf_name}
+                                                  embedding=FastEmbedEmbeddings(),  # todo: there are a LOT of choices, this is Qdrant FastEmbed
+                                                  collection_metadata={'pdf_name': pdf_name}
                                                   )
 
     # todo: get the model and parameters right in the post-response info
     def ask(self, query: str):
         if not self.vector_store:
             self.vector_store = Chroma(client=self.chroma_client,
-                                       # collection_name='northwind-2023-Benefits-At-A-Glance.pdf',  # todo: arg this
+                                       # collection_name='northwind-2023-Benefits-At-A-Glance.pdf',
                                        # collection_name='citizens-energy-benefits.pdf',
                                        collection_name='oregon.pdf',
-                                       embedding_function=FastEmbedEmbeddings(), )
+                                       embedding_function=FastEmbedEmbeddings())  # todo: there are a LOT of choices, this is Qdrant FastEmbed
 
+        # todo: configure this, LOTS of dials in retriever
         self.retriever = self.vector_store.as_retriever(
             search_type="similarity_score_threshold",
             search_kwargs={"k": 10, "score_threshold": 0.0},
