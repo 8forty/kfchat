@@ -43,12 +43,14 @@ class td(ui.element):
     label_base_classes = 'text-base'
     tt_base_classes = 'bg-white text-blue border border-black text-base max-w-80'
 
-    def __init__(self, label: str, td_classes: str = None, label_classes: str = None, td_props: str = None, tt_text: str = None, tt_classes: str = None):
+    def __init__(self, label: str, td_classes: str = None, label_classes: str = None, td_props: str = None, td_style: str = None, tt_text: str = None, tt_classes: str = None):
         super().__init__('td')
         if td_props is not None:
             self.props(td_props)
 
         self.classes(self.td_base_classes if td_classes is None else td_classes)
+        if td_style is not None:
+            self.style(td_style)
         with self:
             for line in label.split(sep='\n'):
                 # add a ' ' in case the line is just '\n'

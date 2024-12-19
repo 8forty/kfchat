@@ -22,7 +22,7 @@ def setup(path: str, pagename: str):
         with rbui.table():
             for collection in await client.list_collections():
                 with rbui.tr():
-                    with rbui.td(f'collection [{collection.name}]'):
+                    with rbui.td(label=f'collection [{collection.name}]', td_style='width: 300px'):
                         ui.button(text='delete', on_click=lambda c=collection: delete_coll(client, c.name))
 
                     # details table
@@ -32,7 +32,7 @@ def setup(path: str, pagename: str):
                             rbui.td(f'{await collection.count()}')
                         with rbui.tr():
                             rbui.td('peek.documents')
-                            peek_docs = [d[0:100] + '...' for d in (await collection.peek(limit=3))['documents']]
+                            peek_docs = [d[0:100] + '[...]' for d in (await collection.peek(limit=3))['documents']]
                             docs = '\n-----[doc]-----\n'.join(peek_docs)  # 'ids', 'embeddings', 'metadatas', 'documents', 'data', 'uris', 'included'
                             rbui.td(f'{docs}')
 
