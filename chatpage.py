@@ -34,9 +34,12 @@ class InstanceData:
     def __init__(self, api_type: str):
         self.exchanges: ChatExchanges = ChatExchanges(config.chat_exchanges_circular_list_count)
         self.chat = chat.Chat(api_type)
+        self.chat_source = None
 
     @ui.refreshable
     async def refresh_chat_exchanges(self, llm_config: LLMConfig) -> None:
+        with ui.row().classes('w-full border-solid border border-black place-content-center'):
+            ui.label(f'Current Chat Source:{"<general chat>" if self.chat_source is None else self.chat_source}').classes('text-green text-lg')
         # todo: local-storage-session to separate messages
         if self.exchanges is not None and len(self.exchanges) > 0:
             for exchange in self.exchanges:
@@ -164,6 +167,12 @@ class ChatPage:
             idata.refresh_chat_exchanges.refresh(self.llm_config)
             await prompt_input.run_method('focus')
 
+        async def handle_enter(request, prompt_input: Input, spinner: Spinner, idata: InstanceData) -> None:
+            if idata.chat_source is None:
+                await handle_enter_chat(request, prompt_input, spinner, idata)
+            else:
+                await handle_enter_vector_search(request, prompt_input, spinner, idata)
+
         @ui.page(path)
         async def index(request: Request) -> None:
             logstuff.update_from_request(request)
@@ -183,9 +192,9 @@ class ChatPage:
                                     .props('color=primary')
                                     .props('bg-color=white')
                                     )
-                    # prompt_input.on('keydown.enter', lambda req=request, i=idata: handle_enter_chat(req, prompt_input, spinner, i))
-                    prompt_input.on('keydown.enter', lambda req=request, i=idata: handle_enter_vector_search(req, prompt_input, spinner, i))
+                    prompt_input.on('keydown.enter', lambda req=request, i=idata: handle_enter(req, prompt_input, spinner, i))
 
+            # setup the standard "frame" for all pages
             with frame.frame(f'{config.name} {pagename}', 'bg-white'):
                 with ui.column().classes('w-full flex-grow'):  # .classes('w-full max-w-2xl mx-auto items-stretch'):
                     await idata.refresh_chat_exchanges(self.llm_config)

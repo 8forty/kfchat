@@ -35,7 +35,9 @@ class PDFVectorized:
     retriever = None
     chain = None
 
-    def __init__(self):
+    def __init__(self, chroma_client):
+
+        self.chroma_client = chroma_client
 
         # todo: configure/arg this
         # self.model = ChatOllama(model='llama3.2:3b')
@@ -64,14 +66,6 @@ class PDFVectorized:
                 ),
             ]
         )
-
-        while True:
-            try:
-                self.chroma_client = chromadb.HttpClient(host='localhost', port=8888)  # todo: configure this
-                break
-            except (Exception,) as e:
-                print(f'!!! Chroma client error, will retry in {15} secs: {e}')
-            time.sleep(15)  # todo: configure this
 
         self.vector_store = None
         self.retriever = None

@@ -1,4 +1,3 @@
-import asyncio
 import logging
 
 import chromadb
@@ -9,6 +8,7 @@ import config
 import frame
 import logstuff
 import rbui
+from config import make_clients_once
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -17,10 +17,9 @@ log.setLevel(logstuff.logging_level)
 def setup(path: str, pagename: str):
     @ui.refreshable
     async def chroma_ui() -> None:
-        # todo: make this once?
-        client = await chromadb.AsyncHttpClient(host='localhost', port=8888)
+        await make_clients_once()
         with rbui.table():
-            for collection in await client.list_collections():
+            for collection in await config.chromadb_client.list_collections():
                 with rbui.tr():
                     with rbui.td(label=f'collection [{collection.name}]', td_style='width: 300px'):
                         ui.button(text='delete', on_click=lambda c=collection: delete_coll(client, c.name))
