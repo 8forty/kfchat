@@ -32,8 +32,8 @@ def setup(path: str, pagename: str):
                             rbui.td(f'{await collection.count()}')
                         with rbui.tr():
                             rbui.td('peek.documents')
-                            peek = await collection.peek(limit=3)
-                            docs = '\n-----[doc]-----\n'.join(peek['documents'])  # 'ids', 'embeddings', 'metadatas', 'documents', 'data', 'uris', 'included'
+                            peek_docs = [d[0:100] + '...' for d in (await collection.peek(limit=3))['documents']]
+                            docs = '\n-----[doc]-----\n'.join(peek_docs)  # 'ids', 'embeddings', 'metadatas', 'documents', 'data', 'uris', 'included'
                             rbui.td(f'{docs}')
 
                         # _client, _model, _embedding_function, _data_loader, ?
@@ -48,9 +48,6 @@ def setup(path: str, pagename: str):
         await client.delete_collection(coll_name)
         chroma_ui.refresh()
 
-    async def rrr():
-        chroma_ui.refresh()
-
     @ui.page(path)
     async def index(request: Request) -> None:
         logstuff.update_from_request(request)
@@ -58,7 +55,7 @@ def setup(path: str, pagename: str):
 
         with frame.frame(f'{config.name} {pagename}', 'bg-white'):
             with ui.column().classes('w-full flex-grow'):  # .classes('w-full max-w-2xl mx-auto items-stretch'):
-                ui.button('refresh', on_click=rrr)
+                ui.button('refresh', on_click=lambda: chroma_ui.refresh())
                 await chroma_ui()
 
         #
