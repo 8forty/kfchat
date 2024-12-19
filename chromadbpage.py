@@ -31,8 +31,9 @@ def setup(path: str, pagename: str):
                             rbui.td('document/chunk count')
                             rbui.td(f'{await collection.count()}')
                         with rbui.tr():
-                            rbui.td('peek.documents')
-                            peek_docs = [d[0:100] + '[...]' for d in (await collection.peek(limit=3))['documents']]
+                            peek_n = 3
+                            rbui.td(f'peek.documents({peek_n})')
+                            peek_docs = [d[0:100] + '[...]' for d in (await collection.peek(limit=peek_n))['documents']]
                             docs = '\n-----[doc]-----\n'.join(peek_docs)  # 'ids', 'embeddings', 'metadatas', 'documents', 'data', 'uris', 'included'
                             rbui.td(f'{docs}')
 
