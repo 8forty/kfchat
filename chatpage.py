@@ -14,7 +14,9 @@ import chat
 import config
 import frame
 import logstuff
+import vectorstore_chroma
 from chatexchange import ChatExchange, ChatExchanges
+from vectorstore_chroma import VectorStoreChroma
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -31,15 +33,34 @@ class LLMConfig:
 
 
 class InstanceData:
+    general_chat_value: str = '<general chat>'
+
     def __init__(self, api_type: str):
         self.exchanges: ChatExchanges = ChatExchanges(config.chat_exchanges_circular_list_count)
         self.chat = chat.Chat(api_type)
-        self.chat_source = None
+        self.chat_source_name: str | None = None
+        self.chat_source: VectorStoreChroma | None = None
+
+    def change_chat_source(self, source_name: str):
+        if source_name == self.general_chat_value:
+            self.chat_source_name = None
+            self.chat_source = None
+        else:
+            self.chat_source_name = source_name
+            self.chat_source = VectorStoreChroma(vectorstore_chroma.chromadb_client)
 
     @ui.refreshable
     async def refresh_chat_exchanges(self, llm_config: LLMConfig) -> None:
-        with ui.row().classes('w-full border-solid border border-black place-content-center'):
-            ui.label(f'Current Chat Source:{"<general chat>" if self.chat_source is None else self.chat_source}').classes('text-green text-lg')
+        await vectorstore_chroma.setup_once()
+        with (ui.row().classes('w-full border-solid border border-black place-content-center')):
+            collections: list[str] = [self.general_chat_value]
+            for collection in await vectorstore_chroma.chromadb_client.list_collections():
+                collections.append(collection.name)
+            ui.select(options=collections,
+                      value=collections[0],
+                      label='Chat Source:'
+                      ).on_value_change(lambda vc: self.change_chat_source(vc.value)).props('square outlined label-color=green')
+
         # todo: local-storage-session to separate messages
         if self.exchanges is not None and len(self.exchanges) > 0:
             for exchange in self.exchanges:
@@ -143,8 +164,10 @@ class ChatPage:
 
             response = None
             try:
-                response = await run.io_bound(config.chat_pdf.ask, prompt)
-                print(f'~~~~ response[{type(response)}]: {response}')
+                log.debug(f'vector search with [{idata.chat_source_name}]: {prompt}')
+                # response = await run.io_bound(idata.chat_source.ask, prompt, idata.chat_source_name)
+                response = await idata.chat_source.ask(prompt, idata.chat_source_name)
+                log.debug(f'vector search response[{type(response)}]: {response}')
             except (Exception,):
                 e = f'{sys.exc_info()[0].__name__}: {sys.exc_info()[1]}'
                 traceback.print_exc(file=sys.stdout)

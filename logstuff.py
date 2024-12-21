@@ -6,7 +6,7 @@ from fastapi import Request
 
 import version
 
-logging_level = logging.INFO
+logging_level = logging.DEBUG
 
 
 @dataclass

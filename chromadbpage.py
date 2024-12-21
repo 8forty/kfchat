@@ -8,7 +8,7 @@ import config
 import frame
 import logstuff
 import rbui
-from config import make_clients_once
+import vectorstore_chroma
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -17,12 +17,12 @@ log.setLevel(logstuff.logging_level)
 def setup(path: str, pagename: str):
     @ui.refreshable
     async def chroma_ui() -> None:
-        await make_clients_once()
+        await vectorstore_chroma.setup_once()
         with rbui.table():
-            for collection in await config.chromadb_client.list_collections():
+            for collection in await vectorstore_chroma.chromadb_client.list_collections():
                 with rbui.tr():
                     with rbui.td(label=f'collection [{collection.name}]', td_style='width: 300px'):
-                        ui.button(text='delete', on_click=lambda c=collection: delete_coll(client, c.name))
+                        ui.button(text='delete', on_click=lambda c=collection: delete_coll(vectorstore_chroma.chromadb_client, c.name))
 
                     # details table
                     with rbui.table():
