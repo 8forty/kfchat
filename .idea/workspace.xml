@@ -39,7 +39,6 @@
       <change beforePath="$PROJECT_DIR$/rbui.py" beforeDir="false" afterPath="$PROJECT_DIR$/rbui.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/test_main.http" beforeDir="false" afterPath="$PROJECT_DIR$/test_main.http" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/vectorstore_chroma.py" beforeDir="false" afterPath="$PROJECT_DIR$/vectorstore_chroma.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/version.py" beforeDir="false" afterPath="$PROJECT_DIR$/version.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -208,7 +207,7 @@
       <workItem from="1734047376154" duration="9965000" />
       <workItem from="1734108530185" duration="10435000" />
       <workItem from="1734453138587" duration="647000" />
-      <workItem from="1734577043167" duration="26419000" />
+      <workItem from="1734577043167" duration="27794000" />
     </task>
     <servers />
   </component>
@@ -220,7 +219,7 @@
     <SUITE FILE_PATH="coverage/kfchat$menu.coverage" NAME="menu Coverage Results" MODIFIED="1733939474647" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/kfchat$refresh_xp.coverage" NAME="refresh_xp Coverage Results" MODIFIED="1733941688188" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
     <SUITE FILE_PATH="coverage/kfchat$chromadb_test.coverage" NAME="chromadb_test Coverage Results" MODIFIED="1734816022062" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
-    <SUITE FILE_PATH="coverage/kfchat$main.coverage" NAME="main Coverage Results" MODIFIED="1734842121363" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/kfchat$main.coverage" NAME="main Coverage Results" MODIFIED="1734843498943" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/kfchat$chat_perf.coverage" NAME="chat-perf Coverage Results" MODIFIED="1733856776556" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/chat-perf" />
   </component>
 </project>

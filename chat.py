@@ -16,8 +16,8 @@ log.setLevel(logstuff.logging_level)
 
 @dataclass
 class ChatExchange:
-    usermsg: str
-    asstmsg: str
+    prompt: str
+    response: str
 
 
 class Chat:
@@ -51,13 +51,13 @@ class Chat:
 
         return stop_problems
 
-    def chat_batch(self, model_name: str, temp: float, max_tokens: int, n: int,
-                   sysmsg: str, prompt: str, convo: list[ChatExchange]):
+    def chat(self, model_name: str, temp: float, max_tokens: int, n: int,
+             sysmsg: str, prompt: str, convo: list[ChatExchange]):
         # todo: detect stop problems, e.g. not enough tokens
         messages = [{'role': 'system', 'content': sysmsg}]
         for exchange in convo:
-            messages.append({'role': 'user', 'content': exchange.usermsg})
-            messages.append({'role': 'assistant', 'content': exchange.asstmsg})
+            messages.append({'role': 'user', 'content': exchange.prompt})
+            messages.append({'role': 'assistant', 'content': exchange.response})
         messages.append({'role': 'user', 'content': prompt})
 
         response: ChatCompletion = self.client.chat.completions.create(
@@ -75,6 +75,16 @@ class Chat:
             # presence_penalty=1,  # default 0, -2.0->2.0
             # stop=[],
         )
+
+        # ChatCompletion (full openai version):
+        #     id: str  A unique identifier for the chat completion
+        #     choices: List[Choice]  A list of chat completion choices. Can be more than one if `n` is greater than 1.
+        #     created: int  The Unix timestamp (in seconds) of when the chat completion was created.
+        #     model: str  The model used for the chat completion.
+        #     object: Literal["chat.completion"]  The object type, which is always `chat.completion`
+        #     service_tier: Optional[Literal["scale", "default"]] = None  The service tier used, included iff the `service_tier` parameter is specified in the request.
+        #     system_fingerprint: Optional[str] = None  This fingerprint represents the backend configuration that the model runs with, in conjunction with the `seed` to detect backend changes
+        #     usage: Optional[CompletionUsage] = None  Usage statistics for the completion request.
 
         for choice_idx, stop_problem in self.check_for_stop_problems(response).items():
             log.warning(f'** stop problem choice[{choice_idx}]! {stop_problem}**\n')

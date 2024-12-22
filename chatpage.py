@@ -117,10 +117,10 @@ class ChatPage:
                 for exchange in idata.exchanges:
                     convo.append(chat.ChatExchange(exchange.prompt, exchange.response))
 
-            return idata.chat.chat_batch(self.llm_config.model_name, temp=self.llm_config.temp, max_tokens=self.llm_config.max_tokens, n=1,
-                                         sysmsg=self.llm_config.system_message,
-                                         prompt=prompt,
-                                         convo=convo)
+            return idata.chat.chat(self.llm_config.model_name, temp=self.llm_config.temp, max_tokens=self.llm_config.max_tokens, n=1,
+                                   sysmsg=self.llm_config.system_message,
+                                   prompt=prompt,
+                                   convo=convo)
 
         def do_vector_search(prompt: str, idata: InstanceData):
             response = idata.chat_source.ask(prompt, idata.chat_source_name)
