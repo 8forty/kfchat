@@ -32,7 +32,7 @@ class UploadPDFDialog(Dialog):
 
         try:
             log.debug(f'ingesting server file {evt.name}...')
-            await vectorstore_chroma.chroma.ingest_pdf(tmp_name, evt.name)
+            await run.io_bound(vectorstore_chroma.chroma.ingest_pdf, tmp_name, evt.name)
         except (Exception,) as e:
             errmsg = f'Error ingesting {evt.name}: {e}'
             traceback.print_exc(file=sys.stdout)

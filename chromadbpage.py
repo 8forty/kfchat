@@ -2,7 +2,7 @@ import logging
 
 import chromadb
 from fastapi import Request
-from nicegui import ui
+from nicegui import ui, run
 
 import config
 import frame
@@ -17,9 +17,9 @@ log.setLevel(logstuff.logging_level)
 def setup(path: str, pagename: str):
     @ui.refreshable
     async def chroma_ui() -> None:
-        await vectorstore_chroma.setup_once()
+        await run.io_bound(vectorstore_chroma.setup_once)
         with rbui.table():
-            for collection in await vectorstore_chroma.chromadb_client.list_collections():
+            for collection in await run.io_bound(vectorstore_chroma.chromadb_client.list_collections):
                 with rbui.tr():
                     with rbui.td(label=f'collection [{collection.name}]', td_style='width: 300px'):
                         ui.button(text='delete', on_click=lambda c=collection: delete_coll(vectorstore_chroma.chromadb_client, c.name))
@@ -28,11 +28,11 @@ def setup(path: str, pagename: str):
                     with rbui.table():
                         with rbui.tr():
                             rbui.td('document/chunk count')
-                            rbui.td(f'{await collection.count()}')
+                            rbui.td(f'{collection.count()}')
                         with rbui.tr():
                             peek_n = 3
                             rbui.td(f'peek.documents({peek_n})')
-                            peek_docs = [d[0:100] + '[...]' for d in (await collection.peek(limit=peek_n))['documents']]
+                            peek_docs = [d[0:100] + '[...]' for d in (collection.peek(limit=peek_n))['documents']]
                             docs = '\n-----[doc]-----\n'.join(peek_docs)  # 'ids', 'embeddings', 'metadatas', 'documents', 'data', 'uris', 'included'
                             rbui.td(f'{docs}')
 
@@ -43,9 +43,9 @@ def setup(path: str, pagename: str):
                                 rbui.td(f'_model.{key}')
                                 rbui.td(str(val))
 
-    async def delete_coll(client: chromadb.AsyncClientAPI, coll_name: str) -> None:
+    async def delete_coll(client: chromadb.ClientAPI, coll_name: str) -> None:
         log.info(f'deleting collection {coll_name}')
-        await client.delete_collection(coll_name)
+        client.delete_collection(coll_name)
         chroma_ui.refresh()
 
     @ui.page(path)

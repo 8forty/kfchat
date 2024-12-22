@@ -40,7 +40,7 @@ class VectorStoreChroma:
     chain = None
 
     def __init__(self, chroma_client):
-        self.chroma_client: chromadb.AsyncClientAPI = chroma_client
+        self.chroma_client: chromadb.ClientAPI = chroma_client
 
         # todo: configure/arg this
         # self.model = ChatOllama(model='llama3.2:3b')
@@ -70,7 +70,7 @@ class VectorStoreChroma:
             ]
         )
 
-    async def ingest_pdf(self, pdf_file_path: str, pdf_name: str):
+    def ingest_pdf(self, pdf_file_path: str, pdf_name: str):
         # collection name:
         # (1) contains 3-63 characters,
         # (2) starts and ends with an alphanumeric character,
@@ -88,7 +88,7 @@ class VectorStoreChroma:
 
         # create the collection
         # todo: configure this
-        collection = await self.chroma_client.create_collection(
+        collection = self.chroma_client.create_collection(
             name=collection_name,
             configuration=None,
             metadata=None,
@@ -98,22 +98,22 @@ class VectorStoreChroma:
         )
 
         # load the PDF into LC Document's (qsa: Doc = page, 48 of each)
-        docs: list[Document] = await run.io_bound(PyPDFLoader(file_path=pdf_file_path).load)
+        docs: list[Document] = PyPDFLoader(file_path=pdf_file_path).load()
 
         # split into chunks, also LC Document's (qsa/1024/100: 135 chunks for 48 pages)
-        chunks = await run.io_bound(RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=100).split_documents, docs)
+        chunks = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=100).split_documents(docs)
 
         # remove complex metadata not supported by ChromaDB, pull out the the content as a str
-        chunks = [c.page_content for c in await run.io_bound(filter_complex_metadata, chunks)]
+        chunks = [c.page_content for c in filter_complex_metadata(chunks)]
 
         # create Chroma vectorstore from the chunks
         log.debug(f'adding {len(chunks)} chunks to {collection_name}')
-        await collection.add(documents=chunks, ids=[str(uuid.uuid4()) for i in range(0, len(chunks))])
+        collection.add(documents=chunks, ids=[str(uuid.uuid4()) for i in range(0, len(chunks))])
 
     # todo: get the model and parameters right for the post-response info
-    async def ask(self, prompt: str, collection_name: str):
+    def ask(self, prompt: str, collection_name: str):
         try:
-            collection = await self.chroma_client.get_collection(
+            collection = self.chroma_client.get_collection(
                 name=collection_name,
                 embedding_function=SentenceTransformerEmbeddingFunction(model_name='all-MiniLM-L6-v2'),  # default: 'all-MiniLM-L6-v2'
                 data_loader=None,
@@ -124,7 +124,7 @@ class VectorStoreChroma:
             raise ValueError(errmsg)
 
         log.debug(f'running query {prompt}')
-        results = await collection.query(
+        results = collection.query(
             query_texts=[prompt],
             n_results=2
         )
@@ -152,18 +152,18 @@ class VectorStoreChroma:
         # return chain.invoke(prompt)
 
 
-chromadb_client: chromadb.AsyncClientAPI | None = None
+chromadb_client: chromadb.ClientAPI | None = None
 chroma: VectorStoreChroma | None = None
 
 
-async def setup_once():
+def setup_once():
     global chromadb_client, chroma
     try:
         if chromadb_client is None:
             while True:
                 try:
                     # todo: configure this
-                    chromadb_client = await chromadb.AsyncHttpClient(host='localhost', port=8888)
+                    chromadb_client = chromadb.HttpClient(host='localhost', port=8888)
                     chroma = VectorStoreChroma(chroma_client=chromadb_client)
                     break
                 except (Exception,) as e:

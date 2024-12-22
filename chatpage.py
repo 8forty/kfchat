@@ -50,12 +50,12 @@ class InstanceData:
 
     @ui.refreshable
     async def refresh_chat_exchanges(self, llm_config: LLMConfig) -> None:
-        await vectorstore_chroma.setup_once()
+        vectorstore_chroma.setup_once()
 
         # the configuration selects
         with (ui.row().classes('w-full border-solid border border-black place-content-center')):
             collections: list[str] = [self.general_chat_value]
-            colname_list: list[str] = [c.name for c in await vectorstore_chroma.chromadb_client.list_collections()]
+            colname_list: list[str] = [c.name for c in vectorstore_chroma.chromadb_client.list_collections()]
             colname_list.sort()
             for colname in colname_list:
                 collections.append(colname)
@@ -109,7 +109,7 @@ class ChatPage:
 
     def setup(self, path: str, pagename: str):
 
-        def handle_prompt(prompt: str, idata: InstanceData) -> ChatCompletion | None:
+        def do_chat(prompt: str, idata: InstanceData) -> ChatCompletion | None:
             # todo: count tokens, etc.
             # todo: just save the convo eh?
             convo: list[chat.ChatExchange] = []
@@ -121,6 +121,10 @@ class ChatPage:
                                          sysmsg=self.llm_config.system_message,
                                          prompt=prompt,
                                          convo=convo)
+
+        def do_vector_search(prompt: str, idata: InstanceData):
+            response = idata.chat_source.ask(prompt, idata.chat_source_name)
+            return response['documents'][0][0]
 
         async def handle_enter_chat(request, prompt_input: Input, spinner: Spinner, idata: InstanceData) -> None:
             prompt = prompt_input.value.strip()
@@ -137,7 +141,7 @@ class ChatPage:
 
             response = None
             try:
-                response = await run.io_bound(handle_prompt, prompt, idata)
+                response = await run.io_bound(do_chat, prompt, idata)
             except (Exception,):
                 e = f'{sys.exc_info()[0].__name__}: {sys.exc_info()[1]}'
                 traceback.print_exc(file=sys.stdout)
@@ -176,10 +180,8 @@ class ChatPage:
             response = None
             try:
                 log.debug(f'vector search with [{idata.chat_source_name}]: {prompt}')
-                # response = await run.io_bound(idata.chat_source.ask, prompt, idata.chat_source_name)
-                response = await idata.chat_source.ask(prompt, idata.chat_source_name)
+                response = await run.io_bound(do_vector_search, prompt, idata)
                 # todo: put this in an object
-                response = response['documents'][0][0]
                 log.debug(f'vector search response[{type(response)}]: {response}')
             except (Exception,):
                 e = f'{sys.exc_info()[0].__name__}: {sys.exc_info()[1]}'
