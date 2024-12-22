@@ -28,4 +28,3 @@ def secs_string(start: float, end: float = None) -> str:
     if end is None:
         end = timeit.default_timer()
     return time.strftime('%H:%M:%S', time.gmtime(end - start))
-

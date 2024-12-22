@@ -15,7 +15,6 @@ import config
 import frame
 import logstuff
 import vectorstore_chroma
-from chatexchange import ChatExchange, ChatExchanges
 from vectorstore_chroma import VectorStoreChroma
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -36,7 +35,7 @@ class InstanceData:
 
     def __init__(self, api_type: str):
         self.general_chat_value: str = '<general chat>'
-        self.exchanges: ChatExchanges = ChatExchanges(config.chat_exchanges_circular_list_count)
+        self.exchanges: chat.ChatExchanges = chat.ChatExchanges(config.chat_exchanges_circular_list_count)
         self.chat = chat.Chat(api_type)
         self.chat_source_name: str = self.general_chat_value
         self.chat_source: VectorStoreChroma | None = None
@@ -65,29 +64,34 @@ class InstanceData:
                       ).on_value_change(lambda vc: self.change_chat_source(vc.value)).props('square outlined label-color=green')
 
         # todo: local-storage-session to separate messages
-        if self.exchanges is not None and len(self.exchanges) > 0:
-            for exchange in self.exchanges:
+        if self.exchanges.len() > 0:
+            for exchange in self.exchanges.list():
 
                 # the prompt
                 ui.label(exchange.prompt).classes('w-full font-bold text-lg text-blue text-left px-10')
 
-                with (ui.column().classes('w-full gap-y-0')):
+                with ((ui.column().classes('w-full gap-y-0'))):
                     # the response
-                    ui.label(exchange.response).classes('w-full font-bold text-lg text-green text-left px-10')
+                    # todo: multiple responses, metrics, etc.
+                    response0 = exchange.completion.choices[0].message.content
+                    ui.label(response0).classes('w-full font-bold text-lg text-green text-left px-10')
 
                     # the context info
                     ui.label(f'[{self.exchanges.id()},{self.chat.model_api_type()}:{llm_config.model_name},{llm_config.temp},{llm_config.max_tokens}]: '
-                             f'{exchange.token_counts[0]}/{exchange.token_counts[1]} '
-                             f'{exchange.duration_seconds:.1f}s'
+                             f'{exchange.completion.usage.prompt_tokens}/{exchange.completion.usage.completion_tokens} '
+                             f'{exchange.response_duration_secs:.1f}s'
                              ).classes('w-full italic text-xs text-black text-left px-10')
                     ui.label(f'{llm_config.system_message}').classes('w-full italic text-xs text-black text-left px-10')
 
                     # stop problems info
                     stop_problems_string = ''
-                    for choice_idx, stop_problem in exchange.stop_problems.items():
+                    for choice_idx, stop_problem in exchange.stop_problems().items():
                         stop_problems_string += f'stop[{choice_idx}]:{stop_problem}'
                     if len(stop_problems_string) > 0:
                         ui.label(f'{stop_problems_string}').classes('w-full italic text-xs text-red text-left px-10')
+
+                    if exchange.overflowed():
+                        ui.label(f'exchange history overflowed!').classes('w-full italic text-xs text-red text-left px-10')
         else:
             ui.label('No messages yet').classes('mx-auto my-36')
 
@@ -111,20 +115,17 @@ class ChatPage:
 
         def do_chat(prompt: str, idata: InstanceData) -> ChatCompletion | None:
             # todo: count tokens, etc.
-            # todo: just save the convo eh?
-            convo: list[chat.ChatExchange] = []
-            if idata.exchanges is not None:
-                for exchange in idata.exchanges:
-                    convo.append(chat.ChatExchange(exchange.prompt, exchange.response))
-
-            return idata.chat.chat(self.llm_config.model_name, temp=self.llm_config.temp, max_tokens=self.llm_config.max_tokens, n=1,
-                                   sysmsg=self.llm_config.system_message,
-                                   prompt=prompt,
-                                   convo=convo)
+            completion = idata.chat.chat(self.llm_config.model_name,
+                                         temp=self.llm_config.temp, max_tokens=self.llm_config.max_tokens,
+                                         n=1,
+                                         sysmsg=self.llm_config.system_message,
+                                         prompt=prompt,
+                                         convo=idata.exchanges)
+            return completion
 
         def do_vector_search(prompt: str, idata: InstanceData):
-            response = idata.chat_source.ask(prompt, idata.chat_source_name)
-            return response['documents'][0][0]
+            vecresult = idata.chat_source.ask(prompt, idata.chat_source_name)
+            return vecresult['documents'][0][0]
 
         async def handle_enter_chat(request, prompt_input: Input, spinner: Spinner, idata: InstanceData) -> None:
             prompt = prompt_input.value.strip()
@@ -139,9 +140,9 @@ class ChatPage:
             # if prompt.startswith('*'):  # load a file of prompts
             #     with
 
-            response = None
+            completion = None
             try:
-                response = await run.io_bound(do_chat, prompt, idata)
+                completion = await run.io_bound(do_chat, prompt, idata)
             except (Exception,):
                 e = f'{sys.exc_info()[0].__name__}: {sys.exc_info()[1]}'
                 traceback.print_exc(file=sys.stdout)
@@ -150,14 +151,12 @@ class ChatPage:
 
             spinner.set_visibility(False)
 
-            if response is not None:
-                if idata.exchanges is not None:
-                    idata.exchanges.append(ChatExchange(prompt, response.choices[0].message.content,
-                                                        (response.usage.prompt_tokens, response.usage.completion_tokens),
-                                                        timeit.default_timer() - start,
-                                                        chat.Chat.check_for_stop_problems(response)))
-                else:
-                    log.warning(f'exchanges list is None!  prompt/response not saved')
+            if completion is not None:
+                ce = chat.ChatExchange(prompt, response_duration_secs=timeit.default_timer() - start,
+                                       completion=completion, vector_store_response=None)
+                for choice_idx, sp_text in ce.stop_problems().items():
+                    log.warning(f'stop problem from prompt {prompt} choice[{choice_idx}]: {sp_text}')
+                idata.exchanges.append(ce)
 
             prompt_input.value = ''
             prompt_input.enable()
@@ -177,12 +176,12 @@ class ChatPage:
             # if prompt.startswith('*'):  # load a file of prompts
             #     with
 
-            response = None
+            vecresult = None
             try:
                 log.debug(f'vector search with [{idata.chat_source_name}]: {prompt}')
-                response = await run.io_bound(do_vector_search, prompt, idata)
+                vecresult = await run.io_bound(do_vector_search, prompt, idata)
                 # todo: put this in an object
-                log.debug(f'vector search response[{type(response)}]: {response}')
+                log.debug(f'vector search result[{type(vecresult)}]: {vecresult}')
             except (Exception,):
                 e = f'{sys.exc_info()[0].__name__}: {sys.exc_info()[1]}'
                 traceback.print_exc(file=sys.stdout)
@@ -191,14 +190,8 @@ class ChatPage:
 
             spinner.set_visibility(False)
 
-            if response is not None:
-                if idata.exchanges is not None:
-                    idata.exchanges.append(ChatExchange(prompt, response,
-                                                        (-1, -1),
-                                                        timeit.default_timer() - start,
-                                                        {}))
-                else:
-                    log.warning(f'exchanges list is None!  prompt/response not saved')
+            if vecresult is not None:
+                idata.exchanges.append(prompt, response_duration_secs=timeit.default_timer() - start, completion=None, vector_store_response=vecresult)
 
             prompt_input.value = ''
             prompt_input.enable()

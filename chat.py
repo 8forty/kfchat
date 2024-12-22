@@ -1,12 +1,11 @@
 import logging
-import sys
 from dataclasses import dataclass
 
 import dotenv
 import openai
+from multimethod import multimethod
 from openai.types.chat import ChatCompletion
 
-import config
 import logstuff
 from modelapi import ModelAPI
 
@@ -14,10 +13,101 @@ log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
 
-@dataclass
+class VectorStoreResponse:
+    def __init__(self, response):
+        pass
+
+
 class ChatExchange:
-    prompt: str
-    response: str
+    # ChatCompletion (full openai version):
+    #     id: str  A unique identifier for the chat completion
+    #     choices: List[Choice]  A list of chat completion choices. Can be more than one if `n` is greater than 1.
+    #     created: int  The Unix timestamp (in seconds) of when the chat completion was created.
+    #     model: str  The model used for the chat completion.
+    #     object: Literal["chat.completion"]  The object type, which is always `chat.completion`
+    #     service_tier: Optional[Literal["scale", "default"]] = None  The service tier used, included iff the `service_tier` parameter is specified in the request.
+    #     system_fingerprint: Optional[str] = None  This fingerprint represents the backend configuration that the model runs with, in conjunction with the `seed` to detect backend changes
+    #     usage: Optional[CompletionUsage] = None  Usage statistics for the completion request.
+    #
+    # token counts: (completion.usage.prompt_tokens, completion.usage.completion_tokens),
+    # chat.Chat.check_for_stop_problems(completion)))
+
+    def __init__(self, prompt: str, response_duration_secs: float,
+                 completion: ChatCompletion | None, vector_store_response: VectorStoreResponse | None):
+        self.prompt: str = prompt
+        self.completion: ChatCompletion | None = completion
+        self._stop_problems: dict[int, str] = {}
+        self.vector_store_response: VectorStoreResponse | None = vector_store_response
+        self.response_duration_secs: float = response_duration_secs
+        self._overflowed = False
+
+        # calc stop_problems if there's a completion
+        if self.completion is not None:
+            for i in range(0, len(completion.choices)):
+                choice = completion.choices[i]
+                stop_problem = ''
+                match choice.finish_reason:
+                    case 'length':
+                        stop_problem = 'too many tokens in request'
+                    case 'content_filter':
+                        stop_problem = 'flagged by content filter'
+                    case 'tool_calls':
+                        stop_problem = 'called a tool'
+                    case 'function_call':
+                        stop_problem = 'called a function'
+
+                if len(stop_problem) > 0:
+                    self.stop_problems[i] = stop_problem  # add problem to the dict
+
+    def stop_problems(self) -> dict[int, str]:
+        """
+        get stop problems reported in ChatCompletion
+        :return: dict of choice-idx -> text of stop problem
+        """
+        return self._stop_problems
+
+    def overflowed(self) -> bool:
+        return self._overflowed
+
+
+class ChatExchanges:
+    """ a 0-or-more question prompt and list of ChatResponse objects, one for each question """
+    _exchanges: list[ChatExchange] = []
+    _next_id: int = 1
+
+    def __init__(self, max_exchanges: int):
+        """
+        initilizes a list to hold at most max_exchanges ChatExchange objects with a fresh id
+        :param max_exchanges: when this number of ChatExchange objects is exceeded, oldest is removed
+        """
+        super().__init__()
+        self._max_exchanges = max_exchanges
+        self._id = ChatExchanges._next_id
+        ChatExchanges._next_id += 1
+
+    def id(self) -> int:
+        return self._id
+
+    def empty(self) -> bool:
+        return len(self._exchanges) == 0
+
+    def list(self) -> list[ChatExchange]:
+        return self._exchanges
+
+    def len(self) -> int:
+        return len(self._exchanges)
+
+    @multimethod
+    def append(self, ce: ChatExchange):
+        self._exchanges.append(ce)
+        if len(self._exchanges) > self._max_exchanges:
+            log.debug(f'reducing overflow id:{self._id}: {len(self._exchanges)} > {self._max_exchanges}')
+            self._exchanges.pop(0)
+            ce._overflowed = True
+
+    @multimethod
+    def append(self, prompt: str, response_duration_secs: float, completion: ChatCompletion | None, vector_store_response: VectorStoreResponse | None) -> None:
+        self.append(ChatExchange(prompt, response_duration_secs, completion, vector_store_response))
 
 
 class Chat:
@@ -30,37 +120,17 @@ class Chat:
     def model_api_type(self):
         return self.model_api.type()
 
-    @staticmethod
-    def check_for_stop_problems(response: ChatCompletion) -> dict[int, str]:
-        stop_problems: dict[int, str] = {}
-        for i in range(0, len(response.choices)):
-            choice = response.choices[i]
-            stop_problem = ''
-            match choice.finish_reason:
-                case 'length':
-                    stop_problem = 'too many tokens in request'
-                case 'content_filter':
-                    stop_problem = 'flagged by content filter'
-                case 'tool_calls':
-                    stop_problem = 'called a tool'
-                case 'function_call':
-                    stop_problem = 'called a function'
-
-            if len(stop_problem) > 0:
-                stop_problems[i] = stop_problem  # add problem to the dict
-
-        return stop_problems
-
     def chat(self, model_name: str, temp: float, max_tokens: int, n: int,
-             sysmsg: str, prompt: str, convo: list[ChatExchange]):
+             sysmsg: str, prompt: str, convo: ChatExchanges):
         # todo: detect stop problems, e.g. not enough tokens
         messages = [{'role': 'system', 'content': sysmsg}]
-        for exchange in convo:
+        for exchange in convo.list():
             messages.append({'role': 'user', 'content': exchange.prompt})
-            messages.append({'role': 'assistant', 'content': exchange.response})
+            for choice in exchange.completion.choices:
+                messages.append({'role': choice.message.role, 'content': choice.message.content})
         messages.append({'role': 'user', 'content': prompt})
 
-        response: ChatCompletion = self.client.chat.completions.create(
+        completion: ChatCompletion = self.client.chat.completions.create(
             model=model_name,
             temperature=temp,  # default 1.0, 0.0->2.0
             messages=messages,
@@ -76,17 +146,4 @@ class Chat:
             # stop=[],
         )
 
-        # ChatCompletion (full openai version):
-        #     id: str  A unique identifier for the chat completion
-        #     choices: List[Choice]  A list of chat completion choices. Can be more than one if `n` is greater than 1.
-        #     created: int  The Unix timestamp (in seconds) of when the chat completion was created.
-        #     model: str  The model used for the chat completion.
-        #     object: Literal["chat.completion"]  The object type, which is always `chat.completion`
-        #     service_tier: Optional[Literal["scale", "default"]] = None  The service tier used, included iff the `service_tier` parameter is specified in the request.
-        #     system_fingerprint: Optional[str] = None  This fingerprint represents the backend configuration that the model runs with, in conjunction with the `seed` to detect backend changes
-        #     usage: Optional[CompletionUsage] = None  Usage statistics for the completion request.
-
-        for choice_idx, stop_problem in self.check_for_stop_problems(response).items():
-            log.warning(f'** stop problem choice[{choice_idx}]! {stop_problem}**\n')
-
-        return response
+        return completion
