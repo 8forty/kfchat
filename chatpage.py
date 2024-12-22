@@ -33,48 +33,59 @@ class LLMConfig:
 
 
 class InstanceData:
-    general_chat_value: str = '<general chat>'
 
     def __init__(self, api_type: str):
+        self.general_chat_value: str = '<general chat>'
         self.exchanges: ChatExchanges = ChatExchanges(config.chat_exchanges_circular_list_count)
         self.chat = chat.Chat(api_type)
-        self.chat_source_name: str | None = None
+        self.chat_source_name: str = self.general_chat_value
         self.chat_source: VectorStoreChroma | None = None
 
     def change_chat_source(self, source_name: str):
         if source_name == self.general_chat_value:
-            self.chat_source_name = None
             self.chat_source = None
         else:
-            self.chat_source_name = source_name
             self.chat_source = VectorStoreChroma(vectorstore_chroma.chromadb_client)
+        self.chat_source_name = source_name
 
     @ui.refreshable
     async def refresh_chat_exchanges(self, llm_config: LLMConfig) -> None:
         await vectorstore_chroma.setup_once()
+
+        # the configuration selects
         with (ui.row().classes('w-full border-solid border border-black place-content-center')):
             collections: list[str] = [self.general_chat_value]
-            for collection in await vectorstore_chroma.chromadb_client.list_collections():
-                collections.append(collection.name)
-            ui.select(options=collections,
-                      value=collections[0],
-                      label='Chat Source:'
+            colname_list: list[str] = [c.name for c in await vectorstore_chroma.chromadb_client.list_collections()]
+            colname_list.sort()
+            for colname in colname_list:
+                collections.append(colname)
+            ui.select(label='Chat Source:',
+                      options=collections,
+                      value=self.chat_source_name,
                       ).on_value_change(lambda vc: self.change_chat_source(vc.value)).props('square outlined label-color=green')
 
         # todo: local-storage-session to separate messages
         if self.exchanges is not None and len(self.exchanges) > 0:
             for exchange in self.exchanges:
-                stop_problems_string = ''
-                for choice_idx, stop_problem in exchange.stop_problems.items():
-                    stop_problems_string += f'stop[{choice_idx}]:{stop_problem}'
+
+                # the prompt
                 ui.label(exchange.prompt).classes('w-full font-bold text-lg text-blue text-left px-10')
+
                 with (ui.column().classes('w-full gap-y-0')):
+                    # the response
                     ui.label(exchange.response).classes('w-full font-bold text-lg text-green text-left px-10')
+
+                    # the context info
                     ui.label(f'[{self.exchanges.id()},{self.chat.model_api_type()}:{llm_config.model_name},{llm_config.temp},{llm_config.max_tokens}]: '
                              f'{exchange.token_counts[0]}/{exchange.token_counts[1]} '
                              f'{exchange.duration_seconds:.1f}s'
                              ).classes('w-full italic text-xs text-black text-left px-10')
                     ui.label(f'{llm_config.system_message}').classes('w-full italic text-xs text-black text-left px-10')
+
+                    # stop problems info
+                    stop_problems_string = ''
+                    for choice_idx, stop_problem in exchange.stop_problems.items():
+                        stop_problems_string += f'stop[{choice_idx}]:{stop_problem}'
                     if len(stop_problems_string) > 0:
                         ui.label(f'{stop_problems_string}').classes('w-full italic text-xs text-red text-left px-10')
         else:
@@ -167,6 +178,8 @@ class ChatPage:
                 log.debug(f'vector search with [{idata.chat_source_name}]: {prompt}')
                 # response = await run.io_bound(idata.chat_source.ask, prompt, idata.chat_source_name)
                 response = await idata.chat_source.ask(prompt, idata.chat_source_name)
+                # todo: put this in an object
+                response = response['documents'][0][0]
                 log.debug(f'vector search response[{type(response)}]: {response}')
             except (Exception,):
                 e = f'{sys.exc_info()[0].__name__}: {sys.exc_info()[1]}'
