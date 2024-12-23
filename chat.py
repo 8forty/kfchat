@@ -1,13 +1,9 @@
 import logging
-from dataclasses import dataclass
 
-import dotenv
 import openai
-from multimethod import multimethod
 from openai.types.chat import ChatCompletion
 
 import logstuff
-from modelapi import ModelAPI
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -113,23 +109,19 @@ class ChatExchanges:
 
 
 class Chat:
+    def __init__(self, client: openai.OpenAI):
+        self.client = client
 
-    def __init__(self, api_type: str):
-        self.env: dict[str, str] = dotenv.dotenv_values()
-        self.model_api: ModelAPI = ModelAPI(api_type, parms=self.env)
-        self.client: openai.OpenAI = self.model_api.client()
-
-    def model_api_type(self):
-        return self.model_api.type()
-
-    def chat(self, model_name: str, temp: float, max_tokens: int, n: int,
-             sysmsg: str, prompt: str, convo: ChatExchanges):
+    def chat_run_prompt(self, model_name: str, temp: float, max_tokens: int, n: int,
+                        sysmsg: str, prompt: str, convo: ChatExchanges):
         # todo: detect stop problems, e.g. not enough tokens
         messages = [{'role': 'system', 'content': sysmsg}]
         for exchange in convo.list():
-            messages.append({'role': 'user', 'content': exchange.prompt})
-            for choice in exchange.completion.choices:
-                messages.append({'role': choice.message.role, 'content': choice.message.content})
+            # todo: what about previous vector-store responses?
+            if exchange.completion is not None:
+                messages.append({'role': 'user', 'content': exchange.prompt})
+                for choice in exchange.completion.choices:
+                    messages.append({'role': choice.message.role, 'content': choice.message.content})
         messages.append({'role': 'user', 'content': prompt})
 
         completion: ChatCompletion = self.client.chat.completions.create(

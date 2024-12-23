@@ -1,17 +1,20 @@
 import logging
 
+import dotenv
 from fastapi import FastAPI
 from nicegui import ui
 
 import chatpage
 import chromadbpage
-import config
 import logstuff
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
 app = FastAPI()
+
+dotenv.load_dotenv(override=True)
+env_values: dict[str, str] = dotenv.dotenv_values()
 
 
 @app.get("/kfchatroot")
@@ -23,10 +26,10 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
     log.info('init_with_fastapi')
     ui.run_with(fastapi_app, storage_secret='pick your private secret here')
 
-    cp = chatpage.ChatPage('ollama')
+    cp = chatpage.ChatPage(env_values)
     cp.setup('/', 'Chat')
 
-    chromadbpage.setup('/chromadb', 'ChromaDB Page')
+    chromadbpage.setup('/chromadb', 'ChromaDB Page', env_values)
 
 
 def run():

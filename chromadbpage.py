@@ -14,10 +14,10 @@ log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
 
-def setup(path: str, pagename: str):
+def setup(path: str, pagename: str, env_values: dict[str, str]):
     @ui.refreshable
     async def chroma_ui() -> None:
-        await run.io_bound(vectorstore_chroma.setup_once)
+        await run.io_bound(vectorstore_chroma.setup_once, env_values)
         with rbui.table():
             for collection in await run.io_bound(vectorstore_chroma.chromadb_client.list_collections):
                 with rbui.tr():

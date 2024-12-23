@@ -1,26 +1,20 @@
 import logging
-import os
-import sys
 import time
 import traceback
 import uuid
-import chat
+
 import chromadb
-import dotenv
 import langchain_core.globals as lcglobals
 from chromadb.errors import InvalidCollectionException
 from chromadb.utils.embedding_functions.sentence_transformer_embedding_function import SentenceTransformerEmbeddingFunction
-from langchain.schema.output_parser import StrOutputParser
-from langchain.schema.runnable import RunnablePassthrough
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.embeddings import FastEmbedEmbeddings
-from langchain_community.vectorstores import Chroma
 from langchain_community.vectorstores.utils import filter_complex_metadata
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
 
+import chat
 import logstuff
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -30,31 +24,30 @@ log.setLevel(logstuff.logging_level)
 lcglobals.set_debug(True)
 lcglobals.set_verbose(True)
 
-dotenv.load_dotenv()
-
 
 class VectorStoreChroma:
     vector_store = None
     retriever = None
     chain = None
 
-    def __init__(self, chroma_client):
+    def __init__(self, chroma_client: chromadb.ClientAPI, env_values: dict[str, str]):
         self.chroma_client: chromadb.ClientAPI = chroma_client
+        self.env_values: dict[str, str] = env_values
 
         # todo: configure/arg this
         # self.model = ChatOllama(model='llama3.2:3b')
 
         self.model = ChatGroq(model_name='llama-3.3-70b-versatile',
-                              groq_api_key=os.getenv('GROQ_API_KEY'))
-        # groq_api_base=os.getenv('GROQ_ENDPOINT' # only use this if "using a proxy or service emulator"
+                              groq_api_key=self.env_values.get('GROQ_API_KEY'))
+        # groq_api_base=self.env_values.get('GROQ_ENDPOINT' # only use this if "using a proxy or service emulator"
 
         # self.model = ChatOpenAI(model_name='llama-3.3-70b-versatile',
-        #                         openai_api_key=os.getenv('GROQ_API_KEY'),
-        #                         openai_api_base=os.getenv('GROQ_ENDPOINT'))  # huh, endpoint instead of base for the openai emulation in groq
+        #                         openai_api_key=self.env_values.get('GROQ_API_KEY'),
+        #                         openai_api_base=self.env_values.get('GROQ_ENDPOINT'))  # huh, endpoint instead of base for the openai emulation in groq
 
         # self.model = ChatOpenAI(model_name='gpt-4o-mini',
-        #                         openai_api_key=os.getenv("OPENAI_API_KEY"),
-        #                         openai_api_base=os.getenv('OPENAI_API_BASE'))
+        #                         openai_api_key=self.env_values.get("OPENAI_API_KEY"),
+        #                         openai_api_base=self.env_values.get('OPENAI_API_BASE'))
 
         self.prompt = ChatPromptTemplate(
             [
@@ -107,7 +100,7 @@ class VectorStoreChroma:
 
         # create Chroma vectorstore from the chunks
         log.debug(f'adding {len(chunks)} chunks to {collection_name}')
-        collection.add(documents=chunks, ids=[str(uuid.uuid4()) for i in range(0, len(chunks))])
+        collection.add(documents=chunks, ids=[str(uuid.uuid4()) for _ in range(0, len(chunks))])
 
     # todo: get the model and parameters right for the post-response info
     def ask(self, prompt: str, collection_name: str) -> chat.VectorStoreResponse:
@@ -163,7 +156,7 @@ chromadb_client: chromadb.ClientAPI | None = None
 chroma: VectorStoreChroma | None = None
 
 
-def setup_once():
+def setup_once(env_values: dict[str, str]):
     global chromadb_client, chroma
     try:
         if chromadb_client is None:
@@ -171,14 +164,13 @@ def setup_once():
                 try:
                     # todo: configure this
                     chromadb_client = chromadb.HttpClient(host='localhost', port=8888)
-                    chroma = VectorStoreChroma(chroma_client=chromadb_client)
+                    chroma = VectorStoreChroma(chroma_client=chromadb_client, env_values=env_values)
                     break
                 except (Exception,) as e:
                     print(f'!!! Chroma client error, will retry in {15} secs: {e}')
                 time.sleep(15)  # todo: configure this
 
     except (Exception,) as e:
-        e = f'{sys.exc_info()[0].__name__}: {sys.exc_info()[1]}'
         log.warning(f'ERROR making client objects: {e}')
         exc = traceback.format_exc()  # sys.exc_info())
         log.warning(f'{exc}')

@@ -4,6 +4,7 @@ import sys
 import timeit
 import traceback
 
+import openai
 from fastapi import Request
 from nicegui import ui, run
 from nicegui.elements.input import Input
@@ -15,6 +16,7 @@ import config
 import frame
 import logstuff
 import vectorstore_chroma
+from modelapi import ModelAPI
 from vectorstore_chroma import VectorStoreChroma
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -22,21 +24,25 @@ log.setLevel(logstuff.logging_level)
 
 
 class LLMConfig:
-    def __init__(self):
+    def __init__(self, api_type: str, env_values: dict[str, str]):
         # todo: these should come from e.g. pref screen
+        self.model_api: ModelAPI = ModelAPI(api_type, parms=env_values)
         self.model_name: str = ['llama3.2:1b', 'llama3.2:3b', 'llama3.3:70b', 'qwen2.5:0.5b', 'gemma2:2b', 'qwq'][1]
         self.temp: float = 0.7
         self.max_tokens: int = 80
         self.system_message: str = (f'You are a helpful chatbot that talks in a conversational manner. '
                                     f'Your responses must always be less than {self.max_tokens} tokens.')
+        self.client: openai.OpenAI = self.model_api.client()
 
 
 class InstanceData:
 
-    def __init__(self, api_type: str):
+    def __init__(self, llm_config: LLMConfig, env_values: dict[str, str]):
         self.general_chat_value: str = '<general chat>'
+        self.llm_config: LLMConfig = llm_config
+        self.env_values: dict[str, str] = env_values
         self.exchanges: chat.ChatExchanges = chat.ChatExchanges(config.chat_exchanges_circular_list_count)
-        self.chat = chat.Chat(api_type)
+        self.chat = chat.Chat(llm_config.client)
         self.chat_source_name: str = self.general_chat_value
         self.chat_source: VectorStoreChroma | None = None
 
@@ -44,12 +50,12 @@ class InstanceData:
         if source_name == self.general_chat_value:
             self.chat_source = None
         else:
-            self.chat_source = VectorStoreChroma(vectorstore_chroma.chromadb_client)
+            self.chat_source = VectorStoreChroma(vectorstore_chroma.chromadb_client, self.env_values)
         self.chat_source_name = source_name
 
     @ui.refreshable
     async def refresh_chat_exchanges(self, llm_config: LLMConfig) -> None:
-        vectorstore_chroma.setup_once()
+        vectorstore_chroma.setup_once(self.env_values)
 
         # the configuration selects
         with (ui.row().classes('w-full border-solid border border-black place-content-center')):
@@ -72,26 +78,27 @@ class InstanceData:
 
                 with ui.column().classes('w-full gap-y-0'):
                     # the response(s)
-                    context_info = f'{self.exchanges.id()},'
+                    context_info = f'{self.exchanges.id()}'
                     completion_extra = ''
                     # todo: metrics, etc.
                     if exchange.completion is not None:
-                        context_info += f'{self.chat.model_api_type()}:{llm_config.model_name},{llm_config.temp},{llm_config.max_tokens}]: '
-                        completion_extra = f'{exchange.completion.usage.prompt_tokens} / {exchange.completion.usage.completion_tokens}'
+                        context_info += f',{self.llm_config.model_api.api_type}:{llm_config.model_name},{llm_config.temp},{llm_config.max_tokens}'
+                        completion_extra = f'{exchange.completion.usage.prompt_tokens}/{exchange.completion.usage.completion_tokens} '
                         for choice in exchange.completion.choices:
                             ui.label(f'[c]: {choice.message.content}').classes('w-full font-bold text-lg text-green text-left px-10')
 
                     if exchange.vector_store_response is not None:
                         for result in exchange.vector_store_response.results:
                             ui.label(f'[v]: {result.content}').classes('w-full font-bold text-lg text-green text-left px-10')
-                            ui.label(f'distance: {result.metrics['distance']}').classes('w-full italic text-xs text-black text-left px-10')
+                            ui.label(f'distance: {result.metrics['distance']:.03f}').classes('w-full italic text-xs text-black text-left px-10')
 
                     # the context info
                     ui.label(f'[{context_info}]: '
                              f'{completion_extra}'
                              f'{exchange.response_duration_secs:.1f}s'
                              ).classes('w-full italic text-xs text-black text-left px-10')
-                    ui.label(f'{llm_config.system_message}').classes('w-full italic text-xs text-black text-left px-10')
+                    if exchange.completion is not None:
+                        ui.label(f'{llm_config.system_message}').classes('w-full italic text-xs text-black text-left px-10')
 
                     # stop problems info
                     stop_problems_string = ''
@@ -115,23 +122,23 @@ class InstanceData:
 
 class ChatPage:
 
-    def __init__(self, api_type: str):
+    def __init__(self, env_values: dict[str, str]):
         # anything in here is shared by all instances of ChatPage
-        self.api_type: str = api_type
+        self.env_values = env_values
 
         # todo: configure this
-        self.llm_config = LLMConfig()
+        self.llm_config = LLMConfig('ollama', self.env_values)
 
     def setup(self, path: str, pagename: str):
 
         def do_chat(prompt: str, idata: InstanceData) -> ChatCompletion | None:
             # todo: count tokens, etc.
-            completion = idata.chat.chat(self.llm_config.model_name,
-                                         temp=self.llm_config.temp, max_tokens=self.llm_config.max_tokens,
-                                         n=1,
-                                         sysmsg=self.llm_config.system_message,
-                                         prompt=prompt,
-                                         convo=idata.exchanges)
+            completion = idata.chat.chat_run_prompt(self.llm_config.model_name,
+                                                    temp=self.llm_config.temp, max_tokens=self.llm_config.max_tokens,
+                                                    n=2,  # todo: this doesn't work for ?? ollama:??
+                                                    sysmsg=self.llm_config.system_message,
+                                                    prompt=prompt,
+                                                    convo=idata.exchanges)
             return completion
 
         def do_vector_search(prompt: str, idata: InstanceData):
@@ -140,7 +147,7 @@ class ChatPage:
 
         async def handle_enter_chat(request, prompt_input: Input, spinner: Spinner, idata: InstanceData) -> None:
             prompt = prompt_input.value.strip()
-            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({self.api_type}:{self.llm_config.model_name},{self.llm_config.temp},{self.llm_config.max_tokens}): {prompt}')
+            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({self.llm_config.model_api.api_type}:{self.llm_config.model_name},{self.llm_config.temp},{self.llm_config.max_tokens}): {prompt}')
             prompt_input.disable()
             logstuff.update_from_request(request)  # updates logging prefix with info from each request
 
@@ -221,7 +228,7 @@ class ChatPage:
             logstuff.update_from_request(request)
             log.info(f'route triggered')
 
-            idata = InstanceData(self.api_type)
+            idata = InstanceData(self.llm_config, self.env_values)
 
             # the footer is a "top-level" element in nicegui, so need not be setup in visual page order
             # so I create it here to make sure prompt_input exists before it's needed
