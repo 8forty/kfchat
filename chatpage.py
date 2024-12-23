@@ -70,15 +70,25 @@ class InstanceData:
                 # the prompt
                 ui.label(exchange.prompt).classes('w-full font-bold text-lg text-blue text-left px-10')
 
-                with ((ui.column().classes('w-full gap-y-0'))):
-                    # the response
-                    # todo: multiple responses, metrics, etc.
-                    response0 = exchange.completion.choices[0].message.content
-                    ui.label(response0).classes('w-full font-bold text-lg text-green text-left px-10')
+                with ui.column().classes('w-full gap-y-0'):
+                    # the response(s)
+                    context_info = f'{self.exchanges.id()},'
+                    completion_extra = ''
+                    # todo: metrics, etc.
+                    if exchange.completion is not None:
+                        context_info += f'{self.chat.model_api_type()}:{llm_config.model_name},{llm_config.temp},{llm_config.max_tokens}]: '
+                        completion_extra = f'{exchange.completion.usage.prompt_tokens} / {exchange.completion.usage.completion_tokens}'
+                        for choice in exchange.completion.choices:
+                            ui.label(f'[c]: {choice.message.content}').classes('w-full font-bold text-lg text-green text-left px-10')
+
+                    if exchange.vector_store_response is not None:
+                        for result in exchange.vector_store_response.results:
+                            ui.label(f'[v]: {result.content}').classes('w-full font-bold text-lg text-green text-left px-10')
+                            ui.label(f'distance: {result.metrics['distance']}').classes('w-full italic text-xs text-black text-left px-10')
 
                     # the context info
-                    ui.label(f'[{self.exchanges.id()},{self.chat.model_api_type()}:{llm_config.model_name},{llm_config.temp},{llm_config.max_tokens}]: '
-                             f'{exchange.completion.usage.prompt_tokens}/{exchange.completion.usage.completion_tokens} '
+                    ui.label(f'[{context_info}]: '
+                             f'{completion_extra}'
                              f'{exchange.response_duration_secs:.1f}s'
                              ).classes('w-full italic text-xs text-black text-left px-10')
                     ui.label(f'{llm_config.system_message}').classes('w-full italic text-xs text-black text-left px-10')
@@ -109,6 +119,7 @@ class ChatPage:
         # anything in here is shared by all instances of ChatPage
         self.api_type: str = api_type
 
+        # todo: configure this
         self.llm_config = LLMConfig()
 
     def setup(self, path: str, pagename: str):
@@ -124,8 +135,8 @@ class ChatPage:
             return completion
 
         def do_vector_search(prompt: str, idata: InstanceData):
-            vecresult = idata.chat_source.ask(prompt, idata.chat_source_name)
-            return vecresult['documents'][0][0]
+            vsresponse = idata.chat_source.ask(prompt, idata.chat_source_name)
+            return vsresponse
 
         async def handle_enter_chat(request, prompt_input: Input, spinner: Spinner, idata: InstanceData) -> None:
             prompt = prompt_input.value.strip()
@@ -176,12 +187,12 @@ class ChatPage:
             # if prompt.startswith('*'):  # load a file of prompts
             #     with
 
-            vecresult = None
+            vsresponse = None
             try:
                 log.debug(f'vector search with [{idata.chat_source_name}]: {prompt}')
-                vecresult = await run.io_bound(do_vector_search, prompt, idata)
+                vsresponse = await run.io_bound(do_vector_search, prompt, idata)
                 # todo: put this in an object
-                log.debug(f'vector search result[{type(vecresult)}]: {vecresult}')
+                log.debug(f'vector search result[{type(vsresponse)}]: {vsresponse}')
             except (Exception,):
                 e = f'{sys.exc_info()[0].__name__}: {sys.exc_info()[1]}'
                 traceback.print_exc(file=sys.stdout)
@@ -190,8 +201,9 @@ class ChatPage:
 
             spinner.set_visibility(False)
 
-            if vecresult is not None:
-                idata.exchanges.append(prompt, response_duration_secs=timeit.default_timer() - start, completion=None, vector_store_response=vecresult)
+            if vsresponse is not None:
+                ce = chat.ChatExchange(prompt, response_duration_secs=timeit.default_timer() - start, completion=None, vector_store_response=vsresponse)
+                idata.exchanges.append(ce)
 
             prompt_input.value = ''
             prompt_input.enable()

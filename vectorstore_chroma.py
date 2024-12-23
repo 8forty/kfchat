@@ -4,7 +4,7 @@ import sys
 import time
 import traceback
 import uuid
-
+import chat
 import chromadb
 import dotenv
 import langchain_core.globals as lcglobals
@@ -20,7 +20,6 @@ from langchain_community.vectorstores.utils import filter_complex_metadata
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
-from nicegui import run
 
 import logstuff
 
@@ -111,7 +110,7 @@ class VectorStoreChroma:
         collection.add(documents=chunks, ids=[str(uuid.uuid4()) for i in range(0, len(chunks))])
 
     # todo: get the model and parameters right for the post-response info
-    def ask(self, prompt: str, collection_name: str):
+    def ask(self, prompt: str, collection_name: str) -> chat.VectorStoreResponse:
         try:
             collection = self.chroma_client.get_collection(
                 name=collection_name,
@@ -124,11 +123,19 @@ class VectorStoreChroma:
             raise ValueError(errmsg)
 
         log.debug(f'running query {prompt}')
-        results = collection.query(
+        query_results = collection.query(
             query_texts=[prompt],
             n_results=2
         )
-        return results
+
+        # todo: only one query in the prompt?
+        vs_results: list[chat.VectorStoreResult] = []
+        for prompt_idx in range(0, len(query_results['ids'])):
+            for result_idx in range(0, len(query_results['ids'][prompt_idx])):
+                metrics = {'distance': query_results['distances'][prompt_idx][result_idx]}
+                vs_results.append(chat.VectorStoreResult(query_results['ids'][prompt_idx][result_idx], metrics, query_results['documents'][prompt_idx][result_idx]))
+
+        return chat.VectorStoreResponse(vs_results)
 
         # vector_store = Chroma(client=self.chroma_client,
         #                       collection_name=collection_name,

@@ -13,9 +13,16 @@ log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
 
+class VectorStoreResult:
+    def __init__(self, result_id: str, metrics: dict, content: str):
+        self.result_id: str = result_id
+        self.metrics: dict = metrics
+        self.content: str = content
+
+
 class VectorStoreResponse:
-    def __init__(self, response):
-        pass
+    def __init__(self, results: list[VectorStoreResult]):
+        self.results = results
 
 
 class ChatExchange:
@@ -57,7 +64,7 @@ class ChatExchange:
                         stop_problem = 'called a function'
 
                 if len(stop_problem) > 0:
-                    self.stop_problems[i] = stop_problem  # add problem to the dict
+                    self._stop_problems[i] = stop_problem  # add problem to the dict
 
     def stop_problems(self) -> dict[int, str]:
         """
@@ -97,17 +104,12 @@ class ChatExchanges:
     def len(self) -> int:
         return len(self._exchanges)
 
-    @multimethod
     def append(self, ce: ChatExchange):
         self._exchanges.append(ce)
         if len(self._exchanges) > self._max_exchanges:
             log.debug(f'reducing overflow id:{self._id}: {len(self._exchanges)} > {self._max_exchanges}')
             self._exchanges.pop(0)
             ce._overflowed = True
-
-    @multimethod
-    def append(self, prompt: str, response_duration_secs: float, completion: ChatCompletion | None, vector_store_response: VectorStoreResponse | None) -> None:
-        self.append(ChatExchange(prompt, response_duration_secs, completion, vector_store_response))
 
 
 class Chat:
