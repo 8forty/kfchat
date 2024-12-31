@@ -38,35 +38,38 @@ class LLMConfig:
 class InstanceData:
 
     def __init__(self, llm_config: LLMConfig, env_values: dict[str, str]):
-        self.general_chat_value: str = '<general chat>'
+        self.chat_name_prefix: str = 'chat: '
+        self.vs_name_prefix: str = 'VS: '
         self.llm_config: LLMConfig = llm_config
         self.env_values: dict[str, str] = env_values
         self.exchanges: chat.ChatExchanges = chat.ChatExchanges(config.chat_exchanges_circular_list_count)
         self.chat = chat.Chat(llm_config.client)
-        self.chat_source_name: str = self.general_chat_value
-        self.chat_source: VectorStoreChroma | None = None
 
-    def change_chat_source(self, source_name: str):
-        if source_name == self.general_chat_value:
-            self.chat_source = None
+        # source info
+        self.source_select_name: str = f'{self.chat_name_prefix}{self.llm_config.model_name}'
+        self.source_name: str = self.source_select_name  # we're starting with general chat, so select-name and name are the same
+        self.source_api: VectorStoreChroma | None = None
+
+    def change_chat_source(self, selected_name: str):
+        if selected_name.startswith(self.chat_name_prefix):
+            self.source_api = None
         else:
-            self.chat_source = VectorStoreChroma(vectorstore_chroma.chromadb_client, self.env_values)
-        self.chat_source_name = source_name
+            self.source_api = VectorStoreChroma(vectorstore_chroma.chromadb_client, self.env_values)
+            self.source_name = selected_name.removeprefix(self.vs_name_prefix)
+        self.source_select_name = selected_name
 
     @ui.refreshable
     async def refresh_chat_exchanges(self, llm_config: LLMConfig) -> None:
         vectorstore_chroma.setup_once(self.env_values)
 
-        # the configuration selects
-        with (ui.row().classes('w-full border-solid border border-black place-content-center')):
-            collections: list[str] = [self.general_chat_value]
-            colname_list: list[str] = [c.name for c in vectorstore_chroma.chromadb_client.list_collections()]
-            colname_list.sort()
-            for colname in colname_list:
-                collections.append(colname)
+        # the chat source selection/info row
+        with (ui.row().classes('w-full border-solid border border-black')):  # place-content-center')):
+            csource_names: list[str] = [self.source_select_name]
+            csource_names.extend([f'{self.vs_name_prefix}{c.name}' for c in vectorstore_chroma.chromadb_client.list_collections()])
+            csource_names.sort(key=lambda k: 'zzz' + k if k.startswith(self.vs_name_prefix) else k)
             ui.select(label='Chat Source:',
-                      options=collections,
-                      value=self.chat_source_name,
+                      options=csource_names,
+                      value=self.source_select_name,
                       ).on_value_change(lambda vc: self.change_chat_source(vc.value)).props('square outlined label-color=green')
 
         # todo: local-storage-session to separate messages
@@ -142,7 +145,7 @@ class ChatPage:
             return completion
 
         def do_vector_search(prompt: str, idata: InstanceData):
-            vsresponse = idata.chat_source.ask(prompt, idata.chat_source_name)
+            vsresponse = idata.source_api.ask(prompt, idata.source_name)
             return vsresponse
 
         async def handle_enter_chat(request, prompt_input: Input, spinner: Spinner, idata: InstanceData) -> None:
@@ -194,12 +197,12 @@ class ChatPage:
             # if prompt.startswith('*'):  # load a file of prompts
             #     with
 
-            vsresponse = None
+            vsresponse: chat.VectorStoreResponse | None = None
             try:
-                log.debug(f'vector search with [{idata.chat_source_name}]: {prompt}')
+                log.debug(f'vector search with [{idata.source_select_name}]: {prompt}')
                 vsresponse = await run.io_bound(do_vector_search, prompt, idata)
                 # todo: put this in an object
-                log.debug(f'vector search result[{type(vsresponse)}]: {vsresponse}')
+                log.debug(f'vector search result: {vsresponse}')
             except (Exception,):
                 e = f'{sys.exc_info()[0].__name__}: {sys.exc_info()[1]}'
                 traceback.print_exc(file=sys.stdout)
@@ -218,7 +221,7 @@ class ChatPage:
             await prompt_input.run_method('focus')
 
         async def handle_enter(request, prompt_input: Input, spinner: Spinner, idata: InstanceData) -> None:
-            if idata.chat_source is None:
+            if idata.source_api is None:
                 await handle_enter_chat(request, prompt_input, spinner, idata)
             else:
                 await handle_enter_vector_search(request, prompt_input, spinner, idata)

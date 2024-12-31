@@ -15,10 +15,17 @@ class VectorStoreResult:
         self.metrics: dict = metrics
         self.content: str = content
 
+    def __repr__(self) -> str:
+        # return f'[{self.__class__!s}:{self.__dict__!r}]'
+        return f'[{self.__class__.__name__}:{self.result_id=!r},{self.metrics=!r},self.content="{self.content[0:20]}{"..." if len(self.content) > 20 else ""}"]'
+
 
 class VectorStoreResponse:
     def __init__(self, results: list[VectorStoreResult]):
         self.results = results
+
+    def __repr__(self) -> str:
+        return self.results.__repr__()
 
 
 class ChatExchange:
