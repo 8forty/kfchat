@@ -24,13 +24,18 @@ log.setLevel(logstuff.logging_level)
 
 class InstanceData:
 
-    def __init__(self, llm_config: config.LLMConfig, env_values: dict[str, str]):
+    def __init__(self, env_values: dict[str, str]):
         self.llm_name_prefix: str = 'llm: '
         self.vs_name_prefix: str = 'VS: '
-        self.llm_config: config.LLMConfig = llm_config
         self.env_values: dict[str, str] = env_values
         self.exchanges: llmopenaiapi.ChatExchanges = llmopenaiapi.ChatExchanges(config.chat_exchanges_circular_list_count)
-        self.llm = llmopenaiapi.LLMOpenaiAPI(llm_config.client)
+        # todo: configure this
+        max_tokens = 80
+        system_message = (f'You are a helpful chatbot that talks in a conversational manner. '
+                          f'Your responses must always be less than {max_tokens} tokens.')
+        self.llm_config: config.LLMConfig = config.LLMConfig('ollama', env_values=self.env_values, model_name='llama3.2:1b',
+                                                             temp=0.7, max_tokens=max_tokens, system_message=system_message)
+        self.llm = llmopenaiapi.LLMOpenaiAPI(self.llm_config.client)
 
         # #### source info
         self.source_llm_name: str = f'{self.llm_name_prefix}{self.llm_config.model_name}'
@@ -50,7 +55,7 @@ class InstanceData:
         self.source_select_name = selected_name
 
     @ui.refreshable
-    async def refresh_chat_exchanges(self, llm_config: config.LLMConfig) -> None:
+    async def refresh_chat_exchanges(self) -> None:
         vectorstore_chroma.setup_once(self.env_values)
 
         # the source selection/info row
@@ -80,9 +85,9 @@ class InstanceData:
                     subscript_extra_info = ''
                     # todo: metrics, etc.
                     if exchange.llm_response is not None:
-                        subscript_context_info += f',{self.llm_config.model_api.api_type}:{llm_config.model_name},temp:{llm_config.temp},max_tokens:{llm_config.max_tokens}'
+                        subscript_context_info += f',{self.llm_config.model_api.api_type}:{self.llm_config.model_name},temp:{self.llm_config.temp},max_tokens:{self.llm_config.max_tokens}'
                         subscript_results_info += f'tokens:{exchange.llm_response.usage.prompt_tokens}/{exchange.llm_response.usage.completion_tokens}'
-                        subscript_extra_info += f'{llm_config.system_message}'
+                        subscript_extra_info += f'{self.llm_config.system_message}'
                         for choice in exchange.llm_response.choices:
                             ui.label(f'[llm]: {choice.message.content}').classes(response_text_classes)
 
@@ -126,21 +131,14 @@ class ChatPage:
         # anything in here is shared by all instances of ChatPage
         self.env_values = env_values
 
-        # todo: configure this
-        max_tokens = 80
-        system_message = (f'You are a helpful chatbot that talks in a conversational manner. '
-                          f'Your responses must always be less than {max_tokens} tokens.')
-        self.llm_config = config.LLMConfig('ollama', env_values=self.env_values, model_name='llama3.2:1b',
-                                           temp=0.7, max_tokens=max_tokens, system_message=system_message)
-
     def setup(self, path: str, pagename: str):
 
         def do_llm(prompt: str, idata: InstanceData) -> ChatCompletion | None:
             # todo: count tokens, etc.
-            completion = idata.llm.llm_run_prompt(self.llm_config.model_name,
-                                                  temp=self.llm_config.temp, max_tokens=self.llm_config.max_tokens,
+            completion = idata.llm.llm_run_prompt(idata.llm_config.model_name,
+                                                  temp=idata.llm_config.temp, max_tokens=idata.llm_config.max_tokens,
                                                   n=2,  # todo: this doesn't work for ?? ollama:??
-                                                  sysmsg=self.llm_config.system_message,
+                                                  sysmsg=idata.llm_config.system_message,
                                                   prompt=prompt,
                                                   convo=idata.exchanges)
             return completion
@@ -151,7 +149,8 @@ class ChatPage:
 
         async def handle_enter_llm(request, prompt_input: Input, spinner: Spinner, idata: InstanceData) -> None:
             prompt = prompt_input.value.strip()
-            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.api_type()}:{self.llm_config.model_api.api_type}:{self.llm_config.model_name},{self.llm_config.temp},{self.llm_config.max_tokens}): "{prompt}"')
+            log.info(
+                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.api_type()}:{idata.llm_config.model_api.api_type}:{idata.llm_config.model_name},{idata.llm_config.temp},{idata.llm_config.max_tokens}): "{prompt}"')
             prompt_input.disable()
             logstuff.update_from_request(request)  # updates logging prefix with info from each request
 
@@ -182,7 +181,7 @@ class ChatPage:
 
             prompt_input.value = ''
             prompt_input.enable()
-            idata.refresh_chat_exchanges.refresh(self.llm_config)
+            idata.refresh_chat_exchanges.refresh()
             await prompt_input.run_method('focus')
 
         async def handle_enter_vector_search(request, prompt_input: Input, spinner: Spinner, idata: InstanceData) -> None:
@@ -215,7 +214,7 @@ class ChatPage:
 
             prompt_input.value = ''
             prompt_input.enable()
-            idata.refresh_chat_exchanges.refresh(self.llm_config)
+            idata.refresh_chat_exchanges.refresh()
             await prompt_input.run_method('focus')
 
         async def handle_enter(request, prompt_input: Input, spinner: Spinner, idata: InstanceData) -> None:
@@ -229,7 +228,7 @@ class ChatPage:
             logstuff.update_from_request(request)
             log.info(f'route triggered')
 
-            idata = InstanceData(self.llm_config, self.env_values)
+            idata = InstanceData(self.env_values)
 
             # the footer is a "top-level" element in nicegui, so need not be setup in visual page order
             # so I create it here to make sure prompt_input exists before it's needed
@@ -248,6 +247,6 @@ class ChatPage:
             # setup the standard "frame" for all pages
             with frame.frame(f'{config.name} {pagename}', 'bg-white'):
                 with ui.column().classes('w-full flex-grow'):  # .classes('w-full max-w-2xl mx-auto items-stretch'):
-                    await idata.refresh_chat_exchanges(self.llm_config)
+                    await idata.refresh_chat_exchanges()
 
             await prompt_input.run_method('focus')
