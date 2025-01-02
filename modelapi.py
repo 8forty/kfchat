@@ -3,12 +3,17 @@ import openai
 
 class ModelAPI:
     def __init__(self, api_type: str, parms: dict[str, str]):
+        """
+
+        :param api_type: currently: ['azure', 'ollama', 'openai', 'groq']
+        :param parms: (possibly env vars) that set needed parms for the api, e.g. key, endpoint, token...
+        """
         if api_type in ['azure', 'ollama', 'openai', 'groq']:
             self.api_type = api_type
             self.parms = parms
             self.api_client = None
         else:
-            raise ValueError(f'invalid api_type! {api_type}')
+            raise ValueError(f'{__class__.__name__}: invalid api_type! {api_type}')
 
     def type(self) -> str:
         return self.api_type
@@ -47,3 +52,6 @@ class ModelAPI:
             raise ValueError(f'invalid api_type! {self.api_type}')
 
         return self.api_client
+
+    def __repr__(self) -> str:
+        return f'[{self.__class__!s}:{self.__dict__!r}]'

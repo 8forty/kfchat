@@ -6,6 +6,7 @@ from nicegui import ui
 
 import chatpage
 import chromadbpage
+import config
 import logstuff
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ async def root():
 
 def init_with_fastapi(fastapi_app: FastAPI) -> None:
     log.info('init_with_fastapi')
-    ui.run_with(fastapi_app, storage_secret='pick your private secret here')
+    ui.run_with(fastapi_app, storage_secret='pick your private secret here', favicon='pluto.jpg', title=config.name)
 
     cp = chatpage.ChatPage(env_values)
     cp.setup('/', 'Chat')

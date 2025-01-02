@@ -4,44 +4,30 @@ import sys
 import timeit
 import traceback
 
-import openai
 from fastapi import Request
 from nicegui import ui, run
 from nicegui.elements.input import Input
 from nicegui.elements.spinner import Spinner
 from openai.types.chat import ChatCompletion
 
-import llmopenaiapi
 import config
 import frame
+import llmopenaiapi
 import logstuff
 import vectorstore_chroma
 from chatexchanges import ChatExchange, VectorStoreResponse
-from modelapi import ModelAPI
 from vectorstore_chroma import VectorStoreChroma
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
 
-class LLMConfig:
-    def __init__(self, api_type: str, env_values: dict[str, str]):
-        # todo: these should come from e.g. pref screen
-        self.model_api: ModelAPI = ModelAPI(api_type, parms=env_values)
-        self.model_name: str = ['llama3.2:1b', 'llama3.2:3b', 'llama3.3:70b', 'qwen2.5:0.5b', 'gemma2:2b', 'qwq'][1]
-        self.temp: float = 0.7
-        self.max_tokens: int = 80
-        self.system_message: str = (f'You are a helpful chatbot that talks in a conversational manner. '
-                                    f'Your responses must always be less than {self.max_tokens} tokens.')
-        self.client: openai.OpenAI = self.model_api.client()
-
-
 class InstanceData:
 
-    def __init__(self, llm_config: LLMConfig, env_values: dict[str, str]):
+    def __init__(self, llm_config: config.LLMConfig, env_values: dict[str, str]):
         self.llm_name_prefix: str = 'llm: '
         self.vs_name_prefix: str = 'VS: '
-        self.llm_config: LLMConfig = llm_config
+        self.llm_config: config.LLMConfig = llm_config
         self.env_values: dict[str, str] = env_values
         self.exchanges: llmopenaiapi.ChatExchanges = llmopenaiapi.ChatExchanges(config.chat_exchanges_circular_list_count)
         self.llm = llmopenaiapi.LLMOpenaiAPI(llm_config.client)
@@ -64,10 +50,10 @@ class InstanceData:
         self.source_select_name = selected_name
 
     @ui.refreshable
-    async def refresh_chat_exchanges(self, llm_config: LLMConfig) -> None:
+    async def refresh_chat_exchanges(self, llm_config: config.LLMConfig) -> None:
         vectorstore_chroma.setup_once(self.env_values)
 
-        # the chat source selection/info row
+        # the source selection/info row
         with (ui.row().classes('w-full border-solid border border-black')):  # place-content-center')):
             source_names: list[str] = [self.source_llm_name]
             source_names.extend([f'{self.vs_name_prefix}{c.name}' for c in vectorstore_chroma.chromadb_client.list_collections()])
@@ -79,46 +65,52 @@ class InstanceData:
 
         # todo: local-storage-session to separate messages
         if self.exchanges.len() > 0:
+            response_text_classes = 'w-full font-bold text-lg text-green text-left px-10'
+            response_subscript_classes = 'w-full italic text-xs text-black text-left px-10'
+
             for exchange in self.exchanges.list():
 
                 # the prompt
                 ui.label(exchange.prompt).classes('w-full font-bold text-lg text-blue text-left px-10')
 
+                # the response(s)
                 with ui.column().classes('w-full gap-y-0'):
-                    # the response(s)
-                    context_info = f'{self.exchanges.id()}'
-                    completion_extra = ''
+                    subscript_context_info = f'{self.exchanges.id()}'
+                    subscript_results_info = ''
+                    subscript_extra_info = ''
                     # todo: metrics, etc.
                     if exchange.llm_response is not None:
-                        context_info += f',{self.llm_config.model_api.api_type}:{llm_config.model_name},{llm_config.temp},{llm_config.max_tokens}'
-                        completion_extra = f'{exchange.llm_response.usage.prompt_tokens}/{exchange.llm_response.usage.completion_tokens} '
+                        subscript_context_info += f',{self.llm_config.model_api.api_type}:{llm_config.model_name},temp:{llm_config.temp},max_tokens:{llm_config.max_tokens}'
+                        subscript_results_info += f'tokens:{exchange.llm_response.usage.prompt_tokens}/{exchange.llm_response.usage.completion_tokens}'
+                        subscript_extra_info += f'{llm_config.system_message}'
                         for choice in exchange.llm_response.choices:
-                            ui.label(f'[llm]: {choice.message.content}').classes('w-full font-bold text-lg text-green text-left px-10')
+                            ui.label(f'[llm]: {choice.message.content}').classes(response_text_classes)
 
                     if exchange.vector_store_response is not None:
+                        subscript_context_info += f',{self.source_name}'
                         for result in exchange.vector_store_response.results:
-                            ui.label(f'[vs]: {result.content}').classes('w-full font-bold text-lg text-green text-left px-10')
-                            ui.label(f'distance: {result.metrics['distance']:.03f}').classes('w-full italic text-xs text-black text-left px-10')
+                            ui.label(f'[vs]: {result.content}').classes(response_text_classes)
+                            ui.label(f'distance:{result.metrics['distance']:.03f}').classes(response_subscript_classes)
 
-                    # the context info
-                    ui.label(f'[{context_info}]: '
-                             f'{completion_extra}'
+                    # subscripts
+                    ui.label(f'[{subscript_context_info}]: '
+                             f'{subscript_results_info} '
                              f'{exchange.response_duration_secs:.1f}s'
-                             ).classes('w-full italic text-xs text-black text-left px-10')
-                    if exchange.llm_response is not None:
-                        ui.label(f'{llm_config.system_message}').classes('w-full italic text-xs text-black text-left px-10')
+                             ).classes(response_subscript_classes)
+                    ui.label(f'{subscript_extra_info}').classes(response_subscript_classes)
 
-                    # stop problems info
+                    # stop problems
                     stop_problems_string = ''
                     for choice_idx, stop_problem in exchange.stop_problems().items():
                         stop_problems_string += f'stop[{choice_idx}]:{stop_problem}'
                     if len(stop_problems_string) > 0:
                         ui.label(f'{stop_problems_string}').classes('w-full italic text-xs text-red text-left px-10')
 
+                    # exchange problems
                     if exchange.overflowed():
                         ui.label(f'exchange history overflowed!').classes('w-full italic text-xs text-red text-left px-10')
         else:
-            ui.label('No messages yet').classes('mx-auto my-36')
+            ui.label('No messages yet').classes('mx-auto my-36 absolute-center text-2xl italic')
 
         try:
             await ui.context.client.connected()  # run_javascript which is only possible after connecting
@@ -135,7 +127,11 @@ class ChatPage:
         self.env_values = env_values
 
         # todo: configure this
-        self.llm_config = LLMConfig('ollama', self.env_values)
+        max_tokens = 80
+        system_message = (f'You are a helpful chatbot that talks in a conversational manner. '
+                          f'Your responses must always be less than {max_tokens} tokens.')
+        self.llm_config = config.LLMConfig('ollama', env_values=self.env_values, model_name='llama3.2:1b',
+                                           temp=0.7, max_tokens=max_tokens, system_message=system_message)
 
     def setup(self, path: str, pagename: str):
 
