@@ -37,8 +37,7 @@ def chat(message_set: list[tuple[str, str]], client: openai.OpenAI, model_name: 
             # stop=[],
 
         )
-    except (Exception,):
-        e = f'{sys.exc_info()[0].__name__}: {sys.exc_info()[1]}'
+    except (Exception,) as e:
         print(f'chat Exception! {model_name}:  {e}')
         raise
 
@@ -61,8 +60,7 @@ def run(api: str, model_set_name: str, settings_set_name: str, message_sets_name
         # warmup the model
         try:
             model_warmup(client, model)
-        except (Exception,):
-            e = f'{sys.exc_info()[0].__name__}: {sys.exc_info()[1]}'
+        except (Exception,) as e:
             print(f'warmup Exception! {api}:{model}: {e} skipping...')
             break
 
@@ -81,8 +79,7 @@ def run(api: str, model_set_name: str, settings_set_name: str, message_sets_name
                                     model_name=model,
                                     temp=settings_set['temp'],
                                     max_tokens=settings_set['max_tokens'])
-                except (Exception,):
-                    e = f'{sys.exc_info()[0].__name__}: {sys.exc_info()[1]}'
+                except (Exception,) as e:
                     print(f'run Exception! {api}:{model} {settings_set_name} {message_set["name"]}: {e} skipping...')
                     break
 

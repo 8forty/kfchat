@@ -11,11 +11,12 @@ from nicegui.elements.input import Input
 from nicegui.elements.spinner import Spinner
 from openai.types.chat import ChatCompletion
 
-import chat
+import llmopenaiapi
 import config
 import frame
 import logstuff
 import vectorstore_chroma
+from chatexchanges import ChatExchange, VectorStoreResponse
 from modelapi import ModelAPI
 from vectorstore_chroma import VectorStoreChroma
 
@@ -38,20 +39,24 @@ class LLMConfig:
 class InstanceData:
 
     def __init__(self, llm_config: LLMConfig, env_values: dict[str, str]):
-        self.chat_name_prefix: str = 'chat: '
+        self.llm_name_prefix: str = 'llm: '
         self.vs_name_prefix: str = 'VS: '
         self.llm_config: LLMConfig = llm_config
         self.env_values: dict[str, str] = env_values
-        self.exchanges: chat.ChatExchanges = chat.ChatExchanges(config.chat_exchanges_circular_list_count)
-        self.chat = chat.Chat(llm_config.client)
+        self.exchanges: llmopenaiapi.ChatExchanges = llmopenaiapi.ChatExchanges(config.chat_exchanges_circular_list_count)
+        self.llm = llmopenaiapi.LLMOpenaiAPI(llm_config.client)
 
-        # source info
-        self.source_select_name: str = f'{self.chat_name_prefix}{self.llm_config.model_name}'
-        self.source_name: str = self.source_select_name  # we're starting with general chat, so select-name and name are the same
-        self.source_api: VectorStoreChroma | None = None
+        # #### source info
+        self.source_llm_name: str = f'{self.llm_name_prefix}{self.llm_config.model_name}'
+        self.source_select_name: str = self.source_llm_name
+        self.source_name: str = self.source_select_name  # name of the source object (we want to start with the llm, so select-name and name are the same)
+        self.source_api: VectorStoreChroma | None = None  # VS api or None for llm
 
-    def change_chat_source(self, selected_name: str):
-        if selected_name.startswith(self.chat_name_prefix):
+    def api_type(self) -> str:
+        return 'llm' if self.source_api is None else 'vs'
+
+    def change_source(self, selected_name: str):
+        if selected_name.startswith(self.llm_name_prefix):
             self.source_api = None
         else:
             self.source_api = VectorStoreChroma(vectorstore_chroma.chromadb_client, self.env_values)
@@ -64,13 +69,13 @@ class InstanceData:
 
         # the chat source selection/info row
         with (ui.row().classes('w-full border-solid border border-black')):  # place-content-center')):
-            csource_names: list[str] = [self.source_select_name]
-            csource_names.extend([f'{self.vs_name_prefix}{c.name}' for c in vectorstore_chroma.chromadb_client.list_collections()])
-            csource_names.sort(key=lambda k: 'zzz' + k if k.startswith(self.vs_name_prefix) else k)
-            ui.select(label='Chat Source:',
-                      options=csource_names,
+            source_names: list[str] = [self.source_llm_name]
+            source_names.extend([f'{self.vs_name_prefix}{c.name}' for c in vectorstore_chroma.chromadb_client.list_collections()])
+            source_names.sort(key=lambda k: 'zzz' + k if k.startswith(self.vs_name_prefix) else k)
+            ui.select(label='Source:',
+                      options=source_names,
                       value=self.source_select_name,
-                      ).on_value_change(lambda vc: self.change_chat_source(vc.value)).props('square outlined label-color=green')
+                      ).on_value_change(lambda vc: self.change_source(vc.value)).props('square outlined label-color=green')
 
         # todo: local-storage-session to separate messages
         if self.exchanges.len() > 0:
@@ -84,15 +89,15 @@ class InstanceData:
                     context_info = f'{self.exchanges.id()}'
                     completion_extra = ''
                     # todo: metrics, etc.
-                    if exchange.completion is not None:
+                    if exchange.llm_response is not None:
                         context_info += f',{self.llm_config.model_api.api_type}:{llm_config.model_name},{llm_config.temp},{llm_config.max_tokens}'
-                        completion_extra = f'{exchange.completion.usage.prompt_tokens}/{exchange.completion.usage.completion_tokens} '
-                        for choice in exchange.completion.choices:
-                            ui.label(f'[c]: {choice.message.content}').classes('w-full font-bold text-lg text-green text-left px-10')
+                        completion_extra = f'{exchange.llm_response.usage.prompt_tokens}/{exchange.llm_response.usage.completion_tokens} '
+                        for choice in exchange.llm_response.choices:
+                            ui.label(f'[llm]: {choice.message.content}').classes('w-full font-bold text-lg text-green text-left px-10')
 
                     if exchange.vector_store_response is not None:
                         for result in exchange.vector_store_response.results:
-                            ui.label(f'[v]: {result.content}').classes('w-full font-bold text-lg text-green text-left px-10')
+                            ui.label(f'[vs]: {result.content}').classes('w-full font-bold text-lg text-green text-left px-10')
                             ui.label(f'distance: {result.metrics['distance']:.03f}').classes('w-full italic text-xs text-black text-left px-10')
 
                     # the context info
@@ -100,7 +105,7 @@ class InstanceData:
                              f'{completion_extra}'
                              f'{exchange.response_duration_secs:.1f}s'
                              ).classes('w-full italic text-xs text-black text-left px-10')
-                    if exchange.completion is not None:
+                    if exchange.llm_response is not None:
                         ui.label(f'{llm_config.system_message}').classes('w-full italic text-xs text-black text-left px-10')
 
                     # stop problems info
@@ -134,23 +139,23 @@ class ChatPage:
 
     def setup(self, path: str, pagename: str):
 
-        def do_chat(prompt: str, idata: InstanceData) -> ChatCompletion | None:
+        def do_llm(prompt: str, idata: InstanceData) -> ChatCompletion | None:
             # todo: count tokens, etc.
-            completion = idata.chat.chat_run_prompt(self.llm_config.model_name,
-                                                    temp=self.llm_config.temp, max_tokens=self.llm_config.max_tokens,
-                                                    n=2,  # todo: this doesn't work for ?? ollama:??
-                                                    sysmsg=self.llm_config.system_message,
-                                                    prompt=prompt,
-                                                    convo=idata.exchanges)
+            completion = idata.llm.llm_run_prompt(self.llm_config.model_name,
+                                                  temp=self.llm_config.temp, max_tokens=self.llm_config.max_tokens,
+                                                  n=2,  # todo: this doesn't work for ?? ollama:??
+                                                  sysmsg=self.llm_config.system_message,
+                                                  prompt=prompt,
+                                                  convo=idata.exchanges)
             return completion
 
         def do_vector_search(prompt: str, idata: InstanceData):
-            vsresponse = idata.source_api.ask(prompt, idata.source_name)
+            vsresponse = idata.source_api.ask(prompt, collection_name=idata.source_name)
             return vsresponse
 
-        async def handle_enter_chat(request, prompt_input: Input, spinner: Spinner, idata: InstanceData) -> None:
+        async def handle_enter_llm(request, prompt_input: Input, spinner: Spinner, idata: InstanceData) -> None:
             prompt = prompt_input.value.strip()
-            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({self.llm_config.model_api.api_type}:{self.llm_config.model_name},{self.llm_config.temp},{self.llm_config.max_tokens}): {prompt}')
+            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.api_type()}:{self.llm_config.model_api.api_type}:{self.llm_config.model_name},{self.llm_config.temp},{self.llm_config.max_tokens}): "{prompt}"')
             prompt_input.disable()
             logstuff.update_from_request(request)  # updates logging prefix with info from each request
 
@@ -161,20 +166,20 @@ class ChatPage:
             # if prompt.startswith('*'):  # load a file of prompts
             #     with
 
-            completion = None
+            llm_response: ChatCompletion | None = None
             try:
-                completion = await run.io_bound(do_chat, prompt, idata)
-            except (Exception,):
-                e = f'{sys.exc_info()[0].__name__}: {sys.exc_info()[1]}'
+                llm_response = await run.io_bound(do_llm, prompt, idata)
+            except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)
-                log.warning(f'chat error! {e}')
-                ui.notify(message=f'chat error! {e}', position='top', type='negative', close_button='Dismiss', timeout=0)
+                log.warning(f'llm error! {e}')
+                ui.notify(message=f'llm error! {e}', position='top', type='negative', close_button='Dismiss', timeout=0)
 
             spinner.set_visibility(False)
 
-            if completion is not None:
-                ce = chat.ChatExchange(prompt, response_duration_secs=timeit.default_timer() - start,
-                                       completion=completion, vector_store_response=None)
+            if llm_response is not None:
+                log.debug(f'llm response: {llm_response}')
+                ce = ChatExchange(prompt, response_duration_secs=timeit.default_timer() - start,
+                                  llm_response=llm_response, vector_store_response=None)
                 for choice_idx, sp_text in ce.stop_problems().items():
                     log.warning(f'stop problem from prompt {prompt} choice[{choice_idx}]: {sp_text}')
                 idata.exchanges.append(ce)
@@ -186,7 +191,7 @@ class ChatPage:
 
         async def handle_enter_vector_search(request, prompt_input: Input, spinner: Spinner, idata: InstanceData) -> None:
             prompt = prompt_input.value.strip()
-            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt(): {prompt}')
+            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.api_type()}:{idata.source_name}): "{prompt}"')
             prompt_input.disable()
             logstuff.update_from_request(request)  # updates logging prefix with info from each request
 
@@ -197,14 +202,11 @@ class ChatPage:
             # if prompt.startswith('*'):  # load a file of prompts
             #     with
 
-            vsresponse: chat.VectorStoreResponse | None = None
+            vsresponse: VectorStoreResponse | None = None
             try:
-                log.debug(f'vector search with [{idata.source_select_name}]: {prompt}')
                 vsresponse = await run.io_bound(do_vector_search, prompt, idata)
-                # todo: put this in an object
-                log.debug(f'vector search result: {vsresponse}')
-            except (Exception,):
-                e = f'{sys.exc_info()[0].__name__}: {sys.exc_info()[1]}'
+                log.debug(f'vector-search response: {vsresponse}')
+            except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)
                 log.warning(f'vector-search error! {e}')
                 ui.notify(message=f'vector-search error! {e}', position='top', type='negative', close_button='Dismiss', timeout=0)
@@ -212,7 +214,7 @@ class ChatPage:
             spinner.set_visibility(False)
 
             if vsresponse is not None:
-                ce = chat.ChatExchange(prompt, response_duration_secs=timeit.default_timer() - start, completion=None, vector_store_response=vsresponse)
+                ce = ChatExchange(prompt, response_duration_secs=timeit.default_timer() - start, llm_response=None, vector_store_response=vsresponse)
                 idata.exchanges.append(ce)
 
             prompt_input.value = ''
@@ -222,7 +224,7 @@ class ChatPage:
 
         async def handle_enter(request, prompt_input: Input, spinner: Spinner, idata: InstanceData) -> None:
             if idata.source_api is None:
-                await handle_enter_chat(request, prompt_input, spinner, idata)
+                await handle_enter_llm(request, prompt_input, spinner, idata)
             else:
                 await handle_enter_vector_search(request, prompt_input, spinner, idata)
 

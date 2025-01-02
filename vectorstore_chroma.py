@@ -14,8 +14,8 @@ from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq
 
-import chat
 import logstuff
+from chatexchanges import VectorStoreResponse, VectorStoreResult
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -103,7 +103,7 @@ class VectorStoreChroma:
         collection.add(documents=chunks, ids=[str(uuid.uuid4()) for _ in range(0, len(chunks))])
 
     # todo: get the model and parameters right for the post-response info
-    def ask(self, prompt: str, collection_name: str) -> chat.VectorStoreResponse:
+    def ask(self, prompt: str, collection_name: str) -> VectorStoreResponse:
         try:
             collection = self.chroma_client.get_collection(
                 name=collection_name,
@@ -115,20 +115,19 @@ class VectorStoreChroma:
             log.warning(errmsg)
             raise ValueError(errmsg)
 
-        log.debug(f'running query {prompt}')
         query_results = collection.query(
             query_texts=[prompt],
             n_results=2
         )
 
         # todo: only one query in the prompt?
-        vs_results: list[chat.VectorStoreResult] = []
+        vs_results: list[VectorStoreResult] = []
         for prompt_idx in range(0, len(query_results['ids'])):
             for result_idx in range(0, len(query_results['ids'][prompt_idx])):
                 metrics = {'distance': query_results['distances'][prompt_idx][result_idx]}
-                vs_results.append(chat.VectorStoreResult(query_results['ids'][prompt_idx][result_idx], metrics, query_results['documents'][prompt_idx][result_idx]))
+                vs_results.append(VectorStoreResult(query_results['ids'][prompt_idx][result_idx], metrics, query_results['documents'][prompt_idx][result_idx]))
 
-        return chat.VectorStoreResponse(vs_results)
+        return VectorStoreResponse(vs_results)
 
         # vector_store = Chroma(client=self.chroma_client,
         #                       collection_name=collection_name,
