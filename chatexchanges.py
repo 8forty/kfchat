@@ -80,8 +80,6 @@ class ChatExchange:
 
 
 class ChatExchanges:
-    """ a 0-or-more question prompt and list of ChatResponse objects, one for each question """
-    _exchanges: list[ChatExchange] = []
     _next_id: int = 1
 
     def __init__(self, max_exchanges: int):
@@ -90,6 +88,9 @@ class ChatExchanges:
         :param max_exchanges: when this number of ChatExchange objects is exceeded, oldest is removed
         """
         super().__init__()
+        """ a 0-or-more question prompt and list of ChatResponse objects, one for each question """
+        self._exchanges: list[ChatExchange] = []
+
         self._max_exchanges = max_exchanges
         self._id = ChatExchanges._next_id
         ChatExchanges._next_id += 1
@@ -105,6 +106,9 @@ class ChatExchanges:
 
     def len(self) -> int:
         return len(self._exchanges)
+
+    def max_exchanges(self) -> int:
+        return self._max_exchanges
 
     def append(self, ce: ChatExchange):
         self._exchanges.append(ce)

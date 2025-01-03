@@ -11,7 +11,7 @@ class PageInstanceData:
     # must be defined in local scope to avoid updates to all tabs/browsers
     # https://nicegui.io/documentation/refreshable#global_scope
     @ui.refreshable
-    async def refresh_cp(self) -> None:
+    async def refresh_instance(self) -> None:
         for text in self.texts:
             ui.label(f'{self.id}: {text}')
 
@@ -20,14 +20,14 @@ class TestPage1:
     def __init__(self, path: str):
         async def handle_enter(prompt_input: Input, idata: PageInstanceData) -> None:
             idata.texts.append(f'{prompt_input.value.strip()}')
-            idata.refresh_cp.refresh()
+            idata.refresh_instance.refresh()  # NOTE: refreshes call the refresh() function on the original refresh_instance function!!!
 
         @ui.page(path)
         async def index() -> None:
-            idata = PageInstanceData()
+            idata = PageInstanceData()  # this creates a "local scope" object for data and refreshes
             prompt_input = ui.input().on('keydown.enter', lambda: handle_enter(prompt_input, idata))
 
-            await idata.refresh_cp()
+            await idata.refresh_instance()  # the first call is to the refresh_instance() function itself to set it up
 
 
 # class TestPage2:

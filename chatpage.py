@@ -15,7 +15,7 @@ import frame
 import llmopenaiapi
 import logstuff
 import vectorstore_chroma
-from chatexchanges import ChatExchange, VectorStoreResponse
+from chatexchanges import ChatExchange, VectorStoreResponse, ChatExchanges
 from vectorstore_chroma import VectorStoreChroma
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -23,12 +23,16 @@ log.setLevel(logstuff.logging_level)
 
 
 class InstanceData:
+    _next_id: int = 1
 
     def __init__(self, env_values: dict[str, str]):
+        self._id = InstanceData._next_id
+        InstanceData._next_id += 1
+
         self.llm_name_prefix: str = 'llm: '
         self.vs_name_prefix: str = 'VS: '
         self.env_values: dict[str, str] = env_values
-        self.exchanges: llmopenaiapi.ChatExchanges = llmopenaiapi.ChatExchanges(config.chat_exchanges_circular_list_count)
+        self.exchanges: ChatExchanges = ChatExchanges(config.chat_exchanges_circular_list_count)
         # todo: configure this
         max_tokens = 80
         system_message = (f'You are a helpful chatbot that talks in a conversational manner. '
@@ -55,7 +59,7 @@ class InstanceData:
         self.source_select_name = selected_name
 
     @ui.refreshable
-    async def refresh_chat_exchanges(self) -> None:
+    async def refresh_instance(self) -> None:
         vectorstore_chroma.setup_once(self.env_values)
 
         # the source selection/info row
@@ -79,7 +83,7 @@ class InstanceData:
                 ui.label(exchange.prompt).classes('w-full font-bold text-lg text-blue text-left px-10')
 
                 # the response(s)
-                with ui.column().classes('w-full gap-y-0'):
+                with (ui.column().classes('w-full gap-y-0')):
                     subscript_context_info = f'{self.exchanges.id()}'
                     subscript_results_info = ''
                     subscript_extra_info = ''
@@ -113,7 +117,8 @@ class InstanceData:
 
                     # exchange problems
                     if exchange.overflowed():
-                        ui.label(f'exchange history overflowed!').classes('w-full italic text-xs text-red text-left px-10')
+                        ui.label(f'exchange history (max:{self.exchanges.max_exchanges()}) overflowed!  Oldest exchange dropped'
+                                 ).classes('w-full italic text-xs text-red text-left px-10')
         else:
             ui.label('No messages yet').classes('mx-auto my-36 absolute-center text-2xl italic')
 
@@ -181,7 +186,7 @@ class ChatPage:
 
             prompt_input.value = ''
             prompt_input.enable()
-            idata.refresh_chat_exchanges.refresh()
+            idata.refresh_instance.refresh()
             await prompt_input.run_method('focus')
 
         async def handle_enter_vector_search(request, prompt_input: Input, spinner: Spinner, idata: InstanceData) -> None:
@@ -214,7 +219,7 @@ class ChatPage:
 
             prompt_input.value = ''
             prompt_input.enable()
-            idata.refresh_chat_exchanges.refresh()
+            idata.refresh_instance.refresh()
             await prompt_input.run_method('focus')
 
         async def handle_enter(request, prompt_input: Input, spinner: Spinner, idata: InstanceData) -> None:
@@ -247,6 +252,6 @@ class ChatPage:
             # setup the standard "frame" for all pages
             with frame.frame(f'{config.name} {pagename}', 'bg-white'):
                 with ui.column().classes('w-full flex-grow'):  # .classes('w-full max-w-2xl mx-auto items-stretch'):
-                    await idata.refresh_chat_exchanges()
+                    await idata.refresh_instance()
 
             await prompt_input.run_method('focus')
