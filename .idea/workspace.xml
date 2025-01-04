@@ -5,7 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e0a6e3b3-c951-44a3-9ee0-0cb5a6236917" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/examples/autoscroll.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/llmconfig.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vectorstorebase.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/kfchat.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kfchat.iml" afterDir="false" />
@@ -16,7 +17,7 @@
       <change beforePath="$PROJECT_DIR$/.idea/runConfigurations/main.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/runConfigurations/main.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/UploadPDFDialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/UploadPDFDialog.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/UploadPDFDialog.py" beforeDir="false" afterPath="$PROJECT_DIR$/uploadpdfdialog.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/chat-perf/chat-perf.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/chat-perf/chat-perf.xlsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/chatexchanges.py" beforeDir="false" afterPath="$PROJECT_DIR$/chatexchanges.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/chatpage.py" beforeDir="false" afterPath="$PROJECT_DIR$/chatpage.py" afterDir="false" />
@@ -24,6 +25,7 @@
       <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/data.py" beforeDir="false" afterPath="$PROJECT_DIR$/data.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examples/NiceguiPageClass.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/NiceguiPageClass.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/examples/autoscroll.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/autoscroll.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examples/chat_app_main.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/chat_app_main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examples/chromadb_test.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/chromadb_test.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/examples/nicegui_page_class_tester.py" beforeDir="false" afterPath="$PROJECT_DIR$/examples/nicegui_page_class_tester.py" afterDir="false" />
@@ -40,6 +42,7 @@
       <change beforePath="$PROJECT_DIR$/rbui.py" beforeDir="false" afterPath="$PROJECT_DIR$/rbui.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/test_main.http" beforeDir="false" afterPath="$PROJECT_DIR$/test_main.http" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/vectorstore_chroma.py" beforeDir="false" afterPath="$PROJECT_DIR$/vectorstore_chroma.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/version.py" beforeDir="false" afterPath="$PROJECT_DIR$/version.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -89,7 +92,7 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "editor.preferences.appearance",
+    "settings.editor.selected.configurable": "editor.preferences.tabs",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -267,7 +270,7 @@
       <workItem from="1735677508793" duration="11453000" />
       <workItem from="1735857448093" duration="254000" />
       <workItem from="1735857786608" duration="7791000" />
-      <workItem from="1735929770784" duration="5560000" />
+      <workItem from="1735929770784" duration="8610000" />
     </task>
     <servers />
   </component>
@@ -281,7 +284,7 @@
     <SUITE FILE_PATH="coverage/kfchat$autoscroll.coverage" NAME="autoscroll Coverage Results" MODIFIED="1735934051294" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
     <SUITE FILE_PATH="coverage/kfchat$refresh_local_scope.coverage" NAME="refresh_local_scope Coverage Results" MODIFIED="1735860496736" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
     <SUITE FILE_PATH="coverage/kfchat$chromadb_test.coverage" NAME="chromadb_test Coverage Results" MODIFIED="1734816022062" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
-    <SUITE FILE_PATH="coverage/kfchat$main.coverage" NAME="main Coverage Results" MODIFIED="1735963809732" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/kfchat$main.coverage" NAME="main Coverage Results" MODIFIED="1735966734369" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/kfchat$chat_perf.coverage" NAME="chat-perf Coverage Results" MODIFIED="1733856776556" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/chat-perf" />
   </component>
 </project>

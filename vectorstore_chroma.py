@@ -1,6 +1,4 @@
 import logging
-import time
-import traceback
 import uuid
 
 import chromadb
@@ -11,11 +9,10 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores.utils import filter_complex_metadata
 from langchain_core.documents import Document
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_groq import ChatGroq
 
 import logstuff
 from chatexchanges import VectorStoreResponse, VectorStoreResult
+from vectorstorebase import VectorStoreBase
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -25,45 +22,21 @@ lcglobals.set_debug(True)
 lcglobals.set_verbose(True)
 
 
-class VectorStoreChroma:
+class VectorStoreChroma(VectorStoreBase):
     vector_store = None
     retriever = None
     chain = None
 
     def __init__(self, chroma_client: chromadb.ClientAPI, env_values: dict[str, str]):
+        super().__init__(env_values)
         self.chroma_client: chromadb.ClientAPI = chroma_client
         self.env_values: dict[str, str] = env_values
 
-        # todo: configure/arg this
-        # self.model = ChatOllama(model='llama3.2:3b')
-
-        self.model = ChatGroq(model_name='llama-3.3-70b-versatile',
-                              groq_api_key=self.env_values.get('GROQ_API_KEY'))
-        # groq_api_base=self.env_values.get('GROQ_ENDPOINT' # only use this if "using a proxy or service emulator"
-
-        # self.model = ChatOpenAI(model_name='llama-3.3-70b-versatile',
-        #                         openai_api_key=self.env_values.get('GROQ_API_KEY'),
-        #                         openai_api_base=self.env_values.get('GROQ_ENDPOINT'))  # huh, endpoint instead of base for the openai emulation in groq
-
-        # self.model = ChatOpenAI(model_name='gpt-4o-mini',
-        #                         openai_api_key=self.env_values.get("OPENAI_API_KEY"),
-        #                         openai_api_base=self.env_values.get('OPENAI_API_BASE'))
-
-        self.prompt = ChatPromptTemplate(
-            [
-                (
-                    "system",
-                    "You are a helpful assistant that can answer questions about the PDF document that uploaded by the user. ",
-                ),
-                (
-                    "human",
-                    "Here is the document pieces: {context}\nQuestion: {question}",
-                ),
-            ]
-        )
+    def list_collection_names(self) -> list[str]:
+        return [c.name for c in self.chroma_client.list_collections()]
 
     def ingest_pdf(self, pdf_file_path: str, pdf_name: str):
-        # collection name:
+        # chroma collection name:
         # (1) contains 3-63 characters,
         # (2) starts and ends with an alphanumeric character,
         # (3) otherwise contains only alphanumeric characters, underscores or hyphens (-) [NO SPACES!],
@@ -149,28 +122,3 @@ class VectorStoreChroma:
         # )
         #
         # return chain.invoke(prompt)
-
-
-chromadb_client: chromadb.ClientAPI | None = None
-chroma: VectorStoreChroma | None = None
-
-
-def setup_once(env_values: dict[str, str]):
-    global chromadb_client, chroma
-    try:
-        if chromadb_client is None:
-            while True:
-                try:
-                    # todo: configure this
-                    chromadb_client = chromadb.HttpClient(host='localhost', port=8888)
-                    chroma = VectorStoreChroma(chroma_client=chromadb_client, env_values=env_values)
-                    break
-                except (Exception,) as e:
-                    print(f'!!! Chroma client error, will retry in {15} secs: {e}')
-                time.sleep(15)  # todo: configure this
-
-    except (Exception,) as e:
-        log.warning(f'ERROR making client objects: {e}')
-        exc = traceback.format_exc()  # sys.exc_info())
-        log.warning(f'{exc}')
-        raise

@@ -13,12 +13,10 @@ from openai.types.chat import ChatCompletion
 
 import config
 import frame
-import llmopenaiapi
 import logstuff
-import vectorstore_chroma
 from chatexchanges import ChatExchange, VectorStoreResponse, ChatExchanges
-from config import LLMConfig
-from vectorstore_chroma import VectorStoreChroma
+from llmconfig import LLMConfig
+from vectorstorebase import VectorStoreBase
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -27,38 +25,43 @@ log.setLevel(logstuff.logging_level)
 class InstanceData:
     _next_id: int = 1
 
-    def __init__(self, llm_config: LLMConfig, env_values: dict[str, str]):
+    def __init__(self, llm_config: LLMConfig, vectorstore: VectorStoreBase, env_values: dict[str, str]):
         self._id = InstanceData._next_id
         InstanceData._next_id += 1
 
-        self.llm_name_prefix: str = 'llm: '
-        self.vs_name_prefix: str = 'VS: '
         self.env_values: dict[str, str] = env_values
         self.exchanges: ChatExchanges = ChatExchanges(config.chat_exchanges_circular_list_count)
-        # todo: configure this
-        self.llm_config: config.LLMConfig = llm_config
-        self.llm = llmopenaiapi.LLMOpenaiAPI(self.llm_config.client)
+
+        # llm stuff
+        self.llm_api_type: str = 'llm'
+        self.llm_name_prefix: str = 'llm: '
+        self.llm_config: LLMConfig = llm_config
+        self.source_llm_name: str = f'{self.llm_name_prefix}{self.llm_config.model_name}'
+
+        # vs stuff
+        self.vs_api_type: str = 'vs'
+        self.vs_name_prefix: str = 'vs: '
+        self.vectorstore: VectorStoreBase = vectorstore
 
         # #### source info
-        self.source_llm_name: str = f'{self.llm_name_prefix}{self.llm_config.model_name}'
         self.source_select_name: str = self.source_llm_name
         self.source_name: str = self.source_select_name  # name of the source object (we want to start with the llm, so select-name and name are the same)
-        self.source_api: VectorStoreChroma | None = None  # VS api or None for llm
+        self.source_api: VectorStoreBase | None = None  # VS api or None for llm
 
     def api_type(self) -> str:
-        return 'llm' if self.source_api is None else 'vs'
+        return self.llm_api_type if self.source_api is None else self.vs_api_type
 
     def change_source(self, selected_name: str):
         if selected_name.startswith(self.llm_name_prefix):
             self.source_api = None
         else:
-            self.source_api = VectorStoreChroma(vectorstore_chroma.chromadb_client, self.env_values)
+            self.source_api = self.vectorstore
             self.source_name = selected_name.removeprefix(self.vs_name_prefix)
         self.source_select_name = selected_name
 
     def source_names_list(self) -> list[str]:
         source_names: list[str] = [self.source_llm_name]
-        source_names.extend([f'{self.vs_name_prefix}{c.name}' for c in vectorstore_chroma.chromadb_client.list_collections()])
+        source_names.extend([f'{self.vs_name_prefix}{name}' for name in self.vectorstore.list_collection_names()])
         source_names.sort(key=lambda k: 'zzz' + k if k.startswith(self.vs_name_prefix) else k)
         return source_names
 
@@ -81,9 +84,9 @@ class InstanceData:
                     subscript_extra_info = ''
                     # todo: metrics, etc.
                     if exchange.llm_response is not None:
-                        subscript_context_info += f',{self.llm_config.model_api.api_type}:{self.llm_config.model_name},temp:{self.llm_config.default_temp},max_tokens:{self.llm_config.max_tokens}'
+                        subscript_context_info += f',{self.llm_config.model_api.api_type}:{self.llm_config.model_name},temp:{self.llm_config.default_temp},max_tokens:{self.llm_config.default_max_tokens}'
                         subscript_results_info += f'tokens:{exchange.llm_response.usage.prompt_tokens}/{exchange.llm_response.usage.completion_tokens}'
-                        subscript_extra_info += f'{self.llm_config.system_message}'
+                        subscript_extra_info += f'{self.llm_config.default_system_message}'
                         for choice in exchange.llm_response.choices:
                             ui.label(f'[llm]: {choice.message.content}').classes(response_text_classes)
 
@@ -125,21 +128,22 @@ class InstanceData:
 
 class ChatPage:
 
-    def __init__(self, llm_config: LLMConfig, env_values: dict[str, str]):
+    def __init__(self, llm_config: LLMConfig, vectorstore: VectorStoreBase, env_values: dict[str, str]):
         # anything in here is shared by all instances of ChatPage
         self.llm_config = llm_config
+        self.vectorstore = vectorstore
         self.env_values = env_values
 
     def setup(self, path: str, pagename: str):
 
         def do_llm(prompt: str, idata: InstanceData) -> ChatCompletion | None:
             # todo: count tokens, etc.
-            completion = idata.llm.llm_run_prompt(idata.llm_config.model_name,
-                                                  temp=idata.llm_config.default_temp, max_tokens=idata.llm_config.max_tokens,
-                                                  n=2,  # todo: this doesn't work for ?? ollama:??
-                                                  sysmsg=idata.llm_config.system_message,
-                                                  prompt=prompt,
-                                                  convo=idata.exchanges)
+            completion = idata.llm_config.api.llm_run_prompt(idata.llm_config.model_name,
+                                                             temp=idata.llm_config.default_temp, max_tokens=idata.llm_config.default_max_tokens,
+                                                             n=2,  # todo: this doesn't work for ?? ollama:??
+                                                             sysmsg=idata.llm_config.default_system_message,
+                                                             prompt=prompt,
+                                                             convo=idata.exchanges)
             return completion
 
         def do_vector_search(prompt: str, idata: InstanceData):
@@ -149,7 +153,7 @@ class ChatPage:
         async def handle_enter_llm(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
             prompt = prompt_input.value.strip()
             log.info(
-                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.api_type()}:{idata.llm_config.model_api.api_type}:{idata.llm_config.model_name},{idata.llm_config.default_temp},{idata.llm_config.max_tokens}): "{prompt}"')
+                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.api_type()}:{idata.llm_config.model_api.api_type}:{idata.llm_config.model_name},{idata.llm_config.default_temp},{idata.llm_config.default_max_tokens}): "{prompt}"')
             prompt_input.disable()
             logstuff.update_from_request(request)  # updates logging prefix with info from each request
 
@@ -243,8 +247,7 @@ class ChatPage:
             logstuff.update_from_request(request)
             log.info(f'route triggered')
 
-            vectorstore_chroma.setup_once(self.env_values)
-            idata = InstanceData(self.llm_config, self.env_values)
+            idata = InstanceData(self.llm_config, self.vectorstore, self.env_values)
 
             # setup the standard "frame" for all pages
             with frame.frame(f'{config.name} {pagename}', 'bg-white'):

@@ -4,7 +4,7 @@ from nicegui import ui
 
 import logstuff
 import version
-from UploadPDFDialog import UploadPDFDialog
+from uploadpdfdialog import UploadPDFDialog
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
