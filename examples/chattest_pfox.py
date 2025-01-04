@@ -6,7 +6,7 @@ import openai
 from dotenv import load_dotenv
 
 import data
-from modelapi import ModelAPI
+from llmapi import LLMAPI
 
 load_dotenv(override=True)
 
@@ -37,7 +37,7 @@ def chat_single(sysmsg: str, prompt: str, client: openai.OpenAI, model_name: str
 
 start = timeit.default_timer()
 api_type_name = ['openai', 'azure', 'ollama'][2]
-api_type = ModelAPI(api_type_name, env_values)
+api_type = LLMAPI(api_type_name, env_values)
 env_client = api_type.client()
 env_model_name = ['llama3.2:1b', 'llama3.2:3b', 'llama3.3:70b', 'qwen2.5:0.5b', 'gemma2:2b', 'qwq'][1]
 

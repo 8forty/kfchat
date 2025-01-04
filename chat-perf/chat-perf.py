@@ -5,7 +5,7 @@ import openai
 
 import config
 import data
-from modelapi import ModelAPI
+from llmapi import LLMAPI
 
 
 def model_warmup(client: openai.OpenAI, model: str):
@@ -54,7 +54,7 @@ def run(api: str, model_set_name: str, settings_set_name: str, message_sets_name
     for model in data.model_sets[api][model_set_name]:
         print(f'    {api}:{model}')
         model_start = timeit.default_timer()
-        api_type = ModelAPI(api, parms=data.model_sets[api]['parms'])
+        api_type = LLMAPI(api, parms=data.model_sets[api]['parms'])
         client = api_type.client()
 
         # warmup the model

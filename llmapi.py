@@ -1,8 +1,10 @@
 import logging
 
 import openai
+from openai.types.chat import ChatCompletion
 
 import logstuff
+from chatexchanges import ChatExchanges
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -12,7 +14,7 @@ def obscurize(secret: str) -> str:
     return f'{secret[0:3]}...{secret[-3:]}'
 
 
-class ModelAPI:
+class LLMAPI:
     def __init__(self, api_type: str, parms: dict[str, str]):
         """
 
@@ -25,6 +27,9 @@ class ModelAPI:
             self.api_client = None
         else:
             raise ValueError(f'{__class__.__name__}: invalid api_type! {api_type}')
+
+    def __repr__(self) -> str:
+        return f'[{self.__class__!s}:{self.__dict__!r}]'
 
     def type(self) -> str:
         return self.api_type
@@ -57,7 +62,7 @@ class ModelAPI:
                                             api_key=self.parms.get("OPENAI_API_KEY"))
         elif self.api_type == "groq":
             log.info(f'building LLM API for [{self.api_type}]: {self.parms.get("GROQ_ENDPOINT")}, {obscurize(self.parms.get("GROQ_API_KEY"))}')
-            self.api_client = openai.OpenAI(base_url=self.parms.get("GROQ_ENDPOINT"),
+            self.api_client = openai.OpenAI(base_url=self.parms.get("GROQ_OPENAI_ENDPOINT"),
                                             api_key=self.parms.get("GROQ_API_KEY"))
         elif self.api_type == "github":
             base_url = "https://models.inference.ai.azure.com"
@@ -69,5 +74,37 @@ class ModelAPI:
 
         return self.api_client
 
-    def __repr__(self) -> str:
-        return f'[{self.__class__!s}:{self.__dict__!r}]'
+    def llm_run_prompt(self, model_name: str, temp: float, max_tokens: int, n: int,
+                       sysmsg: str, prompt: str, convo: ChatExchanges) -> ChatCompletion:
+        # add the system message
+        messages = [{'role': 'system', 'content': sysmsg}]
+
+        # add the convo
+        for exchange in convo.list():
+            # todo: what about previous vector-store responses?
+            if exchange.llm_response is not None:
+                messages.append({'role': 'user', 'content': exchange.prompt})
+                for choice in exchange.llm_response.choices:
+                    messages.append({'role': choice.message.role, 'content': choice.message.content})
+
+        # add the prompt
+        messages.append({'role': 'user', 'content': prompt})
+
+        # todo: seed, top_p, etc. (by actual llm?)
+        llm_response: ChatCompletion = self.client().chat.completions.create(
+            model=model_name,
+            temperature=temp,  # default 1.0, 0.0->2.0
+            messages=messages,
+            max_tokens=max_tokens,  # default 16?
+            n=n,
+
+            stream=False,
+
+            # seed=27,
+            # top_p=1,  # default 1, ~0.01->1.0
+            # frequency_penalty=1,  # default 0, -2.0->2.0
+            # presence_penalty=1,  # default 0, -2.0->2.0
+            # stop=[],
+        )
+
+        return llm_response
