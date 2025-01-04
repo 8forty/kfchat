@@ -5,10 +5,10 @@ from modelapi import ModelAPI
 
 
 class LLMConfig:
-    def __init__(self, api_type: str, env_values: dict[str, str], model_name: str, default_temp: float, default_max_tokens: int, default_system_message: str):
+    def __init__(self, model_api: ModelAPI, env_values: dict[str, str], model_name: str, default_temp: float, default_max_tokens: int, default_system_message: str):
         """
 
-        :param api_type: same list as ModelAPI.__init__, e.g. azure, ollama, openai, groq...
+        :param model_api:
         :param env_values: parms for the api, e.g. key, endpoint, token...
         :param model_name:
         :param default_temp:
@@ -17,7 +17,7 @@ class LLMConfig:
 
         """
         # todo: these should come from e.g. pref screen
-        self.model_api: ModelAPI = ModelAPI(api_type, parms=env_values)
+        self.model_api: ModelAPI = model_api
         self.model_name: str = model_name
         self.default_temp: float = default_temp
         self.default_max_tokens: int = default_max_tokens
