@@ -27,7 +27,12 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
     log.info('init_with_fastapi')
     ui.run_with(fastapi_app, storage_secret='pick your private secret here', favicon='pluto.jpg', title=config.name)
 
-    cp = chatpage.ChatPage(env_values)
+    max_tokens = 80
+    system_message = (f'You are a helpful chatbot that talks in a conversational manner. '
+                      f'Your responses must always be less than {max_tokens} tokens.')
+    llm_config: config.LLMConfig = config.LLMConfig('ollama', env_values=env_values, model_name='llama3.2:1b',
+                                                    default_temp=0.8, max_tokens=max_tokens, system_message=system_message)
+    cp = chatpage.ChatPage(llm_config, env_values)
     cp.setup('/', 'Chat')
 
     chromadbpage.setup('/chromadb', 'ChromaDB Page', env_values)
@@ -38,6 +43,6 @@ def run():
 
 
 run()
-# python launch is doing __main__ and uvicorn.run(...
+# python launch is doing __main__ and uvicorn.run(...)
 # if __name__ == "__main__":
 # uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

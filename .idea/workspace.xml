@@ -5,6 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e0a6e3b3-c951-44a3-9ee0-0cb5a6236917" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/examples/autoscroll.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/kfchat.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/kfchat.iml" afterDir="false" />
@@ -71,6 +72,7 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "FastAPI.main.executor": "Run",
+    "Python.autoscroll.executor": "Run",
     "Python.chat-perf.executor": "Run",
     "Python.chattest_pfox.executor": "Run",
     "Python.chromadb_test.executor": "Run",
@@ -100,6 +102,29 @@
     </key>
   </component>
   <component name="RunManager" selected="FastAPI.main">
+    <configuration name="autoscroll" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="kfchat" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/examples" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/examples/autoscroll.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
     <configuration name="chromadb_test" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="kfchat" />
       <option name="ENV_FILES" value="" />
@@ -196,6 +221,7 @@
       <item itemvalue="FastAPI.main" />
       <item itemvalue="Python.chattest_pfox" />
       <item itemvalue="Python.chat-perf" />
+      <item itemvalue="Python.autoscroll" />
       <item itemvalue="Python.refresh_local_scope" />
       <item itemvalue="Python.chromadb_test" />
       <item itemvalue="Python.menu" />
@@ -203,6 +229,7 @@
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.autoscroll" />
         <item itemvalue="Python.refresh_local_scope" />
         <item itemvalue="Python.chromadb_test" />
         <item itemvalue="Python.refresh_xp" />
@@ -239,7 +266,8 @@
       <workItem from="1734577043167" duration="42681000" />
       <workItem from="1735677508793" duration="11453000" />
       <workItem from="1735857448093" duration="254000" />
-      <workItem from="1735857786608" duration="4854000" />
+      <workItem from="1735857786608" duration="7791000" />
+      <workItem from="1735929770784" duration="5560000" />
     </task>
     <servers />
   </component>
@@ -250,9 +278,10 @@
     <SUITE FILE_PATH="coverage/kfchat$chattest_pfox.coverage" NAME="chattest_pfox Coverage Results" MODIFIED="1733680374025" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/kfchat$menu.coverage" NAME="menu Coverage Results" MODIFIED="1733939474647" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/kfchat$refresh_xp.coverage" NAME="refresh_xp Coverage Results" MODIFIED="1733941688188" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
+    <SUITE FILE_PATH="coverage/kfchat$autoscroll.coverage" NAME="autoscroll Coverage Results" MODIFIED="1735934051294" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
     <SUITE FILE_PATH="coverage/kfchat$refresh_local_scope.coverage" NAME="refresh_local_scope Coverage Results" MODIFIED="1735860496736" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
     <SUITE FILE_PATH="coverage/kfchat$chromadb_test.coverage" NAME="chromadb_test Coverage Results" MODIFIED="1734816022062" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/examples" />
-    <SUITE FILE_PATH="coverage/kfchat$main.coverage" NAME="main Coverage Results" MODIFIED="1735862654439" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
+    <SUITE FILE_PATH="coverage/kfchat$main.coverage" NAME="main Coverage Results" MODIFIED="1735963809732" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/kfchat$chat_perf.coverage" NAME="chat-perf Coverage Results" MODIFIED="1733856776556" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/chat-perf" />
   </component>
 </project>

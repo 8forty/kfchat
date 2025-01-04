@@ -7,6 +7,7 @@ import traceback
 from fastapi import Request
 from nicegui import ui, run
 from nicegui.elements.input import Input
+from nicegui.elements.scroll_area import ScrollArea
 from nicegui.elements.spinner import Spinner
 from openai.types.chat import ChatCompletion
 
@@ -16,6 +17,7 @@ import llmopenaiapi
 import logstuff
 import vectorstore_chroma
 from chatexchanges import ChatExchange, VectorStoreResponse, ChatExchanges
+from config import LLMConfig
 from vectorstore_chroma import VectorStoreChroma
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -25,7 +27,7 @@ log.setLevel(logstuff.logging_level)
 class InstanceData:
     _next_id: int = 1
 
-    def __init__(self, env_values: dict[str, str]):
+    def __init__(self, llm_config: LLMConfig, env_values: dict[str, str]):
         self._id = InstanceData._next_id
         InstanceData._next_id += 1
 
@@ -34,11 +36,7 @@ class InstanceData:
         self.env_values: dict[str, str] = env_values
         self.exchanges: ChatExchanges = ChatExchanges(config.chat_exchanges_circular_list_count)
         # todo: configure this
-        max_tokens = 80
-        system_message = (f'You are a helpful chatbot that talks in a conversational manner. '
-                          f'Your responses must always be less than {max_tokens} tokens.')
-        self.llm_config: config.LLMConfig = config.LLMConfig('ollama', env_values=self.env_values, model_name='llama3.2:1b',
-                                                             temp=0.7, max_tokens=max_tokens, system_message=system_message)
+        self.llm_config: config.LLMConfig = llm_config
         self.llm = llmopenaiapi.LLMOpenaiAPI(self.llm_config.client)
 
         # #### source info
@@ -58,20 +56,14 @@ class InstanceData:
             self.source_name = selected_name.removeprefix(self.vs_name_prefix)
         self.source_select_name = selected_name
 
+    def source_names_list(self) -> list[str]:
+        source_names: list[str] = [self.source_llm_name]
+        source_names.extend([f'{self.vs_name_prefix}{c.name}' for c in vectorstore_chroma.chromadb_client.list_collections()])
+        source_names.sort(key=lambda k: 'zzz' + k if k.startswith(self.vs_name_prefix) else k)
+        return source_names
+
     @ui.refreshable
-    async def refresh_instance(self) -> None:
-        vectorstore_chroma.setup_once(self.env_values)
-
-        # the source selection/info row
-        with (ui.row().classes('w-full border-solid border border-black')):  # place-content-center')):
-            source_names: list[str] = [self.source_llm_name]
-            source_names.extend([f'{self.vs_name_prefix}{c.name}' for c in vectorstore_chroma.chromadb_client.list_collections()])
-            source_names.sort(key=lambda k: 'zzz' + k if k.startswith(self.vs_name_prefix) else k)
-            ui.select(label='Source:',
-                      options=source_names,
-                      value=self.source_select_name,
-                      ).on_value_change(lambda vc: self.change_source(vc.value)).props('square outlined label-color=green')
-
+    async def refresh_instance(self, scroller: ScrollArea) -> None:
         # todo: local-storage-session to separate messages
         if self.exchanges.len() > 0:
             response_text_classes = 'w-full font-bold text-lg text-green text-left px-10'
@@ -89,7 +81,7 @@ class InstanceData:
                     subscript_extra_info = ''
                     # todo: metrics, etc.
                     if exchange.llm_response is not None:
-                        subscript_context_info += f',{self.llm_config.model_api.api_type}:{self.llm_config.model_name},temp:{self.llm_config.temp},max_tokens:{self.llm_config.max_tokens}'
+                        subscript_context_info += f',{self.llm_config.model_api.api_type}:{self.llm_config.model_name},temp:{self.llm_config.default_temp},max_tokens:{self.llm_config.max_tokens}'
                         subscript_results_info += f'tokens:{exchange.llm_response.usage.prompt_tokens}/{exchange.llm_response.usage.completion_tokens}'
                         subscript_extra_info += f'{self.llm_config.system_message}'
                         for choice in exchange.llm_response.choices:
@@ -123,17 +115,19 @@ class InstanceData:
             ui.label('No messages yet').classes('mx-auto my-36 absolute-center text-2xl italic')
 
         try:
-            await ui.context.client.connected()  # run_javascript which is only possible after connecting
+            # todo: why is this necessary?
+            await ui.context.client.connected()
+            #  await ui.run_javascript('window.scrollTo(0, document.body.scrollHeight)')
+            # scroller.scroll_to(percent=100.0, axis='vertical', duration=0.0)
         except builtins.TimeoutError:
             log.warning(f'TimeoutError waiting for client connection, connection ignored')
-            return
-        await ui.run_javascript('window.scrollTo(0, document.body.scrollHeight)')
 
 
 class ChatPage:
 
-    def __init__(self, env_values: dict[str, str]):
+    def __init__(self, llm_config: LLMConfig, env_values: dict[str, str]):
         # anything in here is shared by all instances of ChatPage
+        self.llm_config = llm_config
         self.env_values = env_values
 
     def setup(self, path: str, pagename: str):
@@ -141,7 +135,7 @@ class ChatPage:
         def do_llm(prompt: str, idata: InstanceData) -> ChatCompletion | None:
             # todo: count tokens, etc.
             completion = idata.llm.llm_run_prompt(idata.llm_config.model_name,
-                                                  temp=idata.llm_config.temp, max_tokens=idata.llm_config.max_tokens,
+                                                  temp=idata.llm_config.default_temp, max_tokens=idata.llm_config.max_tokens,
                                                   n=2,  # todo: this doesn't work for ?? ollama:??
                                                   sysmsg=idata.llm_config.system_message,
                                                   prompt=prompt,
@@ -152,10 +146,10 @@ class ChatPage:
             vsresponse = idata.source_api.ask(prompt, collection_name=idata.source_name)
             return vsresponse
 
-        async def handle_enter_llm(request, prompt_input: Input, spinner: Spinner, idata: InstanceData) -> None:
+        async def handle_enter_llm(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
             prompt = prompt_input.value.strip()
             log.info(
-                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.api_type()}:{idata.llm_config.model_api.api_type}:{idata.llm_config.model_name},{idata.llm_config.temp},{idata.llm_config.max_tokens}): "{prompt}"')
+                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.api_type()}:{idata.llm_config.model_api.api_type}:{idata.llm_config.model_name},{idata.llm_config.default_temp},{idata.llm_config.max_tokens}): "{prompt}"')
             prompt_input.disable()
             logstuff.update_from_request(request)  # updates logging prefix with info from each request
 
@@ -187,9 +181,17 @@ class ChatPage:
             prompt_input.value = ''
             prompt_input.enable()
             idata.refresh_instance.refresh()
+            scroller.scroll_to(percent=100.0, axis='vertical', duration=0.0)
             await prompt_input.run_method('focus')
 
-        async def handle_enter_vector_search(request, prompt_input: Input, spinner: Spinner, idata: InstanceData) -> None:
+            # make sure client is connected before auto-scroll
+            # try:
+            #     await ui.context.client.connected()
+            # except builtins.TimeoutError:
+            #     pass
+            # scroller.scroll_to(percent=1.0, axis='vertical', duration=0.0)
+
+        async def handle_enter_vector_search(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
             prompt = prompt_input.value.strip()
             log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.api_type()}:{idata.source_name}): "{prompt}"')
             prompt_input.disable()
@@ -220,23 +222,46 @@ class ChatPage:
             prompt_input.value = ''
             prompt_input.enable()
             idata.refresh_instance.refresh()
+            # scroller.scroll_to(percent=100.0, axis='vertical', duration=0.0)
             await prompt_input.run_method('focus')
 
-        async def handle_enter(request, prompt_input: Input, spinner: Spinner, idata: InstanceData) -> None:
+            # make sure client is connected before auto-scroll
+            try:
+                await ui.context.client.connected()
+            except builtins.TimeoutError:
+                pass
+            scroller.scroll_to(percent=1.0, axis='vertical', duration=0.0)
+
+        async def handle_enter(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
             if idata.source_api is None:
-                await handle_enter_llm(request, prompt_input, spinner, idata)
+                await handle_enter_llm(request, prompt_input, spinner, scroller, idata)
             else:
-                await handle_enter_vector_search(request, prompt_input, spinner, idata)
+                await handle_enter_vector_search(request, prompt_input, spinner, scroller, idata)
 
         @ui.page(path)
         async def index(request: Request) -> None:
             logstuff.update_from_request(request)
             log.info(f'route triggered')
 
-            idata = InstanceData(self.env_values)
+            vectorstore_chroma.setup_once(self.env_values)
+            idata = InstanceData(self.llm_config, self.env_values)
+
+            # setup the standard "frame" for all pages
+            with frame.frame(f'{config.name} {pagename}', 'bg-white'):
+                with (ui.column().classes('w-full flex-grow border-solid border border-black')):  # place-content-center')):
+                    # the source selection/info row
+                    with (ui.row().classes('w-full border-solid border border-black')):  # place-content-center')):
+                        source_names = idata.source_names_list()
+                        ui.select(label='Source:',
+                                  options=source_names,
+                                  value=idata.source_select_name,
+                                  ).on_value_change(lambda vc: idata.change_source(vc.value)).props('square outlined label-color=green')
+
+                    # with ui.scroll_area(on_scroll=lambda e: print(f'~~~~ e: {e}')).classes('w-full flex-grow border border-solid border-black') as scroller:
+                    with ui.scroll_area().classes('w-full flex-grow border border-solid border-black') as scroller:
+                        await idata.refresh_instance(scroller)
 
             # the footer is a "top-level" element in nicegui, so need not be setup in visual page order
-            # so I create it here to make sure prompt_input exists before it's needed
             with ui.footer().classes('bg-slate-100 h-24'):
                 with ui.row().classes('w-full'):
                     spinner = ui.spinner(size='xl')
@@ -247,11 +272,6 @@ class ChatPage:
                                     .props('color=primary')
                                     .props('bg-color=white')
                                     )
-                    prompt_input.on('keydown.enter', lambda req=request, i=idata: handle_enter(req, prompt_input, spinner, i))
-
-            # setup the standard "frame" for all pages
-            with frame.frame(f'{config.name} {pagename}', 'bg-white'):
-                with ui.column().classes('w-full flex-grow'):  # .classes('w-full max-w-2xl mx-auto items-stretch'):
-                    await idata.refresh_instance()
+                    prompt_input.on('keydown.enter', lambda req=request, i=idata: handle_enter(req, prompt_input, spinner, scroller, i))
 
             await prompt_input.run_method('focus')
