@@ -4,11 +4,10 @@ from llmapi import LLMAPI
 
 
 class LLMConfig:
-    def __init__(self, model_api: LLMAPI, env_values: dict[str, str], model_name: str, default_temp: float, default_max_tokens: int, default_system_message: str):
+    def __init__(self, model_api: LLMAPI, model_name: str, default_temp: float, default_max_tokens: int, default_system_message: str):
         """
 
         :param model_api:
-        :param env_values: parms for the api, e.g. key, endpoint, token...
         :param model_name:
         :param default_temp:
         :param default_max_tokens:

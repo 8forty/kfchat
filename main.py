@@ -37,11 +37,11 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
     max_tokens = 80
     system_message = (f'You are a helpful chatbot that talks in a conversational manner. '
                       f'Your responses must always be less than {max_tokens} tokens.')
-    # llm_config: LLMConfig = LLMConfig(ModelAPI('ollama', parms=env_values), env_values=env_values, model_name='llama3.2:1b',
+    # llm_config: LLMConfig = LLMConfig(ModelAPI('ollama', parms=env_values), model_name='llama3.2:1b',
     #                                   default_temp=0.7, default_max_tokens=max_tokens, default_system_message=system_message)
-    # llm_config: LLMConfig = LLMConfig(ModelAPI('openai', parms=env_values), env_values=env_values, model_name='gpt-4o-mini',
+    # llm_config: LLMConfig = LLMConfig(ModelAPI('openai', parms=env_values), model_name='gpt-4o-mini',
     #                                   default_temp=0.7, default_max_tokens=max_tokens, default_system_message=system_message)
-    llm_config: LLMConfig = LLMConfig(LLMAPI('groq', parms=env_values), env_values=env_values, model_name='llama-3.3-70b-versatile',
+    llm_config: LLMConfig = LLMConfig(LLMAPI('groq', parms=env_values), model_name='llama-3.3-70b-versatile',
                                       default_temp=0.7, default_max_tokens=max_tokens, default_system_message=system_message)
 
     # setup vs

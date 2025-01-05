@@ -41,10 +41,11 @@ class ChatExchange:
     def __init__(self, prompt: str, response_duration_secs: float,
                  llm_response: ChatCompletion | None, vector_store_response: VectorStoreResponse | None):
         self.prompt: str = prompt
-        self.llm_response: ChatCompletion | None = llm_response
-        self._stop_problems: dict[int, str] = {}
-        self.vector_store_response: VectorStoreResponse | None = vector_store_response
         self.response_duration_secs: float = response_duration_secs
+        self.llm_response: ChatCompletion | None = llm_response
+        self.vector_store_response: VectorStoreResponse | None = vector_store_response
+
+        self._stop_problems: dict[int, str] = {}
         self._overflowed = False
 
         # calc stop_problems if there's an llm response
