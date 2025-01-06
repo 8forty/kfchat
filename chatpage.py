@@ -65,65 +65,60 @@ class InstanceData:
         source_names.sort(key=lambda k: 'zzz' + k if k.startswith(self.vs_name_prefix) else k)
         return source_names
 
-    @ui.refreshable
     async def refresh_instance(self, scroller: ScrollArea) -> None:
         # todo: local-storage-session to separate messages
-        if self.exchanges.len() > 0:
-            response_text_classes = 'w-full font-bold text-lg text-green text-left px-10'
-            response_subscript_classes = 'w-full italic text-xs text-black text-left px-10'
+        scroller.clear()
+        with scroller:
+            if self.exchanges.len() > 0:
+                response_text_classes = 'w-full font-bold text-lg text-green text-left px-10'
+                response_subscript_classes = 'w-full italic text-xs text-black text-left px-10'
 
-            for exchange in self.exchanges.list():
+                for exchange in self.exchanges.list():
 
-                # the prompt
-                ui.label(exchange.prompt).classes('w-full font-bold text-lg text-blue text-left px-10')
+                    # the prompt
+                    ui.label(exchange.prompt).classes('w-full font-bold text-lg text-blue text-left px-10')
 
-                # the response(s)
-                with (ui.column().classes('w-full gap-y-0')):
-                    subscript_context_info = f'{self.exchanges.id()}'
-                    subscript_results_info = ''
-                    subscript_extra_info = ''
-                    # todo: metrics, etc.
-                    if exchange.llm_response is not None:
-                        subscript_context_info += f',{self.llm_config.model_api.api_type}:{self.llm_config.model_name},temp:{self.llm_config.default_temp},max_tokens:{self.llm_config.default_max_tokens}'
-                        subscript_results_info += f'tokens:{exchange.llm_response.usage.prompt_tokens}/{exchange.llm_response.usage.completion_tokens}'
-                        subscript_extra_info += f'{self.llm_config.default_system_message}'
-                        for choice in exchange.llm_response.choices:
-                            ui.label(f'[llm]: {choice.message.content}').classes(response_text_classes)
+                    # the response(s)
+                    with (ui.column().classes('w-full gap-y-0')):
+                        subscript_context_info = f'{self.exchanges.id()}'
+                        subscript_results_info = ''
+                        subscript_extra_info = ''
+                        # todo: metrics, etc.
+                        if exchange.llm_response is not None:
+                            subscript_context_info += f',{self.llm_config.model_api.api_type}:{self.llm_config.model_name},temp:{self.llm_config.default_temp},max_tokens:{self.llm_config.default_max_tokens}'
+                            subscript_results_info += f'tokens:{exchange.llm_response.usage.prompt_tokens}/{exchange.llm_response.usage.completion_tokens}'
+                            subscript_extra_info += f'{self.llm_config.default_system_message}'
+                            for choice in exchange.llm_response.choices:
+                                ui.label(f'[llm]: {choice.message.content}').classes(response_text_classes)
 
-                    if exchange.vector_store_response is not None:
-                        subscript_context_info += f',{self.source_name}'
-                        for result in exchange.vector_store_response.results:
-                            ui.label(f'[vs]: {result.content}').classes(response_text_classes)
-                            ui.label(f'distance:{result.metrics['distance']:.03f}').classes(response_subscript_classes)
+                        if exchange.vector_store_response is not None:
+                            subscript_context_info += f',{self.source_name}'
+                            for result in exchange.vector_store_response.results:
+                                ui.label(f'[vs]: {result.content}').classes(response_text_classes)
+                                ui.label(f'distance:{result.metrics['distance']:.03f}').classes(response_subscript_classes)
 
-                    # subscripts
-                    ui.label(f'[{subscript_context_info}]: '
-                             f'{subscript_results_info} '
-                             f'{exchange.response_duration_secs:.1f}s'
-                             ).classes(response_subscript_classes)
-                    ui.label(f'{subscript_extra_info}').classes(response_subscript_classes)
+                        # subscripts
+                        ui.label(f'[{subscript_context_info}]: '
+                                 f'{subscript_results_info} '
+                                 f'{exchange.response_duration_secs:.1f}s'
+                                 ).classes(response_subscript_classes)
+                        ui.label(f'{subscript_extra_info}').classes(response_subscript_classes)
 
-                    # stop problems
-                    stop_problems_string = ''
-                    for choice_idx, stop_problem in exchange.stop_problems().items():
-                        stop_problems_string += f'stop[{choice_idx}]:{stop_problem}'
-                    if len(stop_problems_string) > 0:
-                        ui.label(f'{stop_problems_string}').classes('w-full italic text-xs text-red text-left px-10')
+                        # stop problems
+                        stop_problems_string = ''
+                        for choice_idx, stop_problem in exchange.stop_problems().items():
+                            stop_problems_string += f'stop[{choice_idx}]:{stop_problem}'
+                        if len(stop_problems_string) > 0:
+                            ui.label(f'{stop_problems_string}').classes('w-full italic text-xs text-red text-left px-10')
 
-                    # exchange problems
-                    if exchange.overflowed():
-                        ui.label(f'exchange history (max:{self.exchanges.max_exchanges()}) overflowed!  Oldest exchange dropped'
-                                 ).classes('w-full italic text-xs text-red text-left px-10')
-        else:
-            ui.label('No messages yet').classes('mx-auto my-36 absolute-center text-2xl italic')
+                        # exchange problems
+                        if exchange.overflowed():
+                            ui.label(f'exchange history (max:{self.exchanges.max_exchanges()}) overflowed!  Oldest exchange dropped'
+                                     ).classes('w-full italic text-xs text-red text-left px-10')
+            else:
+                ui.label('No messages yet').classes('mx-auto my-36 absolute-center text-2xl italic')
 
-        try:
-            # todo: why is this necessary?
-            await ui.context.client.connected()
-            #  await ui.run_javascript('window.scrollTo(0, document.body.scrollHeight)')
-            # scroller.scroll_to(percent=100.0, axis='vertical', duration=0.0)
-        except builtins.TimeoutError:
-            log.warning(f'TimeoutError waiting for client connection, connection ignored')
+        scroller.scroll_to(percent=1.1)
 
 
 class ChatPage:
@@ -185,7 +180,7 @@ class ChatPage:
 
             prompt_input.value = ''
             prompt_input.enable()
-            idata.refresh_instance.refresh()
+            await idata.refresh_instance(scroller)
             scroller.scroll_to(percent=100.0, axis='vertical', duration=0.0)
             await prompt_input.run_method('focus')
 
@@ -226,7 +221,7 @@ class ChatPage:
 
             prompt_input.value = ''
             prompt_input.enable()
-            idata.refresh_instance.refresh()
+            await idata.refresh_instance(scroller)
             # scroller.scroll_to(percent=100.0, axis='vertical', duration=0.0)
             await prompt_input.run_method('focus')
 
@@ -278,4 +273,8 @@ class ChatPage:
                                     )
                     prompt_input.on('keydown.enter', lambda req=request, i=idata: handle_enter(req, prompt_input, spinner, scroller, i))
 
+            try:
+                await ui.context.client.connected()
+            except builtins.TimeoutError:
+                log.warning(f'TimeoutError waiting for client connection, connection ignored')
             await prompt_input.run_method('focus')
