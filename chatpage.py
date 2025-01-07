@@ -62,7 +62,7 @@ class InstanceData:
     def source_names_list(self) -> list[str]:
         source_names: list[str] = [self.source_llm_name]
         source_names.extend([f'{self.vs_name_prefix}{name}' for name in self.vectorstore.list_collection_names()])
-        source_names.sort(key=lambda k: 'zzz' + k if k.startswith(self.vs_name_prefix) else k)
+        source_names.sort(key=lambda k: 'zzz' + k if k.startswith(self.vs_name_prefix) else k)  # sort with the vs sources after the llm sources
         return source_names
 
     async def refresh_instance(self, scroller: ScrollArea) -> None:
@@ -80,21 +80,23 @@ class InstanceData:
 
                     # the response(s)
                     with (ui.column().classes('w-full gap-y-0')):
-                        subscript_context_info = f'{self.exchanges.id()}'
+                        # subscript_context_info = f'{self.exchanges.id()},'
+                        subscript_context_info = ''
                         subscript_results_info = ''
                         subscript_extra_info = ''
                         # todo: metrics, etc.
                         if exchange.llm_response is not None:
-                            subscript_context_info += f',{self.llm_config.model_api.api_type}:{self.llm_config.model_name},temp:{self.llm_config.default_temp},max_tokens:{self.llm_config.default_max_tokens}'
+                            subscript_context_info += (f'{self.llm_api_type},{self.llm_config.model_api.api_type}:{self.llm_config.model_name}'
+                                                       f',temp:{self.llm_config.temp},max_tokens:{self.llm_config.max_tokens}')
                             subscript_results_info += f'tokens:{exchange.llm_response.usage.prompt_tokens}/{exchange.llm_response.usage.completion_tokens}'
-                            subscript_extra_info += f'{self.llm_config.default_system_message}'
+                            subscript_extra_info += f'{self.llm_config.system_message}'
                             for choice in exchange.llm_response.choices:
-                                ui.label(f'[llm]: {choice.message.content}').classes(response_text_classes)
+                                ui.label(f'[{self.llm_api_type}]: {choice.message.content}').classes(response_text_classes)
 
                         if exchange.vector_store_response is not None:
-                            subscript_context_info += f',{self.source_name}'
+                            subscript_context_info += f'{self.vs_api_type},{self.source_name}'
                             for result in exchange.vector_store_response.results:
-                                ui.label(f'[vs]: {result.content}').classes(response_text_classes)
+                                ui.label(f'[{self.vs_api_type}]: {result.content}').classes(response_text_classes)
                                 ui.label(f'distance:{result.metrics['distance']:.03f}').classes(response_subscript_classes)
 
                         # subscripts
@@ -134,10 +136,10 @@ class ChatPage:
         def do_llm(prompt: str, idata: InstanceData) -> ChatCompletion | None:
             # todo: count tokens, etc.
             completion = idata.llm_config.model_api.llm_run_prompt(idata.llm_config.model_name,
-                                                                   temp=idata.llm_config.default_temp,
-                                                                   max_tokens=idata.llm_config.default_max_tokens,
+                                                                   temp=idata.llm_config.temp,
+                                                                   max_tokens=idata.llm_config.max_tokens,
                                                                    n=1,  # todo: openai:any value works, ollama: 1 resp for any value, groq: only 1 allowed
-                                                                   sysmsg=idata.llm_config.default_system_message,
+                                                                   sysmsg=idata.llm_config.system_message,
                                                                    prompt=prompt,
                                                                    convo=idata.exchanges)
             return completion
@@ -149,7 +151,7 @@ class ChatPage:
         async def handle_enter_llm(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
             prompt = prompt_input.value.strip()
             log.info(
-                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.api_type()}:{idata.llm_config.model_api.api_type}:{idata.llm_config.model_name},{idata.llm_config.default_temp},{idata.llm_config.default_max_tokens}): "{prompt}"')
+                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.api_type()}:{idata.llm_config.model_api.api_type}:{idata.llm_config.model_name},{idata.llm_config.temp},{idata.llm_config.max_tokens}): "{prompt}"')
             prompt_input.disable()
             logstuff.update_from_request(request)  # updates logging prefix with info from each request
 

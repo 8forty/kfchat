@@ -14,10 +14,10 @@ class LLMConfig:
         :param default_system_message:
 
         """
-        # todo: these should come from e.g. pref screen
         self.model_api: LLMAPI = model_api
-        self.model_name: str = model_name
-        self.default_temp: float = default_temp
-        self.default_max_tokens: int = default_max_tokens
-        self.default_system_message: str = default_system_message
         self.client: openai.OpenAI = self.model_api.client()
+
+        self.model_name: str = model_name
+        self.temp: float = default_temp
+        self.max_tokens: int = default_max_tokens
+        self.system_message: str = default_system_message

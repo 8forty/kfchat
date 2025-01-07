@@ -34,6 +34,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
     ui.run_with(fastapi_app, storage_secret='pick your private secret here', favicon='pluto.jpg', title=config.name)
 
     # setup llm
+    # todo: these should come from e.g. pref screen
     max_tokens = 80
     system_message = (f'You are a helpful chatbot that talks in a conversational manner. '
                       f'Your responses must always be less than {max_tokens} tokens.')
@@ -41,7 +42,10 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
     #                                   default_temp=0.7, default_max_tokens=max_tokens, default_system_message=system_message)
     # llm_config: LLMConfig = LLMConfig(ModelAPI('openai', parms=env_values), model_name='gpt-4o-mini',
     #                                   default_temp=0.7, default_max_tokens=max_tokens, default_system_message=system_message)
-    llm_config: LLMConfig = LLMConfig(LLMAPI('groq', parms=env_values), model_name='llama-3.3-70b-versatile',
+    # llm_config: LLMConfig = LLMConfig(LLMAPI('groq', parms=env_values), model_name='llama-3.3-70b-versatile',
+    #                                   default_temp=0.7, default_max_tokens=max_tokens, default_system_message=system_message)
+    llm_config: LLMConfig = LLMConfig(LLMAPI('azure', parms=env_values),
+                                      model_name='RFI-Automate-GPT-4o-mini-2000k',  # really the deployment name for azure
                                       default_temp=0.7, default_max_tokens=max_tokens, default_system_message=system_message)
 
     # setup vs
