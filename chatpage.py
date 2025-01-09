@@ -14,7 +14,8 @@ from openai.types.chat import ChatCompletion
 import config
 import frame
 import logstuff
-from chatexchanges import ChatExchange, VectorStoreResponse, ChatExchanges
+from chatexchanges import ChatExchange, VectorStoreResponse, ChatExchanges, LLMResponse
+from llmapi import LLMExchange
 from llmconfig import LLMConfig
 from vectorstorebase import VectorStoreBase
 
@@ -33,13 +34,13 @@ class InstanceData:
         self.exchanges: ChatExchanges = ChatExchanges(config.chat_exchanges_circular_list_count)
 
         # llm stuff
-        self.llm_api_type: str = 'llm'
+        self.llm_string: str = 'llm'
         self.llm_name_prefix: str = 'llm: '
         self.llm_config: LLMConfig = llm_config
         self.source_llm_name: str = f'{self.llm_name_prefix}{self.llm_config.model_name}'
 
         # vs stuff
-        self.vs_api_type: str = 'vs'
+        self.vs_string: str = 'vs'
         self.vs_name_prefix: str = 'vs: '
         self.vectorstore: VectorStoreBase = vectorstore
 
@@ -49,7 +50,7 @@ class InstanceData:
         self.source_api: VectorStoreBase | None = None  # VS api or None for llm
 
     def api_type(self) -> str:
-        return self.llm_api_type if self.source_api is None else self.vs_api_type
+        return self.llm_string if self.source_api is None else self.vs_string
 
     def change_source(self, selected_name: str):
         if selected_name.startswith(self.llm_name_prefix):
@@ -86,17 +87,17 @@ class InstanceData:
                         subscript_extra_info = ''
                         # todo: metrics, etc.
                         if exchange.llm_response is not None:
-                            subscript_context_info += (f'{self.llm_api_type},{self.llm_config.model_api.api_type}:{self.llm_config.model_name}'
-                                                       f',temp:{self.llm_config.temp},max_tokens:{self.llm_config.max_tokens}')
-                            subscript_results_info += f'tokens:{exchange.llm_response.usage.prompt_tokens}/{exchange.llm_response.usage.completion_tokens}'
+                            lresp = exchange.llm_response
+                            subscript_context_info += f'{self.llm_string},{lresp.api_type}:{lresp.model_name},temp:{lresp.temp},max_tokens:{lresp.max_tokens}'
+                            subscript_results_info += f'tokens:{lresp.chat_completion.usage.prompt_tokens}/{lresp.chat_completion.usage.completion_tokens}'
                             subscript_extra_info += f'{self.llm_config.system_message}'
-                            for choice in exchange.llm_response.choices:
-                                ui.label(f'[{self.llm_api_type}]: {choice.message.content}').classes(response_text_classes)
+                            for choice in lresp.chat_completion.choices:
+                                ui.label(f'[{self.llm_string}]: {choice.message.content}').classes(response_text_classes)
 
                         if exchange.vector_store_response is not None:
-                            subscript_context_info += f'{self.vs_api_type},{self.source_name}'
+                            subscript_context_info += f'{self.vs_string},{self.source_name}'
                             for result in exchange.vector_store_response.results:
-                                ui.label(f'[{self.vs_api_type}]: {result.content}').classes(response_text_classes)
+                                ui.label(f'[{self.vs_string}]: {result.content}').classes(response_text_classes)
                                 ui.label(f'distance:{result.metrics['distance']:.03f}').classes(response_subscript_classes)
 
                         # subscripts
@@ -135,13 +136,14 @@ class ChatPage:
 
         def do_llm(prompt: str, idata: InstanceData) -> ChatCompletion | None:
             # todo: count tokens, etc.
+            convo = [LLMExchange(ex.prompt, ex.llm_response.chat_completion) for ex in idata.exchanges.list() if ex.llm_response is not None]
             completion = idata.llm_config.model_api.llm_run_prompt(idata.llm_config.model_name,
                                                                    temp=idata.llm_config.temp,
                                                                    max_tokens=idata.llm_config.max_tokens,
                                                                    n=1,  # todo: openai:any value works, ollama: 1 resp for any value, groq: only 1 allowed
                                                                    sysmsg=idata.llm_config.system_message,
                                                                    prompt=prompt,
-                                                                   convo=idata.exchanges)
+                                                                   convo=convo)
             return completion
 
         def do_vector_search(prompt: str, idata: InstanceData):
@@ -162,9 +164,9 @@ class ChatPage:
             # if prompt.startswith('*'):  # load a file of prompts
             #     with
 
-            llm_response: ChatCompletion | None = None
+            chat_completion: ChatCompletion | None = None
             try:
-                llm_response = await run.io_bound(do_llm, prompt, idata)
+                chat_completion = await run.io_bound(do_llm, prompt, idata)
             except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)
                 log.warning(f'llm error! {e}')
@@ -172,10 +174,10 @@ class ChatPage:
 
             spinner.set_visibility(False)
 
-            if llm_response is not None:
-                log.debug(f'llm response: {llm_response}')
+            if chat_completion is not None:
+                log.debug(f'chat completion: {chat_completion}')
                 ce = ChatExchange(prompt, response_duration_secs=timeit.default_timer() - start,
-                                  llm_response=llm_response, vector_store_response=None)
+                                  llm_response=LLMResponse(chat_completion, idata.llm_config), vector_store_response=None)
                 for choice_idx, sp_text in ce.stop_problems().items():
                     log.warning(f'stop problem from prompt {prompt} choice[{choice_idx}]: {sp_text}')
                 idata.exchanges.append(ce)

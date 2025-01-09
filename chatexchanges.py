@@ -3,9 +3,22 @@ import logging
 from openai.types.chat import ChatCompletion
 
 import logstuff
+from llmconfig import LLMConfig
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
+
+
+class LLMResponse:
+    def __init__(self, chat_completion: ChatCompletion, llm_config: LLMConfig):
+        self.chat_completion: ChatCompletion = chat_completion
+        self.api_type: str = llm_config.model_api.api_type
+        self.model_name: str = llm_config.model_name
+        self.temp: float = llm_config.temp
+        self.max_tokens: int = llm_config.max_tokens
+
+    def __repr__(self) -> str:
+        return f'[{self.__class__!s}:{self.__dict__!r}]'
 
 
 class VectorStoreResult:
@@ -39,10 +52,11 @@ class ChatExchange:
     #     usage: Optional[CompletionUsage] = None  Usage statistics for the completion request.
 
     def __init__(self, prompt: str, response_duration_secs: float,
-                 llm_response: ChatCompletion | None, vector_store_response: VectorStoreResponse | None):
+                 llm_response: LLMResponse | None, vector_store_response: VectorStoreResponse | None):
         self.prompt: str = prompt
         self.response_duration_secs: float = response_duration_secs
-        self.llm_response: ChatCompletion | None = llm_response
+
+        self.llm_response: LLMResponse | None = llm_response
         self.vector_store_response: VectorStoreResponse | None = vector_store_response
 
         self._stop_problems: dict[int, str] = {}
@@ -50,8 +64,8 @@ class ChatExchange:
 
         # calc stop_problems if there's an llm response
         if self.llm_response is not None:
-            for i in range(0, len(llm_response.choices)):
-                choice = llm_response.choices[i]
+            for i in range(0, len(llm_response.chat_completion.choices)):
+                choice = llm_response.chat_completion.choices[i]
                 stop_problem = ''
                 match choice.finish_reason:
                     case 'length':

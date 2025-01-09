@@ -1,13 +1,19 @@
 import logging
+from dataclasses import dataclass
 
 import openai
 from openai.types.chat import ChatCompletion
 
 import logstuff
-from chatexchanges import ChatExchanges
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
+
+
+@dataclass
+class LLMExchange:
+    prompt: str
+    completion: ChatCompletion
 
 
 def obscurize(secret: str) -> str:
@@ -75,23 +81,22 @@ class LLMAPI:
         return self.api_client
 
     def llm_run_prompt(self, model_name: str, temp: float, max_tokens: int, n: int,
-                       sysmsg: str, prompt: str, convo: ChatExchanges) -> ChatCompletion:
+                       sysmsg: str, prompt: str, convo: list[LLMExchange]) -> ChatCompletion:
         # add the system message
         messages = [{'role': 'system', 'content': sysmsg}]
 
         # add the convo
-        for exchange in convo.list():
+        for exchange in convo:
             # todo: what about previous vector-store responses?
-            if exchange.llm_response is not None:
-                messages.append({'role': 'user', 'content': exchange.prompt})
-                for choice in exchange.llm_response.choices:
-                    messages.append({'role': choice.message.role, 'content': choice.message.content})
+            messages.append({'role': 'user', 'content': exchange.prompt})
+            for choice in exchange.completion.choices:
+                messages.append({'role': choice.message.role, 'content': choice.message.content})
 
         # add the prompt
         messages.append({'role': 'user', 'content': prompt})
 
         # todo: seed, top_p, etc. (by actual llm?)
-        llm_response: ChatCompletion = self.client().chat.completions.create(
+        chat_completion: ChatCompletion = self.client().chat.completions.create(
             model=model_name,
             temperature=temp,  # default 1.0, 0.0->2.0
             messages=messages,
@@ -107,4 +112,4 @@ class LLMAPI:
             # stop=[],
         )
 
-        return llm_response
+        return chat_completion
