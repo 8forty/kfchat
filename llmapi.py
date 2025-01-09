@@ -16,8 +16,8 @@ class LLMExchange:
     completion: ChatCompletion
 
 
-def obscurize(secret: str) -> str:
-    return f'{secret[0:3]}...{secret[-3:]}'
+def redact(secret: str) -> str:
+    return f'{secret[0:3]}...[REDACTED]...{secret[-3:]}'
 
 
 class LLMAPI:
@@ -54,7 +54,7 @@ class LLMAPI:
             #     azure_ad_token_provider=token_provider,
             # )
             log.info(f'building LLM API for [{self.api_type}]: {self.parms.get("AZURE_OPENAI_ENDPOINT")=}, {self.parms.get("AZURE_OPENAI_API_KEY")}, '
-                     f'{obscurize(self.parms.get("AZURE_OPENAI_API_VERSION"))}')
+                     f'{redact(self.parms.get("AZURE_OPENAI_API_VERSION"))}')
             self.api_client = openai.AzureOpenAI(azure_endpoint=self.parms.get("AZURE_OPENAI_ENDPOINT"),
                                                  api_key=self.parms.get("AZURE_OPENAI_API_KEY"),
                                                  api_version=self.parms.get("AZURE_OPENAI_API_VERSION"))
@@ -63,16 +63,16 @@ class LLMAPI:
             self.api_client = openai.OpenAI(base_url=self.parms.get("OLLAMA_ENDPOINT"),
                                             api_key="nokeyneeded")
         elif self.api_type == "openai":
-            log.info(f'building LLM API for [{self.api_type}]: {self.parms.get("OPENAI_ENDPOINT")}, {obscurize(self.parms.get("OPENAI_API_KEY"))}')
+            log.info(f'building LLM API for [{self.api_type}]: {self.parms.get("OPENAI_ENDPOINT")}, {redact(self.parms.get("OPENAI_API_KEY"))}')
             self.api_client = openai.OpenAI(base_url=self.parms.get("OPENAI_ENDPOINT"),
                                             api_key=self.parms.get("OPENAI_API_KEY"))
         elif self.api_type == "groq":
-            log.info(f'building LLM API for [{self.api_type}]: {self.parms.get("GROQ_ENDPOINT")}, {obscurize(self.parms.get("GROQ_API_KEY"))}')
+            log.info(f'building LLM API for [{self.api_type}]: {self.parms.get("GROQ_ENDPOINT")}, {redact(self.parms.get("GROQ_API_KEY"))}')
             self.api_client = openai.OpenAI(base_url=self.parms.get("GROQ_OPENAI_ENDPOINT"),
                                             api_key=self.parms.get("GROQ_API_KEY"))
         elif self.api_type == "github":
             base_url = "https://models.inference.ai.azure.com"
-            log.info(f'building LLM API for [{self.api_type}]: {base_url=}, {obscurize(self.parms.get("GITHUB_TOKEN"))}')
+            log.info(f'building LLM API for [{self.api_type}]: {base_url=}, {redact(self.parms.get("GITHUB_TOKEN"))}')
             self.api_client = openai.OpenAI(base_url=base_url,
                                             api_key=self.parms.get("GITHUB_TOKEN"))
         else:
