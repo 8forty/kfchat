@@ -19,30 +19,30 @@ class LLMExchange:
 
 
 class LLMAPI:
-    def __init__(self, api_type: str, parms: dict[str, str]):
+    def __init__(self, api_type_name: str, parms: dict[str, str]):
         """
 
-        :param api_type: currently: ['azure', 'ollama', 'openai', 'groq']
+        :param api_type_name: currently: ['azure', 'ollama', 'openai', 'groq']
         :param parms: (possibly env vars) that set needed parms for the api, e.g. key, endpoint, token...
         """
-        if api_type in ['azure', 'ollama', 'openai', 'groq']:
-            self.api_type = api_type
+        if api_type_name in ['azure', 'ollama', 'openai', 'groq']:
+            self._api_type_name = api_type_name
             self.parms = parms
-            self.api_client = None
+            self._api_client = None
         else:
-            raise ValueError(f'{__class__.__name__}: invalid api_type! {api_type}')
+            raise ValueError(f'{__class__.__name__}: invalid api_type! {api_type_name}')
 
     def __repr__(self) -> str:
         return f'[{self.__class__!s}:{self.__dict__!r}]'
 
     def type(self) -> str:
-        return self.api_type
+        return self._api_type_name
 
-    def client(self) -> openai.OpenAI:
-        if self.api_client is not None:
-            return self.api_client
+    def _client(self) -> openai.OpenAI:
+        if self._api_client is not None:
+            return self._api_client
 
-        if self.api_type == "azure":
+        if self._api_type_name == "azure":
             # token_provider = azure.identity.get_bearer_token_provider(
             #     azure.identity.DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
             # )
@@ -51,32 +51,32 @@ class LLMAPI:
             #     azure_endpoint=self.parms.get("AZURE_OPENAI_ENDPOINT"),
             #     azure_ad_token_provider=token_provider,
             # )
-            log.info(f'building LLM API for [{self.api_type}]: {self.parms.get("AZURE_OPENAI_ENDPOINT")=}, {self.parms.get("AZURE_OPENAI_API_KEY")}, '
+            log.info(f'building LLM API for [{self._api_type_name}]: {self.parms.get("AZURE_OPENAI_ENDPOINT")=}, {self.parms.get("AZURE_OPENAI_API_KEY")}, '
                      f'{redact(self.parms.get("AZURE_OPENAI_API_VERSION"))}')
-            self.api_client = openai.AzureOpenAI(azure_endpoint=self.parms.get("AZURE_OPENAI_ENDPOINT"),
-                                                 api_key=self.parms.get("AZURE_OPENAI_API_KEY"),
-                                                 api_version=self.parms.get("AZURE_OPENAI_API_VERSION"))
-        elif self.api_type == "ollama":
-            log.info(f'building LLM API for [{self.api_type}]: {self.parms.get("OLLAMA_ENDPOINT")=}')
-            self.api_client = openai.OpenAI(base_url=self.parms.get("OLLAMA_ENDPOINT"),
-                                            api_key="nokeyneeded")
-        elif self.api_type == "openai":
-            log.info(f'building LLM API for [{self.api_type}]: {self.parms.get("OPENAI_ENDPOINT")}, {redact(self.parms.get("OPENAI_API_KEY"))}')
-            self.api_client = openai.OpenAI(base_url=self.parms.get("OPENAI_ENDPOINT"),
-                                            api_key=self.parms.get("OPENAI_API_KEY"))
-        elif self.api_type == "groq":
-            log.info(f'building LLM API for [{self.api_type}]: {self.parms.get("GROQ_ENDPOINT")}, {redact(self.parms.get("GROQ_API_KEY"))}')
-            self.api_client = openai.OpenAI(base_url=self.parms.get("GROQ_OPENAI_ENDPOINT"),
-                                            api_key=self.parms.get("GROQ_API_KEY"))
-        elif self.api_type == "github":
+            self._api_client = openai.AzureOpenAI(azure_endpoint=self.parms.get("AZURE_OPENAI_ENDPOINT"),
+                                                  api_key=self.parms.get("AZURE_OPENAI_API_KEY"),
+                                                  api_version=self.parms.get("AZURE_OPENAI_API_VERSION"))
+        elif self._api_type_name == "ollama":
+            log.info(f'building LLM API for [{self._api_type_name}]: {self.parms.get("OLLAMA_ENDPOINT")=}')
+            self._api_client = openai.OpenAI(base_url=self.parms.get("OLLAMA_ENDPOINT"),
+                                             api_key="nokeyneeded")
+        elif self._api_type_name == "openai":
+            log.info(f'building LLM API for [{self._api_type_name}]: {self.parms.get("OPENAI_ENDPOINT")}, {redact(self.parms.get("OPENAI_API_KEY"))}')
+            self._api_client = openai.OpenAI(base_url=self.parms.get("OPENAI_ENDPOINT"),
+                                             api_key=self.parms.get("OPENAI_API_KEY"))
+        elif self._api_type_name == "groq":
+            log.info(f'building LLM API for [{self._api_type_name}]: {self.parms.get("GROQ_ENDPOINT")}, {redact(self.parms.get("GROQ_API_KEY"))}')
+            self._api_client = openai.OpenAI(base_url=self.parms.get("GROQ_OPENAI_ENDPOINT"),
+                                             api_key=self.parms.get("GROQ_API_KEY"))
+        elif self._api_type_name == "github":
             base_url = "https://models.inference.ai.azure.com"
-            log.info(f'building LLM API for [{self.api_type}]: {base_url=}, {redact(self.parms.get("GITHUB_TOKEN"))}')
-            self.api_client = openai.OpenAI(base_url=base_url,
-                                            api_key=self.parms.get("GITHUB_TOKEN"))
+            log.info(f'building LLM API for [{self._api_type_name}]: {base_url=}, {redact(self.parms.get("GITHUB_TOKEN"))}')
+            self._api_client = openai.OpenAI(base_url=base_url,
+                                             api_key=self.parms.get("GITHUB_TOKEN"))
         else:
-            raise ValueError(f'invalid api_type! {self.api_type}')
+            raise ValueError(f'invalid api_type! {self._api_type_name}')
 
-        return self.api_client
+        return self._api_client
 
     def run_chat_completion(self, model_name: str, temp: float, max_tokens: int, n: int,
                             convo: Iterable[LLMExchange | tuple[str, str] | dict],
@@ -112,7 +112,7 @@ class LLMAPI:
             messages = [{t[0]: t[1]} if isinstance(t, tuple) else t for t in convo]
 
         # todo: seed, top_p, etc. (by actual llm?)
-        chat_completion: ChatCompletion = self.client().chat.completions.create(
+        chat_completion: ChatCompletion = self._client().chat.completions.create(
             model=model_name,
             temperature=temp,  # default 1.0, 0.0->2.0
             messages=messages,

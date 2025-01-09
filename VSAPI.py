@@ -14,9 +14,9 @@ class VSAPI:
         :param parms: (possibly env vars) that set needed parms for the api, e.g. key, endpoint...
         """
         if api_type in ['azure', 'chroma']:
-            self.api_type = api_type
+            self._api_type = api_type
             self.parms = parms
-            self.api_client = None
+            self._api_client = None
         else:
             raise ValueError(f'{__class__.__name__}: invalid api_type! {api_type}')
 
@@ -24,7 +24,7 @@ class VSAPI:
         return f'[{self.__class__!s}:{self.__dict__!r}]'
 
     def type(self) -> str:
-        return self.api_type
+        return self._api_type
 
     # def client(self) -> openai.OpenAI:
     #     if self.api_client is not None:
@@ -65,4 +65,3 @@ class VSAPI:
     #         raise ValueError(f'invalid api_type! {self.api_type}')
     #
     #     return self.api_client
-
