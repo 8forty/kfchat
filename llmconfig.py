@@ -15,7 +15,6 @@ class LLMConfig:
 
         """
         self.model_api: LLMAPI = model_api
-        self.client: openai.OpenAI = self.model_api.client()
 
         self.model_name: str = model_name
         self.temp: float = default_temp
