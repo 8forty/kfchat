@@ -141,9 +141,10 @@ class ChatPage:
                                                                    temp=idata.llm_config.temp,
                                                                    max_tokens=idata.llm_config.max_tokens,
                                                                    n=1,  # todo: openai:any value works, ollama: 1 resp for any value, groq: only 1 allowed
+                                                                   convo=convo,
                                                                    sysmsg=idata.llm_config.system_message,
-                                                                   prompt=prompt,
-                                                                   convo=convo)
+                                                                   prompt=prompt
+                                                                   )
             return completion
 
         def do_vector_search(prompt: str, idata: InstanceData):

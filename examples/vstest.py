@@ -11,6 +11,8 @@ from azure.search.documents.models import VectorizedQuery
 from dotenv import load_dotenv
 from openai import AzureOpenAI
 
+from VSAPI import VSAPI
+
 load_dotenv(override=True)
 
 env_values = dotenv.dotenv_values()
@@ -34,12 +36,12 @@ else:
 search_index_client = SearchIndexClient(endpoint=aai_search_endpoint, credential=search_credential)
 
 
-def az(question: str, index_name: str, howmany: int):
+def az(prompt: str, index_name: str, howmany: int):
     search_client = SearchClient(endpoint=aai_search_endpoint, index_name=index_name,
                                  credential=search_credential)
 
     query_embedding = aoai_client.embeddings.create(
-        input=question,
+        input=prompt,
         model=deployment,  # todo: curiously this was already specified when the aoai_client was created
         dimensions=embedding_dimensions).data[0].embedding
 
@@ -59,32 +61,29 @@ def az(question: str, index_name: str, howmany: int):
     return results
 
 
-start = timeit.default_timer()
-api_type_name = ['chroma', 'azure'][1]
+def run(prompt: str, api_type_name: str, index_name: str):
+    start = timeit.default_timer()
+    api = VSAPI(api_type_name, env_values)
+
+    print(f'---- generating response from {api.type()}:{index_name}')
+
+    res = az(prompt, index_name=index_name, howmany=3)
+    rcount = 0
+    for result in res:
+        print(result)
+        rcount += 1
+
+    end = timeit.default_timer()
+
+    print(f'\n{api.type()}:{index_name} '
+          f'responded with {rcount} responses '
+          f'in {end - start:.0f} seconds')
 
 
-res = az('how much lab space?', 'rfibot-qi-index-2024-12-21-00-17-55', 3)
-rcount = 0
-for result in res:
-    print(result)
-    rcount += 1
-
-# api_type = VSAPI(api_type_name, env_values)
-# env_client = api_type.client()
-# env_model_name = ['llama3.2:1b', 'llama3.2:3b', 'llama3.3:70b', 'qwen2.5:0.5b', 'gemma2:2b', 'qwq'][1]
-#
-# print(f'---- generating response from {api_type.type()}:{env_model_name}')
-# response = chat_single(sysmsg="You are a helpful assistant that talks like Carl Sagan.",
-#                        prompt="How many galaxies are there?",
-#                        client=env_client,
-#                        model_name=env_model_name,
-#                        temp=0.7,
-#                        max_tokens=80)
-
-end = timeit.default_timer()
-
-# print(response.choices[0].message.content)
-
-print(f'\n\n----{api_type_name} '
-      f'responded with {rcount} results '
-      f'in {end - start:.0f} seconds')
+indexes = {
+    'chroma': ['oregon.pdf'],
+    'azure': ['rfibot-qi-index-2024-12-21-00-17-55'],
+}
+for atype in indexes.keys():
+    run('how much lab space?', atype, indexes[atype][0])
+    print('\n')

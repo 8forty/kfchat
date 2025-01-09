@@ -1,10 +1,12 @@
 import logging
 from dataclasses import dataclass
+from typing import Iterable
 
 import openai
 from openai.types.chat import ChatCompletion
 
 import logstuff
+from config import redact
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -14,10 +16,6 @@ log.setLevel(logstuff.logging_level)
 class LLMExchange:
     prompt: str
     completion: ChatCompletion
-
-
-def redact(secret: str) -> str:
-    return f'{secret[0:3]}...[REDACTED]...{secret[-3:]}'
 
 
 class LLMAPI:
@@ -81,19 +79,36 @@ class LLMAPI:
         return self.api_client
 
     def llm_run_prompt(self, model_name: str, temp: float, max_tokens: int, n: int,
-                       sysmsg: str, prompt: str, convo: list[LLMExchange]) -> ChatCompletion:
-        # add the system message
-        messages = [{'role': 'system', 'content': sysmsg}]
+                       convo: Iterable[LLMExchange | tuple[str, str] | dict], sysmsg: str | None = None, prompt: str | None = None) -> ChatCompletion:
+        """
 
-        # add the convo
-        for exchange in convo:
-            # todo: what about previous vector-store responses?
-            messages.append({'role': 'user', 'content': exchange.prompt})
-            for choice in exchange.completion.choices:
-                messages.append({'role': choice.message.role, 'content': choice.message.content})
+        :param model_name:
+        :param temp:
+        :param max_tokens:
+        :param n:
+        :param convo: properly ordered list of either LLMExchange's or tuples of (role, value) ; tuples must include system message and prompt
+        :param sysmsg:used as sysmsg iff convo is provided in LLMExchange objects, otherwise the prompt should be in the tuples of convo
+        :param prompt: used as prompt iff convo is provided in LLMExchange objects, otherwise the prompt should be in the tuples of convo
+        :return: results as an OpenAI ChatCompletion object
+        """
+        messages: list[dict] = []
+        if sysmsg is not None:
+            # add the system message
+            if sysmsg is not None:
+                messages = [{'role': 'system', 'content': sysmsg}]
 
-        # add the prompt
-        messages.append({'role': 'user', 'content': prompt})
+            # add the convo
+            for exchange in convo:
+                # todo: what about previous vector-store responses?
+                messages.append({'role': 'user', 'content': exchange.prompt})
+                for choice in exchange.completion.choices:
+                    messages.append({'role': choice.message.role, 'content': choice.message.content})
+
+            # add the prompt
+            messages.append({'role': 'user', 'content': prompt})
+        else:
+            # transform convo to list-of-dicts, elements are either tuples or already dicts (and I guess a mix of each, why not?)
+            messages = [{t[0]: t[1]} if isinstance(t, tuple) else t for t in convo]
 
         # todo: seed, top_p, etc. (by actual llm?)
         chat_completion: ChatCompletion = self.client().chat.completions.create(
@@ -103,7 +118,7 @@ class LLMAPI:
             max_tokens=max_tokens,  # default 16?
             n=n,
 
-            stream=False,
+            stream=False,  # todo: allow streaming
 
             # seed=27,
             # top_p=1,  # default 1, ~0.01->1.0

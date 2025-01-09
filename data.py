@@ -146,7 +146,7 @@ technical = {
     'messages': [('system', technical_sysmsg), ('user', blackholes_prompt)]
 }
 
-message_sets = {
+message_sets: dict[str, list] = {
     'carl': [csagan_galaxies],
     'space': [csagan_galaxies, technical],
     'text': [text_classification],
