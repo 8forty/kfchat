@@ -22,7 +22,7 @@ def chat(message_set: list[tuple[str, str]], api: LLMAPI, model_name: str, temp:
         messages.append({'role': i[0], 'content': i[1]})
 
     try:
-        return api.llm_run_prompt(
+        return api.run_chat_completion(
             model_name=model_name,
             temp=temp,  # default 1.0, 0.0->2.0
             max_tokens=max_tokens,  # default 16?

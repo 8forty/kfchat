@@ -78,16 +78,17 @@ class LLMAPI:
 
         return self.api_client
 
-    def llm_run_prompt(self, model_name: str, temp: float, max_tokens: int, n: int,
-                       convo: Iterable[LLMExchange | tuple[str, str] | dict], sysmsg: str | None = None, prompt: str | None = None) -> ChatCompletion:
+    def run_chat_completion(self, model_name: str, temp: float, max_tokens: int, n: int,
+                            convo: Iterable[LLMExchange | tuple[str, str] | dict],
+                            sysmsg: str | None = None, prompt: str | None = None) -> ChatCompletion:
         """
-
+        run chat-completion
         :param model_name:
         :param temp:
         :param max_tokens:
         :param n:
         :param convo: properly ordered list of either LLMExchange's or tuples of (role, value) ; tuples must include system message and prompt
-        :param sysmsg:used as sysmsg iff convo is provided in LLMExchange objects, otherwise the prompt should be in the tuples of convo
+        :param sysmsg: used as sysmsg iff convo is provided in LLMExchange objects, otherwise the prompt should be in the tuples of convo
         :param prompt: used as prompt iff convo is provided in LLMExchange objects, otherwise the prompt should be in the tuples of convo
         :return: results as an OpenAI ChatCompletion object
         """

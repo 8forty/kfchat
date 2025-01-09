@@ -14,17 +14,17 @@ env_values = dotenv.dotenv_values()
 
 
 def chat(sysmsg: str, prompt: str, api: LLMAPI, model_name: str, temp: float, max_tokens: int) -> openai.ChatCompletion:
-    return api.client().chat.completions.create(
-        model=model_name,
-        temperature=temp,  # default 1.0, 0.0->2.0
-        messages=[
+    return api.run_chat_completion(
+        model_name=model_name,
+        temp=temp,  # default 1.0, 0.0->2.0
+        max_tokens=max_tokens,  # default 16?
+        n=1,
+        convo=[
             {"role": "system", "content": sysmsg},
             {"role": "user", "content": prompt},
         ],
-        max_tokens=max_tokens,  # default 16?
 
-        stream=False,
-
+        # stream=False,
         # seed=27,
         # n=1,
         # top_p=1,  # default 1, ~0.01->1.0
