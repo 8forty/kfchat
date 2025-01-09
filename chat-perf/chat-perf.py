@@ -102,6 +102,8 @@ def run(api_type_name: str, model_set_name: str, settings_set_name: str, message
 
     api_end_time = timeit.default_timer()
     print(f'{config.secs_string(all_start)}: [{api_type_name}] [{api_end_time - api_start_time:.0f}]s')
+
+    # now make CSV lines from results
     csv_data.append([api_type_name, '', '', '', '', '', '', str(int(api_end_time - api_start_time)), ''])
 
     print('\n\n')

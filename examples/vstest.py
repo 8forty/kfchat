@@ -81,7 +81,7 @@ def run(prompt: str, api_type_name: str, index_name: str):
 
 
 indexes = {
-    'chroma': ['oregon.pdf'],
+    # 'chroma': ['oregon.pdf'],
     'azure': ['rfibot-qi-index-2024-12-21-00-17-55'],
 }
 for atype in indexes.keys():
