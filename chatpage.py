@@ -87,11 +87,11 @@ class InstanceData:
                         subscript_extra_info = ''
                         # todo: metrics, etc.
                         if exchange.llm_response is not None:
-                            lresp = exchange.llm_response
-                            subscript_context_info += f'{self.llm_string},{lresp.api_type}:{lresp.model_name},temp:{lresp.temp},max_tokens:{lresp.max_tokens}'
-                            subscript_results_info += f'tokens:{lresp.chat_completion.usage.prompt_tokens}/{lresp.chat_completion.usage.completion_tokens}'
+                            ex_resp = exchange.llm_response
+                            subscript_context_info += f'{self.llm_string},{ex_resp.api_type}:{ex_resp.model_name},temp:{ex_resp.temp},max_tokens:{ex_resp.max_tokens}'
+                            subscript_results_info += f'tokens:{ex_resp.chat_completion.usage.prompt_tokens}/{ex_resp.chat_completion.usage.completion_tokens}'
                             subscript_extra_info += f'{self.llm_config.system_message}'
-                            for choice in lresp.chat_completion.choices:
+                            for choice in ex_resp.chat_completion.choices:
                                 ui.label(f'[{self.llm_string}]: {choice.message.content}').classes(response_text_classes)
 
                         if exchange.vector_store_response is not None:
