@@ -51,8 +51,9 @@ class LLMAPI:
             #     azure_endpoint=self.parms.get("AZURE_OPENAI_ENDPOINT"),
             #     azure_ad_token_provider=token_provider,
             # )
-            log.info(f'building LLM API for [{self._api_type_name}]: {self.parms.get("AZURE_OPENAI_ENDPOINT")=}, {self.parms.get("AZURE_OPENAI_API_KEY")}, '
-                     f'{redact(self.parms.get("AZURE_OPENAI_API_VERSION"))}')
+            log.info(f'building LLM API for [{self._api_type_name}]: {self.parms.get("AZURE_OPENAI_ENDPOINT")=}, '
+                     f'AZURE_OPENAI_API_KEY={redact(self.parms.get("AZURE_OPENAI_API_KEY"))}, '
+                     f'{self.parms.get("AZURE_OPENAI_API_VERSION")=}')
             self._api_client = openai.AzureOpenAI(azure_endpoint=self.parms.get("AZURE_OPENAI_ENDPOINT"),
                                                   api_key=self.parms.get("AZURE_OPENAI_API_KEY"),
                                                   api_version=self.parms.get("AZURE_OPENAI_API_VERSION"))
@@ -61,11 +62,13 @@ class LLMAPI:
             self._api_client = openai.OpenAI(base_url=self.parms.get("OLLAMA_ENDPOINT"),
                                              api_key="nokeyneeded")
         elif self._api_type_name == "openai":
-            log.info(f'building LLM API for [{self._api_type_name}]: {self.parms.get("OPENAI_ENDPOINT")}, {redact(self.parms.get("OPENAI_API_KEY"))}')
+            log.info(f'building LLM API for [{self._api_type_name}]: {self.parms.get("OPENAI_ENDPOINT")=}, '
+                     f'OPENAI_API_KEY={redact(self.parms.get("OPENAI_API_KEY"))}')
             self._api_client = openai.OpenAI(base_url=self.parms.get("OPENAI_ENDPOINT"),
                                              api_key=self.parms.get("OPENAI_API_KEY"))
         elif self._api_type_name == "groq":
-            log.info(f'building LLM API for [{self._api_type_name}]: {self.parms.get("GROQ_ENDPOINT")}, {redact(self.parms.get("GROQ_API_KEY"))}')
+            log.info(f'building LLM API for [{self._api_type_name}]: {self.parms.get("GROQ_ENDPOINT")=}, '
+                     f'GROQ_API_KEY={redact(self.parms.get("GROQ_API_KEY"))}')
             self._api_client = openai.OpenAI(base_url=self.parms.get("GROQ_OPENAI_ENDPOINT"),
                                              api_key=self.parms.get("GROQ_API_KEY"))
         elif self._api_type_name == "github":
@@ -80,7 +83,7 @@ class LLMAPI:
 
     def run_chat_completion(self, model_name: str, temp: float, max_tokens: int, n: int,
                             convo: Iterable[LLMExchange | tuple[str, str] | dict],
-                            sysmsg: str | None = None, prompt: str | None = None) -> ChatCompletion:
+                            sysmsg: str | None = None, prompt: str | None = None) -> LLMExchange:
         """
         run chat-completion
         :param model_name:
@@ -128,4 +131,4 @@ class LLMAPI:
             # stop=[],
         )
 
-        return chat_completion
+        return LLMExchange(prompt, chat_completion)

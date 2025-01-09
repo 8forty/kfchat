@@ -6,14 +6,14 @@ import openai
 from dotenv import load_dotenv
 
 import data
-from llmapi import LLMAPI
+from llmapi import LLMAPI, LLMExchange
 
 load_dotenv(override=True)
 
 env_values = dotenv.dotenv_values()
 
 
-def chat(sysmsg: str, prompt: str, api: LLMAPI, model_name: str, temp: float, max_tokens: int) -> openai.ChatCompletion:
+def chat(sysmsg: str, prompt: str, api: LLMAPI, model_name: str, temp: float, max_tokens: int) -> LLMExchange:
     return api.run_chat_completion(
         model_name=model_name,
         temp=temp,  # default 1.0, 0.0->2.0
@@ -40,7 +40,7 @@ def run(api_type_name: str, model_name: str):
     api = LLMAPI(api_type_name, env_values)
 
     print(f'---- generating response from {api.type()}:{model_name}')
-    response = chat(sysmsg="You are a helpful assistant that talks like Carl Sagan.",
+    exchange = chat(sysmsg="You are a helpful assistant that talks like Carl Sagan.",
                     prompt="How many galaxies are there?",
                     api=api,
                     model_name=model_name,
@@ -48,10 +48,10 @@ def run(api_type_name: str, model_name: str):
                     max_tokens=80)
     end = timeit.default_timer()
 
-    print(response.choices[0].message.content)
+    print(exchange.completion.choices[0].message.content)
 
     print(f'\n{api.type()}:{model_name} '
-          f'responded with {response.usage.prompt_tokens}+{response.usage.completion_tokens} tokens '
+          f'responded with {exchange.completion.usage.prompt_tokens}+{exchange.completion.usage.completion_tokens} tokens '
           f'in {end - start:.0f} seconds')
 
 

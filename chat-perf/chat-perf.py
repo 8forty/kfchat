@@ -16,7 +16,7 @@ def model_warmup(api: LLMAPI, model: str):
          max_tokens=data.warmup_data['max_tokens'])
 
 
-def chat(message_set: list[tuple[str, str]], api: LLMAPI, model_name: str, temp: float, max_tokens: int) -> openai.ChatCompletion:
+def chat(message_set: list[tuple[str, str]], api: LLMAPI, model_name: str, temp: float, max_tokens: int) -> LLMExchange:
     messages: list[dict] = []
     for i in message_set:
         messages.append({'role': i[0], 'content': i[1]})
@@ -72,7 +72,7 @@ def run(api_type_name: str, model_set_name: str, settings_set_name: str, message
             for message_set in data.message_sets[message_sets_name]:
                 ms_start = timeit.default_timer()
                 try:
-                    response = chat(message_set=message_set['messages'],
+                    exchange = chat(message_set=message_set['messages'],
                                     api=api,
                                     model_name=model,
                                     temp=settings_set['temp'],
@@ -83,18 +83,17 @@ def run(api_type_name: str, model_set_name: str, settings_set_name: str, message
 
                 ms_end = timeit.default_timer()
 
-                if response is not None:
-                    print(f'{config.secs_string(all_start)}: [{api.type()}:{model}] [{settings_set['temp']}] [{settings_set['max_tokens']}] [{message_set["name"]}]: '
-                          f'[{response.usage.prompt_tokens}+{response.usage.completion_tokens}] '
-                          f'[{ms_end - ms_start:.0f}]s')
-                    response_1line = str(response.choices[0].message.content).replace("\n", "  ").replace('"', '""')
-                    print(f'{config.secs_string(all_start)}:     {response_1line}')
-                    csv_data.append([api.type(), model, str(settings_set['temp']), str(settings_set['max_tokens']),
-                                     message_set["name"],
-                                     str(response.usage.prompt_tokens), str(response.usage.completion_tokens),
-                                     str(int(ms_end - ms_start)),
-                                     '"' + response_1line + '"'],
-                                    )
+                print(f'{config.secs_string(all_start)}: [{api.type()}:{model}] [{settings_set['temp']}] [{settings_set['max_tokens']}] [{message_set["name"]}]: '
+                      f'[{exchange.completion.usage.prompt_tokens}+{exchange.completion.usage.completion_tokens}] '
+                      f'[{ms_end - ms_start:.0f}]s')
+                response_1line = str(exchange.completion.choices[0].message.content).replace("\n", "  ").replace('"', '""')
+                print(f'{config.secs_string(all_start)}:     {response_1line}')
+                csv_data.append([api.type(), model, str(settings_set['temp']), str(settings_set['max_tokens']),
+                                 message_set["name"],
+                                 str(exchange.completion.usage.prompt_tokens), str(exchange.completion.usage.completion_tokens),
+                                 str(int(ms_end - ms_start)),
+                                 '"' + response_1line + '"'],
+                                )
 
         model_end = timeit.default_timer()
         print(f'{config.secs_string(all_start)}: [{api.type()}:{model}] [{model_end - model_start:.0f}]s')

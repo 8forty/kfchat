@@ -134,18 +134,17 @@ class ChatPage:
 
     def setup(self, path: str, pagename: str):
 
-        def do_llm(prompt: str, idata: InstanceData) -> ChatCompletion | None:
+        def do_llm(prompt: str, idata: InstanceData) -> LLMExchange:
             # todo: count tokens, etc.
             convo = [LLMExchange(ex.prompt, ex.llm_response.chat_completion) for ex in idata.exchanges.list() if ex.llm_response is not None]
-            completion = idata.llm_config.model_api.run_chat_completion(idata.llm_config.model_name,
-                                                                        temp=idata.llm_config.temp,
-                                                                        max_tokens=idata.llm_config.max_tokens,
-                                                                        n=1,  # todo: openai:any value works, ollama: 1 resp for any value, groq: only 1 allowed
-                                                                        convo=convo,
-                                                                        sysmsg=idata.llm_config.system_message,
-                                                                        prompt=prompt
-                                                                        )
-            return completion
+            exchange = idata.llm_config.model_api.run_chat_completion(idata.llm_config.model_name,
+                                                                      temp=idata.llm_config.temp,
+                                                                      max_tokens=idata.llm_config.max_tokens,
+                                                                      n=1,  # todo: openai:any value works, ollama: 1 resp for any value, groq: only 1 allowed
+                                                                      convo=convo,
+                                                                      sysmsg=idata.llm_config.system_message,
+                                                                      prompt=prompt)
+            return exchange
 
         def do_vector_search(prompt: str, idata: InstanceData):
             vsresponse = idata.source_api.ask(prompt, collection_name=idata.source_name)
@@ -165,9 +164,9 @@ class ChatPage:
             # if prompt.startswith('*'):  # load a file of prompts
             #     with
 
-            chat_completion: ChatCompletion | None = None
+            exchange: LLMExchange | None = None
             try:
-                chat_completion = await run.io_bound(do_llm, prompt, idata)
+                exchange = await run.io_bound(do_llm, prompt, idata)
             except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)
                 log.warning(f'llm error! {e}')
@@ -175,10 +174,10 @@ class ChatPage:
 
             spinner.set_visibility(False)
 
-            if chat_completion is not None:
-                log.debug(f'chat completion: {chat_completion}')
-                ce = ChatExchange(prompt, response_duration_secs=timeit.default_timer() - start,
-                                  llm_response=LLMResponse(chat_completion, idata.llm_config), vector_store_response=None)
+            if exchange is not None:
+                log.debug(f'chat completion: {exchange.completion}')
+                ce = ChatExchange(exchange.prompt, response_duration_secs=timeit.default_timer() - start,
+                                  llm_response=LLMResponse(exchange.completion, idata.llm_config), vector_store_response=None)
                 for choice_idx, sp_text in ce.stop_problems().items():
                     log.warning(f'stop problem from prompt {prompt} choice[{choice_idx}]: {sp_text}')
                 idata.exchanges.append(ce)
