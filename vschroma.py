@@ -15,8 +15,8 @@ log.setLevel(logstuff.logging_level)
 
 class VSChroma(VSAPI):
 
-    def __init__(self, api_type: str, index_name: str, parms: dict[str, str]):
-        super().__init__(api_type, index_name, parms)
+    def __init__(self, api_type_name: str, index_name: str, parms: dict[str, str]):
+        super().__init__(api_type_name, index_name, parms)
         self._client: chromadb.ClientAPI | None = None
         self.collection_name: str = parms.get("CHROMA_COLLECTION")
         self.embedding_model_name: str = parms.get("CHROMA_EMBEDDING_MODEL")
@@ -51,8 +51,8 @@ class VSChroma(VSAPI):
             include=[IncludeEnum('documents'), IncludeEnum('metadatas'), IncludeEnum('distances'), IncludeEnum('uris'), IncludeEnum('data')],
         )
 
-        # chroma results are lists with one element per prompt, since we only have 1 prompt we use element 0 from each list
-        # transform from dict-of-lists to list-of-dicts
+        # chroma results are lists with one element per prompt, since we only have 1 prompt we only use element 0 from each list
+        # transform from dict-of-lists to more sensible list-of-dicts
         raw_results = []
         for i in range(0, howmany):
             rdict = {}
@@ -65,3 +65,7 @@ class VSChroma(VSAPI):
             results_score=[r['distances'] for r in raw_results],
             results_raw=raw_results
         )
+
+    @staticmethod
+    def create(api_type_name: str, index_name: str, parms: dict[str, str]):
+        return VSChroma(api_type_name, index_name, parms)

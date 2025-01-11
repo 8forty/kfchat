@@ -1,4 +1,5 @@
 import logging
+from abc import abstractmethod, ABC
 from dataclasses import dataclass
 
 import logstuff
@@ -7,7 +8,7 @@ log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
 
-class VSAPI:
+class VSAPI(ABC):
     @dataclass
     class SearchResponse:
         """
@@ -17,19 +18,19 @@ class VSAPI:
         results_score: list[float]
         results_raw: list[dict]
 
-    def __init__(self, api_type: str, index_name: str, parms: dict[str, str]):
+    def __init__(self, api_type_name: str, index_name: str, parms: dict[str, str]):
         """
 
-        :param api_type: currently: ['azure', 'chroma']
+        :param api_type_name: currently: ['azure', 'chroma']
         :param index_name
         :param parms: (possibly env vars) that set needed parms for the api, e.g. key, endpoint...
         """
-        if api_type in ['azure', 'chroma']:
-            self._api_type_name = api_type
+        if api_type_name in ['azure', 'chroma']:
+            self._api_type_name = api_type_name
             self.index_name = index_name
             self.parms = parms
         else:
-            raise ValueError(f'{__class__.__name__}: invalid api_type! {api_type}')
+            raise ValueError(f'{__class__.__name__}: invalid api_type! {api_type_name}')
 
     def __repr__(self) -> str:
         return f'[{self.__class__!s}:{self.__dict__!r}]'
@@ -37,5 +38,11 @@ class VSAPI:
     def type(self) -> str:
         return self._api_type_name
 
+    @abstractmethod
     def search(self, prompt: str, howmany: int) -> SearchResponse:
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def create(api_type_name: str, index_name: str, parms: dict[str, str]):
         pass

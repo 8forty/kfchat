@@ -17,8 +17,8 @@ log.setLevel(logstuff.logging_level)
 
 class VSAzure(VSAPI):
 
-    def __init__(self, api_type: str, index_name: str, parms: dict[str, str]):
-        super().__init__(api_type, index_name, parms)
+    def __init__(self, api_type_name: str, index_name: str, parms: dict[str, str]):
+        super().__init__(api_type_name, index_name, parms)
         self._aoai_client: openai.AzureOpenAI | None = None
         self._aais_client: SearchClient | None = None
         self.deployment: str = parms.get("AZURE_AI_SEARCH_EMBEDDING_DEPLOYMENT")
@@ -85,3 +85,7 @@ class VSAzure(VSAPI):
             results_score=[rr['@search.score'] for rr in raw_results],
             results_raw=raw_results
         )
+
+    @staticmethod
+    def create(api_type_name: str, index_name: str, parms: dict[str, str]):
+        return VSAzure(api_type_name, index_name, parms)
