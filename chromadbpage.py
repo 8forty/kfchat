@@ -1,6 +1,5 @@
 import logging
 
-import chromadb
 from fastapi import Request
 from nicegui import ui, run
 
@@ -8,44 +7,43 @@ import config
 import frame
 import logstuff
 import rbui
-import vectorstore_chroma
-from vectorstore_chroma import VectorStoreChroma
+from vschroma import VSChroma
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
 
-def setup(path: str, pagename: str, vectorstore: VectorStoreChroma, env_values: dict[str, str]):
+def setup(path: str, pagename: str, vectorstore: VSChroma, env_values: dict[str, str]):
     @ui.refreshable
     async def chroma_ui() -> None:
         with rbui.table():
-            for collection in await run.io_bound(vectorstore.chroma_client.list_collections):
+            for collection_name in await run.io_bound(vectorstore.list_index_names):
                 with rbui.tr():
-                    with rbui.td(label=f'collection [{collection.name}]', td_style='width: 300px'):
-                        ui.button(text='delete', on_click=lambda c=collection: delete_coll(vectorstore_chroma.chromadb_client, c.name))
+                    with rbui.td(label=f'collection [{collection_name}]', td_style='width: 300px'):
+                        ui.button(text='delete', on_click=lambda c=collection_name: delete_coll(c))
 
                     # details table
                     with rbui.table():
                         with rbui.tr():
                             rbui.td('document/chunk count')
-                            rbui.td(f'{collection.count()}')
+                            rbui.td(f'{vectorstore.count()}')
                         with rbui.tr():
                             peek_n = 3
                             rbui.td(f'peek.documents({peek_n})')
-                            peek_docs = [d[0:100] + '[...]' for d in (collection.peek(limit=peek_n))['documents']]
+                            peek_docs = [d['documents'][0:100] + '[...]' for d in vectorstore.peek(limit=peek_n)]
                             docs = '\n-----[doc]-----\n'.join(peek_docs)  # 'ids', 'embeddings', 'metadatas', 'documents', 'data', 'uris', 'included'
                             rbui.td(f'{docs}')
 
                         # _client, _model, _embedding_function, _data_loader, ?
-                        for key in collection.__dict__['_model'].__dict__.keys():
-                            val = collection.__dict__['_model'].__dict__[key]
+                        for key in vectorstore.collection_dict()['_model'].__dict__.keys():
+                            val = vectorstore.collection_dict()['_model'].__dict__[key]
                             with rbui.tr():
                                 rbui.td(f'_model.{key}')
                                 rbui.td(str(val))
 
-    async def delete_coll(client: chromadb.ClientAPI, coll_name: str) -> None:
+    async def delete_coll(coll_name: str) -> None:
         log.info(f'deleting collection {coll_name}')
-        client.delete_collection(coll_name)
+        vectorstore.delete_index(coll_name)
         chroma_ui.refresh()
 
     @ui.page(path)

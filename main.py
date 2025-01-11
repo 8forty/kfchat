@@ -11,9 +11,10 @@ import chatpage
 import chromadbpage
 import config
 import logstuff
+import vsapi_factory
 from llmconfig import LLMConfig
 from llmapi import LLMAPI
-from vectorstore_chroma import VectorStoreChroma
+from vschroma import VSChroma
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -54,8 +55,10 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         while True:
             try:
                 # todo: configure this
-                chromadb_client = chromadb.HttpClient(host='localhost', port=8888)
-                vectorstore = VectorStoreChroma(chroma_client=chromadb_client, env_values=env_values)
+                # chromadb_client = chromadb.HttpClient(host='localhost', port=8888)
+                # vectorstore = VectorStoreChroma(chroma_client=chromadb_client, env_values=env_values)
+                vectorstore = vsapi_factory.create_one('chroma', 'oregon.pdf', env_values)
+                vectorstore.warmup()
                 break
             except (Exception,) as e:
                 print(f'!!! Chroma client error, will retry in {retry_wait_seconds} secs: {e}')
@@ -67,7 +70,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         raise
 
     # the chat page
-    cp = chatpage.ChatPage(llm_config, vectorstore, env_values)
+    cp = chatpage.ChatPage(llm_config=llm_config, vectorstore=vectorstore, env_values=env_values)
     cp.setup('/', 'Chat')
 
     # the chromadb page

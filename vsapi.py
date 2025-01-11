@@ -35,6 +35,10 @@ class VSAPI(ABC):
     def __repr__(self) -> str:
         return f'[{self.__class__!s}:{self.__dict__!r}]'
 
+    @abstractmethod
+    def warmup(self):
+        pass
+
     def type(self) -> str:
         return self._api_type_name
 

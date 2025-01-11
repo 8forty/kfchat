@@ -13,10 +13,9 @@ from nicegui.elements.spinner import Spinner
 import config
 import frame
 import logstuff
-from chatexchanges import ChatExchange, VectorStoreResponse, ChatExchanges, LLMResponse
+from chatexchanges import ChatExchange, VectorStoreResponse, ChatExchanges, LLMResponse, VectorStoreResult
 from llmapi import LLMExchange
 from llmconfig import LLMConfig
-from vectorstorebase import VectorStoreBase
 from vsapi import VSAPI
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -47,7 +46,7 @@ class InstanceData:
         # #### source info
         self.source_select_name: str = self.source_llm_name
         self.source_name: str = self.source_select_name  # name of the source object (we want to start with the llm, so select-name and name are the same)
-        self.source_api: VectorStoreBase | None = None  # VS api or None for llm
+        self.source_api: VSAPI | None = None  # VS api or None for llm
 
     def api_type(self) -> str:
         return self.llm_string if self.source_api is None else self.vs_string
@@ -62,7 +61,7 @@ class InstanceData:
 
     def source_names_list(self) -> list[str]:
         source_names: list[str] = [self.source_llm_name]
-        source_names.extend([f'{self.vs_name_prefix}{name}' for name in self.vectorstore.list_collection_names()])
+        source_names.extend([f'{self.vs_name_prefix}{name}' for name in self.vectorstore.list_index_names()])
         source_names.sort(key=lambda k: 'zzz' + k if k.startswith(self.vs_name_prefix) else k)  # sort with the vs sources after the llm sources
         return source_names
 
@@ -126,7 +125,7 @@ class InstanceData:
 
 class ChatPage:
 
-    def __init__(self, llm_config: LLMConfig, vectorstore: VectorStoreBase, env_values: dict[str, str]):
+    def __init__(self, llm_config: LLMConfig, vectorstore: VSAPI, env_values: dict[str, str]):
         # anything in here is shared by all instances of ChatPage
         self.llm_config = llm_config
         self.vectorstore = vectorstore
@@ -134,26 +133,32 @@ class ChatPage:
 
     def setup(self, path: str, pagename: str):
 
-        def do_llm(prompt: str, idata: InstanceData) -> LLMExchange:
+        def do_llm(prompt: str, idata: InstanceData, howmany: int = 1) -> LLMExchange:
             # todo: count tokens, etc.
             convo = [LLMExchange(ex.prompt, ex.llm_response.chat_completion) for ex in idata.exchanges.list() if ex.llm_response is not None]
-            exchange = idata.llm_config.model_api.run_chat_completion(idata.llm_config.model_name,
-                                                                      temp=idata.llm_config.temp,
-                                                                      max_tokens=idata.llm_config.max_tokens,
-                                                                      n=1,  # todo: openai:any value works, ollama: 1 resp for any value, groq: only 1 allowed
-                                                                      convo=convo,
-                                                                      sysmsg=idata.llm_config.system_message,
-                                                                      prompt=prompt)
+            exchange: LLMExchange = idata.llm_config.model_api.run_chat_completion(
+                idata.llm_config.model_name,
+                temp=idata.llm_config.temp,
+                max_tokens=idata.llm_config.max_tokens,
+                n=howmany,  # todo: openai:any value works, ollama: get 1 resp for any value, groq: only 1 allowed
+                convo=convo,
+                sysmsg=idata.llm_config.system_message,
+                prompt=prompt)
             return exchange
 
-        def do_vector_search(prompt: str, idata: InstanceData):
-            vsresponse = idata.source_api.ask(prompt, collection_name=idata.source_name)
-            return vsresponse
+        def do_vector_search(prompt: str, idata: InstanceData, howmany: int = 1):
+            sresp: VSAPI.SearchResponse = idata.source_api.search(prompt, howmany=howmany)
+            vs_results: list[VectorStoreResult] = []
+            for result_idx in range(0, len(sresp.results_raw)):
+                metrics = {'distance': sresp.results_raw[result_idx]['distances']}
+                vs_results.append(VectorStoreResult(sresp.results_raw[result_idx]['ids'], metrics,
+                                                    sresp.results_raw[result_idx]['documents']))
+            return VectorStoreResponse(vs_results)
 
         async def handle_enter_llm(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
             prompt = prompt_input.value.strip()
             log.info(
-                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.api_type()}:{idata.llm_config.model_api._api_type_name}:{idata.llm_config.model_name},{idata.llm_config.temp},{idata.llm_config.max_tokens}): "{prompt}"')
+                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.api_type()}:{idata.llm_config.model_api.type()}:{idata.llm_config.model_name},{idata.llm_config.temp},{idata.llm_config.max_tokens}): "{prompt}"')
             prompt_input.disable()
             logstuff.update_from_request(request)  # updates logging prefix with info from each request
 

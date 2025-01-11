@@ -25,6 +25,10 @@ class VSAzure(VSAPI):
         self.deployment: str = parms.get("AZURE_AI_SEARCH_EMBEDDING_DEPLOYMENT")
         self.embedding_dimensions: int = int(parms.get("AZURE_AI_SEARCH_EMBEDDING_DIMENSIONS"))
 
+    @staticmethod
+    def create(api_type_name: str, index_name: str, parms: dict[str, str]):
+        return VSAzure(api_type_name, index_name, parms)
+
     def _build_clients(self):
         if self._aoai_client is not None:
             return
@@ -56,6 +60,9 @@ class VSAzure(VSAPI):
         self._aais_client = SearchClient(endpoint=self.parms.get("AZURE_AI_SEARCH_ENDPOINT"), index_name=self.index_name,
                                          credential=search_credential)
         self._aais_index_client = SearchIndexClient(endpoint=self.parms.get("AZURE_AI_SEARCH_ENDPOINT"), credential=search_credential)
+
+    def warmup(self):
+        self._build_clients()
 
     def list_index_names(self) -> list[str]:
         self._build_clients()
@@ -91,7 +98,3 @@ class VSAzure(VSAPI):
             results_score=[rr['@search.score'] for rr in raw_results],
             results_raw=raw_results
         )
-
-    @staticmethod
-    def create(api_type_name: str, index_name: str, parms: dict[str, str]):
-        return VSAzure(api_type_name, index_name, parms)
