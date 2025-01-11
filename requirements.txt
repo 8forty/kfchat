@@ -19,3 +19,5 @@ sentence_transformers
 fastembed
 
 asgiref
+
+azure-core~=1.32.0
