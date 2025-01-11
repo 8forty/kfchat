@@ -9,7 +9,6 @@ from nicegui import ui, run
 from nicegui.elements.input import Input
 from nicegui.elements.scroll_area import ScrollArea
 from nicegui.elements.spinner import Spinner
-from openai.types.chat import ChatCompletion
 
 import config
 import frame
@@ -18,6 +17,7 @@ from chatexchanges import ChatExchange, VectorStoreResponse, ChatExchanges, LLMR
 from llmapi import LLMExchange
 from llmconfig import LLMConfig
 from vectorstorebase import VectorStoreBase
+from vsapi import VSAPI
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -26,7 +26,7 @@ log.setLevel(logstuff.logging_level)
 class InstanceData:
     _next_id: int = 1
 
-    def __init__(self, llm_config: LLMConfig, vectorstore: VectorStoreBase, env_values: dict[str, str]):
+    def __init__(self, llm_config: LLMConfig, vectorstore: VSAPI, env_values: dict[str, str]):
         self._id = InstanceData._next_id
         InstanceData._next_id += 1
 
@@ -42,7 +42,7 @@ class InstanceData:
         # vs stuff
         self.vs_string: str = 'vs'
         self.vs_name_prefix: str = 'vs: '
-        self.vectorstore: VectorStoreBase = vectorstore
+        self.vectorstore = vectorstore
 
         # #### source info
         self.source_select_name: str = self.source_llm_name

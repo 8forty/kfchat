@@ -39,6 +39,10 @@ class VSAPI(ABC):
         return self._api_type_name
 
     @abstractmethod
+    def list_index_names(self) -> list[str]:
+        pass
+
+    @abstractmethod
     def search(self, prompt: str, howmany: int) -> SearchResponse:
         pass
 

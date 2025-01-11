@@ -29,6 +29,10 @@ class VSChroma(VSAPI):
                  f'{self.parms.get("CHROMA_EMBEDDING_MODEL")=}, {self.parms.get("CHROMA_COLLECTION")=} ')
         self._client = chromadb.HttpClient(host=self.parms.get("CHROMA_HOST"), port=int(self.parms.get("CHROMA_PORT")))
 
+    def list_index_names(self) -> list[str]:
+        self._build_clients()
+        return [c.name for c in self._client.list_collections()]
+
     def search(self, prompt: str, howmany: int) -> VSAPI.SearchResponse:
         self._build_clients()
         try:

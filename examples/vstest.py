@@ -11,19 +11,16 @@ load_dotenv(override=True)
 env_values = dotenv.dotenv_values()
 
 
-def az(api: VSAPI, prompt: str, index_name: str, howmany: int) -> VSAPI.SearchResponse:
-    results = api.search(prompt, howmany)
-
-    return results
-
-
-def run(prompt: str, api_type_name: str, index_name: str):
+def run(prompt: str, api_type_name: str, index_name: str, howmany: int):
     start = timeit.default_timer()
     api: VSAPI = vsapi_factory.create_one(api_type_name, index_name, env_values)
 
+    print(f'---- index names from {api.type()}:{index_name}')
+    print(f'     {api.list_index_names()}')
+
     print(f'---- generating response from {api.type()}:{index_name}')
 
-    results = az(api, prompt, index_name=index_name, howmany=3)
+    results = api.search(prompt, howmany)
     for i in range(0, len(results.results_text)):
         print(f'{results.results_score[i]:0.3f}: {results.results_text[i]}')
 
@@ -39,4 +36,4 @@ indexes = {
     'azure': ['rfibot-qi-index-2024-12-21-00-17-55'],
 }
 for atype in indexes.keys():
-    run('how much lab space?', atype, indexes[atype][0])
+    run('how much lab space?', atype, indexes[atype][0], 2)

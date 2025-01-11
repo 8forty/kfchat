@@ -5,6 +5,7 @@ from azure.core.credentials import AzureKeyCredential
 from azure.identity import DefaultAzureCredential
 from azure.search.documents import SearchClient
 from azure.search.documents import SearchItemPaged
+from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents.models import VectorizedQuery
 
 import logstuff
@@ -54,6 +55,11 @@ class VSAzure(VSAPI):
 
         self._aais_client = SearchClient(endpoint=self.parms.get("AZURE_AI_SEARCH_ENDPOINT"), index_name=self.index_name,
                                          credential=search_credential)
+        self._aais_index_client = SearchIndexClient(endpoint=self.parms.get("AZURE_AI_SEARCH_ENDPOINT"), credential=search_credential)
+
+    def list_index_names(self) -> list[str]:
+        self._build_clients()
+        return [n for n in self._aais_index_client.list_index_names()]
 
     def search(self, prompt: str, howmany: int) -> VSAPI.SearchResponse:
         self._build_clients()
