@@ -18,23 +18,21 @@ class VSAPI(ABC):
         results_score: list[float]
         results_raw: list[dict]
 
-    def __init__(self, api_type_name: str, index_name: str, parms: dict[str, str]):
+    def __init__(self, api_type_name: str, parms: dict[str, str]):
         """
 
         :param api_type_name: currently: ['azure', 'chroma']
-        :param index_name
         :param parms: (possibly env vars) that set needed parms for the api, e.g. key, endpoint...
         """
         if api_type_name in ['azure', 'chroma']:
             self._api_type_name = api_type_name
-            self.index_name = index_name
             self.parms = parms
         else:
             raise ValueError(f'{__class__.__name__}: invalid api_type! {api_type_name}')
 
     @staticmethod
     @abstractmethod
-    def create(api_type_name: str, index_name: str, parms: dict[str, str]):
+    def create(api_type_name: str, parms: dict[str, str]):
         pass
 
     def __repr__(self) -> str:

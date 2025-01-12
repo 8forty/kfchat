@@ -6,6 +6,7 @@ from azure.identity import DefaultAzureCredential
 from azure.search.documents import SearchClient
 from azure.search.documents import SearchItemPaged
 from azure.search.documents.indexes import SearchIndexClient
+from azure.search.documents.indexes.models import SearchIndex
 from azure.search.documents.models import VectorizedQuery
 
 import logstuff
@@ -18,16 +19,18 @@ log.setLevel(logstuff.logging_level)
 
 class VSAzure(VSAPI):
 
-    def __init__(self, api_type_name: str, index_name: str, parms: dict[str, str]):
-        super().__init__(api_type_name, index_name, parms)
+    def __init__(self, api_type_name: str, parms: dict[str, str]):
+        super().__init__(api_type_name, parms)
         self._aoai_client: openai.AzureOpenAI | None = None
-        self._aais_client: SearchClient | None = None
+        self._aais_search_client: SearchClient | None = None
         self.deployment: str = parms.get("AZURE_AI_SEARCH_EMBEDDING_DEPLOYMENT")
         self.embedding_dimensions: int = int(parms.get("AZURE_AI_SEARCH_EMBEDDING_DIMENSIONS"))
+        self.index_name: str | None = None
+        self._index: SearchIndex | None = None
 
     @staticmethod
-    def create(api_type_name: str, index_name: str, parms: dict[str, str]):
-        return VSAzure(api_type_name, index_name, parms)
+    def create(api_type_name: str, parms: dict[str, str]):
+        return VSAzure(api_type_name, parms)
 
     def _build_clients(self):
         if self._aoai_client is not None:
@@ -53,13 +56,11 @@ class VSAzure(VSAPI):
 
         aai_search_api_key: str = self.parms.get("AZURE_AI_SEARCH_API_KEY")
         if len(aai_search_api_key) > 0:
-            search_credential = AzureKeyCredential(aai_search_api_key)
+            self._search_credential = AzureKeyCredential(aai_search_api_key)
         else:
-            search_credential = DefaultAzureCredential()
+            self._search_credential = DefaultAzureCredential()
 
-        self._aais_client = SearchClient(endpoint=self.parms.get("AZURE_AI_SEARCH_ENDPOINT"), index_name=self.index_name,
-                                         credential=search_credential)
-        self._aais_index_client = SearchIndexClient(endpoint=self.parms.get("AZURE_AI_SEARCH_ENDPOINT"), credential=search_credential)
+        self._aais_index_client = SearchIndexClient(endpoint=self.parms.get("AZURE_AI_SEARCH_ENDPOINT"), credential=self._search_credential)
 
     def warmup(self):
         self._build_clients()
@@ -83,7 +84,7 @@ class VSAzure(VSAPI):
 
         # dict str->?: 'source', 'id', '@search.score', '@search.reranker_score', '@search.highlights', '@search.captions'
         # todo: question and answer are alcami-specific
-        results: SearchItemPaged[dict] = self._aais_client.search(
+        results: SearchItemPaged[dict] = self._aais_search_client.search(
             search_text=None,
             vector_queries=[vector_query],
             query_type='semantic',
@@ -100,4 +101,9 @@ class VSAzure(VSAPI):
         )
 
     def change_index(self, new_index_name: str) -> None:
-        raise ValueError('not implemented yet!')
+        log.info(f'changing index to [{new_index_name}]')
+        self._build_clients()
+        self.index_name = new_index_name
+        self._aais_search_client = SearchClient(endpoint=self.parms.get("AZURE_AI_SEARCH_ENDPOINT"), index_name=self.index_name,
+                                                credential=self._search_credential)
+        self._index = self._aais_index_client.get_index(self.index_name)

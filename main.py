@@ -55,10 +55,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         retry_wait_seconds = 15
         while True:
             try:
-                # todo: configure this
-                # chromadb_client = chromadb.HttpClient(host='localhost', port=8888)
-                # vectorstore = VectorStoreChroma(chroma_client=chromadb_client, env_values=env_values)
-                vectorstore = vsapi_factory.create_one('chroma', 'oregon.pdf', env_values)
+                vectorstore = vsapi_factory.create_one('chroma', env_values)
                 vectorstore.warmup()
                 break
             except (Exception,) as e:

@@ -20,19 +20,19 @@ log.setLevel(logstuff.logging_level)
 
 class VSChroma(VSAPI):
 
-    def __init__(self, api_type_name: str, index_name: str, parms: dict[str, str]):
-        super().__init__(api_type_name, index_name, parms)
+    def __init__(self, api_type_name: str, parms: dict[str, str]):
+        super().__init__(api_type_name, parms)
         self._client: chromadb.ClientAPI | None = None
-        self._collection: chromadb.Collection | None = None
-        self.collection_name: str = parms.get("CHROMA_COLLECTION")
         self.embedding_model_name: str = parms.get("CHROMA_EMBEDDING_MODEL")
+        self.collection_name: str | None = None
+        self._collection: chromadb.Collection | None = None
 
     def warmup(self):
         self._build_clients()
 
     @staticmethod
-    def create(api_type_name: str, index_name: str, parms: dict[str, str]):
-        return VSChroma(api_type_name, index_name, parms)
+    def create(api_type_name: str, parms: dict[str, str]):
+        return VSChroma(api_type_name, parms)
 
     def get_collection(self, collection_name: str) -> Collection:
         try:
@@ -54,7 +54,6 @@ class VSChroma(VSAPI):
         log.info(f'building VS API for [{self._api_type_name}]: {self.parms.get("CHROMA_HOST")=}, {self.parms.get("CHROMA_PORT")=}, '
                  f'{self.parms.get("CHROMA_EMBEDDING_MODEL")=}, {self.parms.get("CHROMA_COLLECTION")=} ')
         self._client = chromadb.HttpClient(host=self.parms.get("CHROMA_HOST"), port=int(self.parms.get("CHROMA_PORT")))
-        self._collection: Collection = self.get_collection(self.collection_name)
 
     def list_index_names(self) -> list[str]:
         self._build_clients()
@@ -167,6 +166,7 @@ class VSChroma(VSAPI):
         collection.add(documents=chunks, ids=[str(uuid.uuid4()) for _ in range(0, len(chunks))])
 
     def change_index(self, new_index_name: str) -> None:
+        log.info(f'changing index to [{new_index_name}]')
         self._build_clients()
         self.collection_name = new_index_name
         self._collection: Collection = self.get_collection(self.collection_name)

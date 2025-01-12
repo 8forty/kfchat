@@ -13,11 +13,12 @@ env_values = dotenv.dotenv_values()
 
 def run(prompt: str, api_type_name: str, index_name: str, howmany: int):
     start = timeit.default_timer()
-    api: VSAPI = vsapi_factory.create_one(api_type_name, index_name, env_values)
+    api: VSAPI = vsapi_factory.create_one(api_type_name, env_values)
 
     print(f'---- index names from {api.type()}:{index_name}')
     print(f'     {api.list_index_names()}')
 
+    api.change_index(index_name)
     print(f'---- generating response from {api.type()}:{index_name}')
 
     results = api.search(prompt, howmany)

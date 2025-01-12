@@ -51,15 +51,26 @@ class InstanceData:
     def api_type(self) -> str:
         return self.llm_string if self.source_api is None else self.vs_string
 
-    def change_source(self, selected_name: str):
+    async def change_source(self, selected_name: str, spinner: Spinner, prompt_input: Input):
         log.info(f'Changing source to: {selected_name}')
-        if selected_name.startswith(self.llm_name_prefix):
-            self.source_api = None
-        else:
-            self.source_name = selected_name.removeprefix(self.vs_name_prefix)
-            self.source_api = self.vectorstore
-            self.vectorstore.change_index(self.source_name)
-        self.source_select_name = selected_name
+        prompt_input.disable()
+        spinner.set_visibility(True)
+
+        try:
+            if selected_name.startswith(self.llm_name_prefix):
+                self.source_api = None
+            else:
+                self.source_name = selected_name.removeprefix(self.vs_name_prefix)
+                self.source_api = self.vectorstore
+                await run.io_bound(self.vectorstore.change_index, self.source_name)
+            self.source_select_name = selected_name
+        except (Exception,) as e:
+            errmsg = f'change source failed! {e}'
+            log.warning(errmsg)
+            ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
+
+        prompt_input.enable()
+        spinner.set_visibility(False)
 
     def source_names_list(self) -> list[str]:
         source_names: list[str] = [self.source_llm_name]
@@ -265,7 +276,7 @@ class ChatPage:
                         ui.select(label='Source:',
                                   options=source_names,
                                   value=idata.source_select_name,
-                                  ).on_value_change(lambda vc: idata.change_source(vc.value)).props('square outlined label-color=green')
+                                  ).on_value_change(callback=lambda vc: idata.change_source(vc.value, spinner, prompt_input)).props('square outlined label-color=green')
 
                     # with ui.scroll_area(on_scroll=lambda e: print(f'~~~~ e: {e}')).classes('w-full flex-grow border border-solid border-black') as scroller:
                     with ui.scroll_area().classes('w-full flex-grow border border-solid border-black') as scroller:
