@@ -52,11 +52,13 @@ class InstanceData:
         return self.llm_string if self.source_api is None else self.vs_string
 
     def change_source(self, selected_name: str):
+        log.info(f'Changing source to: {selected_name}')
         if selected_name.startswith(self.llm_name_prefix):
             self.source_api = None
         else:
-            self.source_api = self.vectorstore
             self.source_name = selected_name.removeprefix(self.vs_name_prefix)
+            self.source_api = self.vectorstore
+            self.vectorstore.change_index(self.source_name)
         self.source_select_name = selected_name
 
     def source_names_list(self) -> list[str]:

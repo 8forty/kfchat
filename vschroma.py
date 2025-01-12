@@ -1,10 +1,15 @@
 import logging
+import uuid
 
 import chromadb
 from chromadb.api.types import IncludeEnum
 from chromadb.errors import InvalidCollectionException
 from chromadb.types import Collection
 from chromadb.utils.embedding_functions.sentence_transformer_embedding_function import SentenceTransformerEmbeddingFunction
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.vectorstores.utils import filter_complex_metadata
+from langchain_core.documents import Document
 
 import logstuff
 from vsapi import VSAPI
@@ -29,17 +34,11 @@ class VSChroma(VSAPI):
     def create(api_type_name: str, index_name: str, parms: dict[str, str]):
         return VSChroma(api_type_name, index_name, parms)
 
-    def _build_clients(self):
-        if self._client is not None:
-            return
-
-        log.info(f'building VS API for [{self._api_type_name}]: {self.parms.get("CHROMA_HOST")=}, {self.parms.get("CHROMA_PORT")=}, '
-                 f'{self.parms.get("CHROMA_EMBEDDING_MODEL")=}, {self.parms.get("CHROMA_COLLECTION")=} ')
-        self._client = chromadb.HttpClient(host=self.parms.get("CHROMA_HOST"), port=int(self.parms.get("CHROMA_PORT")))
+    def get_collection(self, collection_name: str) -> Collection:
         try:
             # todo: assuming SentenceTransformerEmbeddingFunction here
-            self._collection: Collection = self._client.get_collection(
-                name=self.collection_name,
+            return self._client.get_collection(
+                name=collection_name,
                 embedding_function=SentenceTransformerEmbeddingFunction(model_name=self.embedding_model_name),  # default: 'all-MiniLM-L6-v2'
                 data_loader=None,
             )
@@ -47,6 +46,15 @@ class VSChroma(VSAPI):
             errmsg = f'bad collection name: {self.collection_name}'
             log.warning(errmsg)
             raise ValueError(errmsg)
+
+    def _build_clients(self):
+        if self._client is not None:
+            return
+
+        log.info(f'building VS API for [{self._api_type_name}]: {self.parms.get("CHROMA_HOST")=}, {self.parms.get("CHROMA_PORT")=}, '
+                 f'{self.parms.get("CHROMA_EMBEDDING_MODEL")=}, {self.parms.get("CHROMA_COLLECTION")=} ')
+        self._client = chromadb.HttpClient(host=self.parms.get("CHROMA_HOST"), port=int(self.parms.get("CHROMA_PORT")))
+        self._collection: Collection = self.get_collection(self.collection_name)
 
     def list_index_names(self) -> list[str]:
         self._build_clients()
@@ -69,7 +77,7 @@ class VSChroma(VSAPI):
         for i in range(0, howmany):
             rdict = {}
             for k in results:
-                if k != 'included':
+                if k != 'included':  # the 'included' key is diff from the rest
                     rdict[k] = results[k][0][i] if results[k] is not None else None
             raw_results.append(rdict)
 
@@ -106,11 +114,59 @@ class VSChroma(VSAPI):
             rdict = {}
             for k in results.keys():
                 # noinspection PyTypedDict
-                if k != 'included':
+                if k != 'included':  # the 'included' key is diff from the rest
                     rdict[k] = results[k][i] if results[k] is not None else None
             lod.append(rdict)
 
         return lod
 
     def collection_dict(self) -> dict:
+        self._build_clients()
         return self._collection.__dict__
+
+    def ingest_pdf(self, pdf_file_path: str, pdf_name: str):
+        self._build_clients()
+
+        # chroma collection name:
+        # (1) contains 3-63 characters,
+        # (2) starts and ends with an alphanumeric character,
+        # (3) otherwise contains only alphanumeric characters, underscores or hyphens (-) [NO SPACES!],
+        # (4) contains no two consecutive periods (..) and
+        # (5) is not a valid IPv4 address
+        collection_name = pdf_name.replace(' ', '-')
+        collection_name = collection_name.replace('..', '._')
+        if len(collection_name) > 63:
+            collection_name = collection_name[:63]
+            log.warning(f'collection name too long, shortened')
+
+        if collection_name != pdf_name:
+            log.info(f'collection name [{pdf_name}] modified for chroma restrictions to [{collection_name}]')
+
+        # create the collection
+        # todo: configure this
+        collection = self._client.create_collection(
+            name=collection_name,
+            configuration=None,
+            metadata=None,
+            embedding_function=SentenceTransformerEmbeddingFunction(model_name=self.embedding_model_name),  # default: 'all-MiniLM-L6-v2'
+            data_loader=None,
+            get_or_create=False
+        )
+
+        # load the PDF into LC Document's (qsa: Doc = page, 48 of each)
+        docs: list[Document] = PyPDFLoader(file_path=pdf_file_path).load()
+
+        # split into chunks, also LC Document's (qsa/1024/100: 135 chunks for 48 pages)
+        chunks = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=100).split_documents(docs)
+
+        # remove complex metadata not supported by ChromaDB, pull out the the content as a str
+        chunks = [c.page_content for c in filter_complex_metadata(chunks)]
+
+        # create Chroma vectorstore from the chunks
+        log.debug(f'adding {len(chunks)} chunks to {collection_name}')
+        collection.add(documents=chunks, ids=[str(uuid.uuid4()) for _ in range(0, len(chunks))])
+
+    def change_index(self, new_index_name: str) -> None:
+        self._build_clients()
+        self.collection_name = new_index_name
+        self._collection: Collection = self.get_collection(self.collection_name)

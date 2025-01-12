@@ -32,6 +32,11 @@ class VSAPI(ABC):
         else:
             raise ValueError(f'{__class__.__name__}: invalid api_type! {api_type_name}')
 
+    @staticmethod
+    @abstractmethod
+    def create(api_type_name: str, index_name: str, parms: dict[str, str]):
+        pass
+
     def __repr__(self) -> str:
         return f'[{self.__class__!s}:{self.__dict__!r}]'
 
@@ -50,7 +55,6 @@ class VSAPI(ABC):
     def search(self, prompt: str, howmany: int) -> SearchResponse:
         pass
 
-    @staticmethod
     @abstractmethod
-    def create(api_type_name: str, index_name: str, parms: dict[str, str]):
+    def change_index(self, new_index_name: str) -> None:
         pass

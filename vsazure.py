@@ -98,3 +98,6 @@ class VSAzure(VSAPI):
             results_score=[rr['@search.score'] for rr in raw_results],
             results_raw=raw_results
         )
+
+    def change_index(self, new_index_name: str) -> None:
+        raise ValueError('not implemented yet!')

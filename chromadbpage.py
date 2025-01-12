@@ -1,7 +1,13 @@
 import logging
+import os
+import sys
+import tempfile
+import traceback
+from typing import AnyStr
 
 from fastapi import Request
-from nicegui import ui, run
+from nicegui import ui, run, events
+from nicegui.elements.dialog import Dialog
 
 import config
 import frame
@@ -13,11 +19,44 @@ log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
 
+class UploadPDFDialog(Dialog):
+    def __init__(self):
+        Dialog.__init__(self)
+
+    async def handle_upload(self, evt: events.UploadEventArguments, vectorstore: VSChroma):
+        log.info(f'uploading local file {evt.name}...')
+        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+            # tmp.write(evt.content.read())
+            # contents: AnyStr = await run.io_bound(evt.content.read)
+            contents: AnyStr = evt.content.read()
+            log.debug(f'loaded {evt.name}...')
+            await run.io_bound(tmp.write, contents)
+            log.debug(f'saved server file {evt.name}...')
+            tmp_name = tmp.name
+
+        try:
+            log.debug(f'ingesting server file {evt.name}...')
+            await run.io_bound(vectorstore.ingest_pdf, tmp_name, evt.name)
+        except (Exception,) as e:
+            errmsg = f'Error ingesting {evt.name}: {e}'
+            traceback.print_exc(file=sys.stdout)
+            log.error(errmsg)
+            ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
+
+        os.remove(tmp_name)
+        log.info(f'ingested {evt.name} via {tmp_name}')
+        self.close()
+
+    async def do_upload_pdf(self):
+        self.open()
+
+
 def setup(path: str, pagename: str, vectorstore: VSChroma, env_values: dict[str, str]):
     @ui.refreshable
     async def chroma_ui() -> None:
         with rbui.table():
             for collection_name in await run.io_bound(vectorstore.list_index_names):
+                collection = vectorstore.get_collection(collection_name)
                 with rbui.tr():
                     with rbui.td(label=f'collection [{collection_name}]', td_style='width: 300px'):
                         ui.button(text='delete', on_click=lambda c=collection_name: delete_coll(c))
@@ -26,17 +65,17 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, env_values: dict[str,
                     with rbui.table():
                         with rbui.tr():
                             rbui.td('document/chunk count')
-                            rbui.td(f'{vectorstore.count()}')
+                            rbui.td(f'{collection.count()}')
                         with rbui.tr():
                             peek_n = 3
                             rbui.td(f'peek.documents({peek_n})')
-                            peek_docs = [d['documents'][0:100] + '[...]' for d in vectorstore.peek(limit=peek_n)]
+                            peek_docs = [d[0:100] + '[...]' for d in collection.peek(limit=peek_n)['documents']]
                             docs = '\n-----[doc]-----\n'.join(peek_docs)  # 'ids', 'embeddings', 'metadatas', 'documents', 'data', 'uris', 'included'
                             rbui.td(f'{docs}')
 
                         # _client, _model, _embedding_function, _data_loader, ?
-                        for key in vectorstore.collection_dict()['_model'].__dict__.keys():
-                            val = vectorstore.collection_dict()['_model'].__dict__[key]
+                        for key in collection.__dict__['_model'].__dict__.keys():
+                            val = collection.__dict__['_model'].__dict__[key]
                             with rbui.tr():
                                 rbui.td(f'_model.{key}')
                                 rbui.td(str(val))
@@ -51,32 +90,13 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, env_values: dict[str,
         logstuff.update_from_request(request)
         log.debug(f'chromadbpage route triggered')
 
+        with UploadPDFDialog() as upload_pdf_dialog, ui.card():
+            ui.label('Upload a PDF')
+            ui.upload(auto_upload=True, on_upload=lambda e: upload_pdf_dialog.handle_upload(e, vectorstore)).props('accept=".pdf"')
+
         with frame.frame(f'{config.name} {pagename}', 'bg-white'):
             with ui.column().classes('w-full flex-grow'):  # .classes('w-full max-w-2xl mx-auto items-stretch'):
-                ui.button('refresh', on_click=lambda: chroma_ui.refresh())
+                with ui.row().classes('w-full border-solid border border-black'):
+                    ui.button('Upload PDF...', on_click=lambda: upload_pdf_dialog.do_upload_pdf())
+                    ui.button('refresh', on_click=lambda: chroma_ui.refresh())
                 await chroma_ui()
-
-        #
-        # sample query
-        #
-        # sample_query = "This is a query document about hawaii"
-        # sample_query_results_wanted = 2
-        # results: dict = await coll.query(
-        #     query_texts=[sample_query],  # Chroma will embed this for you
-        #     n_results=sample_query_results_wanted
-        # )
-        #
-        # with rbui.tr():
-        #     rbui.th(label=f'Query: {sample_query} [n={sample_query_results_wanted}]', th_props='colspan="2"')
-        #
-        # for key in results.keys():
-        #     val = results[key]
-        #     if key == 'documents':  # these are likely too big, just show the lengths
-        #         docval: str = 'lengths: ['
-        #         for doclist in val:
-        #             docval += '[' + ','.join([str(len(doc)) for doc in doclist]) + ']\n'
-        #         docval = docval[0:-1] + ']'
-        #         val = docval
-        #     with rbui.tr():
-        #         rbui.td(key)
-        #         rbui.td(str(val))
