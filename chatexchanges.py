@@ -12,7 +12,7 @@ log.setLevel(logstuff.logging_level)
 class LLMResponse:
     def __init__(self, chat_completion: ChatCompletion, llm_config: LLMConfig):
         self.chat_completion: ChatCompletion = chat_completion
-        self.api_type: str = llm_config.model_api._api_type_name
+        self.api_type: str = llm_config.llmapi._api_type_name
         self.model_name: str = llm_config.model_name
         self.temp: float = llm_config.temp
         self.max_tokens: int = llm_config.max_tokens

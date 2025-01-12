@@ -138,7 +138,7 @@ class ChatPage:
         def do_llm(prompt: str, idata: InstanceData, howmany: int = 1) -> LLMExchange:
             # todo: count tokens, etc.
             convo = [LLMExchange(ex.prompt, ex.llm_response.chat_completion) for ex in idata.exchanges.list() if ex.llm_response is not None]
-            exchange: LLMExchange = idata.llm_config.model_api.run_chat_completion(
+            exchange: LLMExchange = idata.llm_config.llmapi.run_chat_completion(
                 idata.llm_config.model_name,
                 temp=idata.llm_config.temp,
                 max_tokens=idata.llm_config.max_tokens,
@@ -160,7 +160,7 @@ class ChatPage:
         async def handle_enter_llm(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
             prompt = prompt_input.value.strip()
             log.info(
-                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.api_type()}:{idata.llm_config.model_api.type()}:{idata.llm_config.model_name},{idata.llm_config.temp},{idata.llm_config.max_tokens}): "{prompt}"')
+                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.api_type()}:{idata.llm_config.llmapi.type()}:{idata.llm_config.model_name},{idata.llm_config.temp},{idata.llm_config.max_tokens}): "{prompt}"')
             prompt_input.disable()
             logstuff.update_from_request(request)  # updates logging prefix with info from each request
 
