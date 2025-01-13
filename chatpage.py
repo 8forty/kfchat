@@ -147,21 +147,21 @@ class ChatPage:
 
     def setup(self, path: str, pagename: str):
 
-        def do_llm(prompt: str, idata: InstanceData, howmany: int = 1) -> LLMExchange:
+        def do_llm(prompt: str, idata: InstanceData) -> LLMExchange:
             # todo: count tokens, etc.
             convo = [LLMExchange(ex.prompt, ex.llm_response.chat_completion) for ex in idata.exchanges.list() if ex.llm_response is not None]
             exchange: LLMExchange = idata.llm_config.llmapi.run_chat_completion(
                 idata.llm_config.model_name,
                 temp=idata.llm_config.temp,
                 max_tokens=idata.llm_config.max_tokens,
-                n=howmany,  # todo: openai:any value works, ollama: get 1 resp for any value, groq: only 1 allowed
+                n=idata.llm_config.n,  # todo: openai:any value works, ollama: get 1 resp for any value, groq: only 1 allowed
                 convo=convo,
                 sysmsg=idata.llm_config.system_message,
                 prompt=prompt)
             return exchange
 
-        def do_vector_search(prompt: str, idata: InstanceData, howmany: int = 1):
-            sresp: VSAPI.SearchResponse = idata.source_api.search(prompt, howmany=howmany)
+        def do_vector_search(prompt: str, idata: InstanceData):
+            sresp: VSAPI.SearchResponse = idata.source_api.search(prompt, howmany=idata.llm_config.n)
             vs_results: list[VectorStoreResult] = []
             for result_idx in range(0, len(sresp.results_raw)):
                 metrics = {'distance': sresp.results_raw[result_idx]['distances']}
@@ -278,6 +278,10 @@ class ChatPage:
                                   options=source_names,
                                   value=idata.source_select_name,
                                   ).on_value_change(callback=lambda vc: idata.change_source(vc.value, spinner, prompt_input)).props('square outlined label-color=green')
+                        ui.select(label='n:',
+                                  options=[i for i in range(1, 10)],
+                                  value=1,
+                                  ).on_value_change(callback=lambda vc: idata.llm_config.change_n(vc.value)).props('square outlined label-color=green')
                         ui.select(label='Temp:',
                                   options=[float(t) / 10.0 for t in range(0, 20)],
                                   value=0.7,
