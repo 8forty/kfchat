@@ -5,6 +5,7 @@ import tempfile
 import traceback
 from typing import AnyStr
 
+from chromadb.types import Collection
 from fastapi import Request
 from nicegui import ui, run, events
 from nicegui.elements.dialog import Dialog
@@ -27,24 +28,30 @@ class UploadPDFDialog(Dialog):
         log.info(f'uploading local file {evt.name}...')
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
             # tmp.write(evt.content.read())
-            # contents: AnyStr = await run.io_bound(evt.content.read)
-            contents: AnyStr = evt.content.read()
+            contents: AnyStr = await run.io_bound(evt.content.read)
+            # contents: AnyStr = evt.content.read()
             log.debug(f'loaded {evt.name}...')
             await run.io_bound(tmp.write, contents)
-            log.debug(f'saved server file {evt.name}...')
-            tmp_name = tmp.name
+            log.debug(f'saved file {evt.name} to server file {tmp.name}...')
 
+        collection: Collection = None
         try:
-            log.debug(f'ingesting server file {evt.name}...')
-            await run.io_bound(vectorstore.ingest_pdf, tmp_name, evt.name)
+            log.debug(f'ingesting server file {tmp.name}...')
+            collection = await run.io_bound(vectorstore.ingest_pdf, tmp.name, evt.name)
+
+            if collection is None:
+                errmsg = f'ingest failed for {evt.name}'
+                log.warning(errmsg)
+                ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
         except (Exception,) as e:
             errmsg = f'Error ingesting {evt.name}: {e}'
             traceback.print_exc(file=sys.stdout)
             log.error(errmsg)
             ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
 
-        os.remove(tmp_name)
-        log.info(f'ingested {evt.name} via {tmp_name}')
+        os.remove(tmp.name)
+        if collection is not None:
+            log.info(f'ingested {evt.name} via {tmp.name}')
         self.close()
 
     async def do_upload_pdf(self):

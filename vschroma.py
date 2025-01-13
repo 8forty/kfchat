@@ -6,12 +6,9 @@ from chromadb.api.types import IncludeEnum
 from chromadb.errors import InvalidCollectionException
 from chromadb.types import Collection
 from chromadb.utils.embedding_functions.sentence_transformer_embedding_function import SentenceTransformerEmbeddingFunction
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.vectorstores.utils import filter_complex_metadata
-from langchain_core.documents import Document
 
 import logstuff
+import pdf_chunkers
 from vsapi import VSAPI
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -123,47 +120,47 @@ class VSChroma(VSAPI):
         self._build_clients()
         return self._collection.__dict__
 
-    def ingest_pdf(self, pdf_file_path: str, pdf_name: str):
+    def ingest_pdf(self, pdf_file_path: str, pdf_name: str) -> Collection:
         self._build_clients()
 
-        # chroma collection name:
-        # (1) contains 3-63 characters,
-        # (2) starts and ends with an alphanumeric character,
-        # (3) otherwise contains only alphanumeric characters, underscores or hyphens (-) [NO SPACES!],
-        # (4) contains no two consecutive periods (..) and
-        # (5) is not a valid IPv4 address
-        collection_name = pdf_name.replace(' ', '-')
-        collection_name = collection_name.replace('..', '._')
-        if len(collection_name) > 63:
-            collection_name = collection_name[:63]
-            log.warning(f'collection name too long, shortened')
+        collection: Collection | None = None
 
-        if collection_name != pdf_name:
-            log.info(f'collection name [{pdf_name}] modified for chroma restrictions to [{collection_name}]')
-
-        # create the collection
         # todo: configure this
-        collection = self._client.create_collection(
-            name=collection_name,
-            configuration=None,
-            metadata=None,
-            embedding_function=SentenceTransformerEmbeddingFunction(model_name=self.embedding_model_name),  # default: 'all-MiniLM-L6-v2'
-            data_loader=None,
-            get_or_create=False
-        )
+        chunks = pdf_chunkers.chunk_recursive_character_text_splitter(server_pdf_path=pdf_file_path, chunk_size=1000, chunk_overlap=200)
+        if len(chunks) == 0:
+            log.warning(f'no chunks found in {pdf_name} ({pdf_file_path})!')
+        else:
+            # chroma collection name:
+            # (1) contains 3-63 characters,
+            # (2) starts and ends with an alphanumeric character,
+            # (3) otherwise contains only alphanumeric characters, underscores or hyphens (-) [NO SPACES!],
+            # (4) contains no two consecutive periods (..) and
+            # (5) is not a valid IPv4 address
+            collection_name = pdf_name.replace(' ', '-')
+            collection_name = collection_name.replace('..', '._')
+            if len(collection_name) > 63:
+                collection_name = collection_name[:63]
+                log.warning(f'collection name too long, shortened')
 
-        # load the PDF into LC Document's (qsa: Doc = page, 48 of each)
-        docs: list[Document] = PyPDFLoader(file_path=pdf_file_path).load()
+            if collection_name != pdf_name:
+                log.info(f'collection name [{pdf_name}] modified for chroma restrictions to [{collection_name}]')
 
-        # split into chunks, also LC Document's (qsa/1024/100: 135 chunks for 48 pages)
-        chunks = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=100).split_documents(docs)
+            # create the collection
+            # todo: configure this
+            collection = self._client.create_collection(
+                name=collection_name,
+                configuration=None,
+                metadata=None,
+                embedding_function=SentenceTransformerEmbeddingFunction(model_name=self.embedding_model_name),  # default: 'all-MiniLM-L6-v2'
+                data_loader=None,
+                get_or_create=False
+            )
 
-        # remove complex metadata not supported by ChromaDB, pull out the the content as a str
-        chunks = [c.page_content for c in filter_complex_metadata(chunks)]
+            # create Chroma vectorstore from the chunks, use random uuids for chunk-ids
+            log.debug(f'adding {len(chunks)} chunks to {collection.name}')
+            collection.add(documents=chunks, ids=[str(uuid.uuid4()) for _ in range(0, len(chunks))])
 
-        # create Chroma vectorstore from the chunks
-        log.debug(f'adding {len(chunks)} chunks to {collection_name}')
-        collection.add(documents=chunks, ids=[str(uuid.uuid4()) for _ in range(0, len(chunks))])
+        return collection
 
     def change_index(self, new_index_name: str) -> None:
         log.info(f'changing index to [{new_index_name}]')

@@ -278,6 +278,14 @@ class ChatPage:
                                   options=source_names,
                                   value=idata.source_select_name,
                                   ).on_value_change(callback=lambda vc: idata.change_source(vc.value, spinner, prompt_input)).props('square outlined label-color=green')
+                        ui.select(label='Temp:',
+                                  options=[float(t) / 10.0 for t in range(0, 20)],
+                                  value=0.7,
+                                  ).on_value_change(callback=lambda vc: idata.llm_config.change_temp(vc.value)).props('square outlined label-color=green')
+                        ui.select(label='Max Tokens:',
+                                  options=[80, 200, 400, 1000, 1500, 2000],
+                                  value=80,
+                                  ).on_value_change(callback=lambda vc: idata.llm_config.change_max_tokens(vc.value)).props('square outlined label-color=green')
                         sysmsg_names = [key for key in data.sysmsg_all]
                         ui.select(label='Sys Msg:',
                                   options=sysmsg_names,

@@ -5,12 +5,16 @@ def setup(path: str):
     @ui.page(path)
     async def index():
         with ui.row().classes('w-full'):
-            ui.select([
-                'Very long option that should wrap',
-                'foo',
-                'bar',
-                'baz',
-            ]).props('popup-content-class="max-w-[100px]"')
+            ui.select(
+                label='blahblah',
+                options=
+                [
+                    'Very long option that should wrap',
+                    'foo',
+                    'bar',
+                    'baz',
+                ]).props('input-class="w-[500px]"')
+            # ]).props('popup-content-class="max-w-[100px]"')
 
 
 if __name__ in {'__main__', '__mp_main__'}:
