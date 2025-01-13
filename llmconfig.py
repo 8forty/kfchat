@@ -1,6 +1,10 @@
-import openai
+import logging
 
+import logstuff
 from llmapi import LLMAPI
+
+log: logging.Logger = logging.getLogger(__name__)
+log.setLevel(logstuff.logging_level)
 
 
 class LLMConfig:
@@ -20,3 +24,7 @@ class LLMConfig:
         self.temp: float = default_temp
         self.max_tokens: int = default_max_tokens
         self.system_message: str = default_system_message
+
+    def change_sysmsg(self, new_system_message: str):
+        log.info(f'changing system message to: {new_system_message}')
+        self.system_message = new_system_message

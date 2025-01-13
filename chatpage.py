@@ -11,6 +11,7 @@ from nicegui.elements.scroll_area import ScrollArea
 from nicegui.elements.spinner import Spinner
 
 import config
+import data
 import frame
 import logstuff
 from chatexchanges import ChatExchange, VectorStoreResponse, ChatExchanges, LLMResponse, VectorStoreResult
@@ -277,6 +278,11 @@ class ChatPage:
                                   options=source_names,
                                   value=idata.source_select_name,
                                   ).on_value_change(callback=lambda vc: idata.change_source(vc.value, spinner, prompt_input)).props('square outlined label-color=green')
+                        sysmsg_names = [key for key in data.sysmsg_all]
+                        ui.select(label='Sys Msg:',
+                                  options=sysmsg_names,
+                                  value=sysmsg_names[0],
+                                  ).on_value_change(callback=lambda vc: idata.llm_config.change_sysmsg(data.sysmsg_all[vc.value])).props('square outlined label-color=green')
 
                     # with ui.scroll_area(on_scroll=lambda e: print(f'~~~~ e: {e}')).classes('w-full flex-grow border border-solid border-black') as scroller:
                     with ui.scroll_area().classes('w-full flex-grow border border-solid border-black') as scroller:

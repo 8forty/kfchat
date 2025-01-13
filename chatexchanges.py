@@ -69,7 +69,7 @@ class ChatExchange:
                 stop_problem = ''
                 match choice.finish_reason:
                     case 'length':
-                        stop_problem = 'too many tokens in request'
+                        stop_problem = 'too many tokens'
                     case 'content_filter':
                         stop_problem = 'flagged by content filter'
                     case 'tool_calls':

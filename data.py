@@ -1,4 +1,5 @@
 import os
+from collections import OrderedDict
 
 from dotenv import load_dotenv
 
@@ -91,10 +92,20 @@ settings_sets = {
 
 csagan_sysmsg = 'You are a helpful assistant that talks like Carl Sagan.'
 generic_sysmsg = 'You are a helpful chatbot that talks in a conversational manner.'
+generic80_sysmsg = 'You are a helpful chatbot that talks in a conversational manner. Your responses must always be less than 80 tokens.'
 answer_sysmsg = ('You are a chatbot that answers questions that are labeled "Question:" based on the context labeled "Context:". '
                  'Keep your answers short and concise. Always respond "Unsure about answer" if not sure about the answer.')
 textclass_sysmsg = 'Classify each prompt into neutral, negative or positive.'
 technical_sysmsg = 'You are an AI research assistant. Respond in a tone that is technical and scientific.'
+
+sysmsg_all = OrderedDict({
+    'generic80': generic80_sysmsg,
+    'generic': generic_sysmsg,
+    'technical': technical_sysmsg,
+    'text-sentiment': textclass_sysmsg,
+    'carl-sagan': csagan_sysmsg,
+    'answer': answer_sysmsg,
+})
 
 galaxies_prompt = 'How many galaxies are there?'
 explain_prompt = 'Explain antibiotics'
