@@ -12,6 +12,7 @@ import chromadbpage
 import config
 import logstuff
 import vsapi_factory
+from data import sysmsg_all
 from llmconfig import LLMConfig
 from llmapi import LLMAPI
 from llmopenai import LLMOpenai
@@ -38,8 +39,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
     # setup llm
     # todo: these should come from e.g. pref screen
     max_tokens = 80
-    system_message = (f'You are a helpful chatbot that talks in a conversational manner. '
-                      f'Your responses must always be less than {max_tokens} tokens.')
+    system_message = sysmsg_all['generic80']
     # llm_config: LLMConfig = LLMConfig(LLMOpenai('ollama', parms=env_values), model_name='llama3.2:1b',
     #                                   init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens, init_system_message=system_message)
     llm_config: LLMConfig = LLMConfig(LLMOpenai('openai', parms=env_values), model_name='gpt-4o-mini',
