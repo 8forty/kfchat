@@ -70,13 +70,14 @@ class LLMOpenai(LLMAPI):
 
         return self._api_client
 
-    def run_chat_completion(self, model_name: str, temp: float, max_tokens: int, n: int,
+    def run_chat_completion(self, model_name: str, temp: float, top_p: float, max_tokens: int, n: int,
                             convo: Iterable[LLMExchange | tuple[str, str] | dict],
                             sysmsg: str | None = None, prompt: str | None = None) -> LLMExchange:
         """
         run chat-completion
         :param model_name:
         :param temp:
+        :param top_p:
         :param max_tokens:
         :param n:
         :param convo: properly ordered list of either LLMExchange's or tuples of (role, value) ; tuples must include system message and prompt
@@ -103,10 +104,12 @@ class LLMOpenai(LLMAPI):
             # transform convo to list-of-dicts, elements are either tuples or already dicts (and I guess a mix of each, why not?)
             messages = [{t[0]: t[1]} if isinstance(t, tuple) else t for t in convo]
 
-        # todo: seed, top_p, etc. (by actual llm?)
+        # todo: seed, etc. (by actual llm?)
+        log.debug(f'{model_name=}, {temp=}, {top_p=}, {max_tokens=}, {n=}, {sysmsg=} {prompt=}')
         chat_completion: ChatCompletion = self._client().chat.completions.create(
             model=model_name,
             temperature=temp,  # default 1.0, 0.0->2.0
+            top_p=top_p,  # default 1, ~0.01->1.0
             messages=messages,
             max_tokens=max_tokens,  # default 16?
             n=n,
@@ -114,7 +117,6 @@ class LLMOpenai(LLMAPI):
             stream=False,  # todo: allow streaming
 
             # seed=27,
-            top_p=top_p,  # default 1, ~0.01->1.0
             # frequency_penalty=1,  # default 0, -2.0->2.0
             # presence_penalty=1,  # default 0, -2.0->2.0
             # stop=[],

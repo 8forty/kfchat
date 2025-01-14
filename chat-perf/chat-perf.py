@@ -25,13 +25,13 @@ def chat(message_set: list[tuple[str, str]], api: LLMAPI, model_name: str, temp:
         return api.run_chat_completion(
             model_name=model_name,
             temp=temp,  # default 1.0, 0.0->2.0
+            top_p=1.0,  # default 1, ~0.01->1.0
             max_tokens=max_tokens,  # default 16?
             n=1,
             convo=messages,
 
             # stream=False,
             # seed=27,
-            # top_p=1,  # default 1, ~0.01->1.0
             # frequency_penalty=1,  # default 0, -2.0->2.0
             # presence_penalty=1,  # default 0, -2.0->2.0
             # stop=[],

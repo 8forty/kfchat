@@ -108,7 +108,7 @@ class InstanceData:
                             for choice in ex_resp.chat_completion.choices:
                                 results.append(f'[{self.llm_string}]: {choice.message.content}')  # .classes(response_text_classes)
                                 subscript_results_info.append([f'logprobs: {choice.logprobs}'])
-                            subscript_context_info += f'{self.llm_string},{ex_resp.api_type}:{ex_resp.model_name},temp:{ex_resp.temp},max_tokens:{ex_resp.max_tokens}'
+                            subscript_context_info += f'{self.llm_string},{ex_resp.api_type}:{ex_resp.model_name},n:{ex_resp.n},temp:{ex_resp.temp},top_p:{ex_resp.top_p},max_tokens:{ex_resp.max_tokens}'
                             subscript_extra_info.append(f'tokens:{ex_resp.chat_completion.usage.prompt_tokens}/{ex_resp.chat_completion.usage.completion_tokens}')
                             subscript_extra_info.append(f'{self.llm_config.system_message}')
 
@@ -172,6 +172,7 @@ class ChatPage:
             exchange: LLMExchange = idata.llm_config.llmapi.run_chat_completion(
                 idata.llm_config.model_name,
                 temp=idata.llm_config.temp,
+                top_p=idata.llm_config.top_p,
                 max_tokens=idata.llm_config.max_tokens,
                 n=idata.llm_config.n,  # todo: openai:any value works, ollama: get 1 resp for any value, groq: only 1 allowed
                 convo=convo,
@@ -182,7 +183,8 @@ class ChatPage:
         async def handle_enter_llm(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
             prompt = prompt_input.value.strip()
             log.info(
-                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.api_type()}:{idata.llm_config.llmapi.type()}:{idata.llm_config.model_name},{idata.llm_config.temp},{idata.llm_config.max_tokens}): "{prompt}"')
+                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.api_type()}:{idata.llm_config.llmapi.type()}:{idata.llm_config.model_name},'
+                f'{idata.llm_config.temp},{idata.llm_config.top_p},{idata.llm_config.max_tokens}): "{prompt}"')
             prompt_input.disable()
             logstuff.update_from_request(request)  # updates logging prefix with info from each request
 
@@ -249,7 +251,7 @@ class ChatPage:
                 await handle_enter_vector_search(request, prompt_input, spinner, scroller, idata)
 
         async def change_and_focus(callback: Handler[ValueChangeEventArguments], focus_element: Element):
-            callback()
+            await callback()
             await focus_element.run_method('focus')
 
         @ui.page(path)
@@ -273,12 +275,14 @@ class ChatPage:
                                   options=[i for i in range(1, 10)],
                                   value=1,
                                   ).on_value_change(lambda vc: change_and_focus(lambda: idata.llm_config.change_n(vc.value), pinput)).props('square outlined label-color=green')
-                        # ).on_value_change(                            lambda: idata.llm_config.change_n(vc.value)               ).props('square outlined label-color=green')
-
                         ui.select(label='Temp:',
-                                  options=[float(t) / 10.0 for t in range(0, 20)],
+                                  options=[float(t) / 10.0 for t in range(0, 21)],
                                   value=0.7,
                                   ).on_value_change(lambda vc: change_and_focus(lambda: idata.llm_config.change_temp(vc.value), pinput)).props('square outlined label-color=green')
+                        ui.select(label='Top_p:',
+                                  options=[float(t) / 10.0 for t in range(0, 11)],
+                                  value=1.0,
+                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.llm_config.change_top_p(vc.value), pinput)).props('square outlined label-color=green')
                         ui.select(label='Max Tokens:',
                                   options=[80, 200, 400, 1000, 1500, 2000],
                                   value=80,

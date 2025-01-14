@@ -32,3 +32,9 @@ class LLMAPI(ABC):
 
     def type(self) -> str:
         return self._api_type_name
+
+    @abstractmethod
+    def run_chat_completion(self, model_name: str, temp: float, top_p: float, max_tokens: int, n: int,
+                            convo: Iterable[LLMExchange | tuple[str, str] | dict],
+                            sysmsg: str | None = None, prompt: str | None = None) -> LLMExchange:
+        pass

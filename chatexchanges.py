@@ -12,9 +12,11 @@ log.setLevel(logstuff.logging_level)
 class LLMResponse:
     def __init__(self, chat_completion: ChatCompletion, llm_config: LLMConfig):
         self.chat_completion: ChatCompletion = chat_completion
-        self.api_type: str = llm_config.llmapi._api_type_name
+        self.api_type: str = llm_config.llmapi.type()
         self.model_name: str = llm_config.model_name
+        self.n: int = llm_config.n
         self.temp: float = llm_config.temp
+        self.top_p: float = llm_config.top_p
         self.max_tokens: int = llm_config.max_tokens
 
     def __repr__(self) -> str:
