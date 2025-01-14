@@ -97,6 +97,7 @@ answer_sysmsg = ('You are a chatbot that answers questions that are labeled "Que
                  'Keep your answers short and concise. Always respond "Unsure about answer" if not sure about the answer.')
 textclass_sysmsg = 'Classify each prompt into neutral, negative or positive.'
 technical_sysmsg = 'You are an AI research assistant. Respond in a tone that is technical and scientific.'
+empty_sysmsg = ''
 
 sysmsg_all = OrderedDict({
     'generic80': generic80_sysmsg,
@@ -104,6 +105,7 @@ sysmsg_all = OrderedDict({
     'technical': technical_sysmsg,
     'text-sentiment': textclass_sysmsg,
     'carl-sagan': csagan_sysmsg,
+    'empty': empty_sysmsg,
     'answer': answer_sysmsg,
 })
 
@@ -127,6 +129,9 @@ teplizumab_prompt = ('Context: Teplizumab traces its roots to a New Jersey drug 
                      'first therapeutic antibody allowed for human use.  \nQuestion: What was OKT3 originally sourced from?')
 neutralfood_prompt = 'I think the food was okay.'
 blackholes_prompt = 'Can you tell me about the creation of blackholes?'
+rag_lc_rlm_prompt = ("You are an assistant for question-answering tasks. Use the following pieces of retrieved context"
+                     " to answer the question. If you don't know the answer, just say that you don't know. Use three "
+                     "sentences maximum and keep the answer concise.  \nQuestion: {question}  \nContext: {context}  \nAnswer:")
 
 csagan_galaxies = {
     'name': 'csagan_galaxies',

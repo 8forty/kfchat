@@ -3,6 +3,7 @@ from abc import abstractmethod, ABC
 from dataclasses import dataclass
 
 import logstuff
+from chatexchanges import VectorStoreResponse
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -50,7 +51,11 @@ class VSAPI(ABC):
         pass
 
     @abstractmethod
-    def search(self, prompt: str, howmany: int) -> SearchResponse:
+    def raw_search(self, prompt: str, howmany: int) -> SearchResponse:
+        pass
+
+    @abstractmethod
+    def search(self, prompt: str, howmany: int) -> VectorStoreResponse:
         pass
 
     @abstractmethod

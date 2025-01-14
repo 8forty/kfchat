@@ -6,9 +6,11 @@ import traceback
 
 from fastapi import Request
 from nicegui import ui, run
+from nicegui.element import Element
 from nicegui.elements.input import Input
 from nicegui.elements.scroll_area import ScrollArea
 from nicegui.elements.spinner import Spinner
+from nicegui.events import Handler, ValueChangeEventArguments
 
 import config
 import data
@@ -94,31 +96,48 @@ class InstanceData:
 
                     # the response(s)
                     with (ui.column().classes('w-full gap-y-0')):
-                        # subscript_context_info = f'{self.exchanges.id()},'
+                        results: list[str] = []
+                        subscript_results_info: list[list[str]] = []  # a list of metric strings per result
                         subscript_context_info = ''
-                        subscript_results_info = ''
-                        subscript_extra_info = ''
+                        subscript_extra_info: list[str] = []
+
+                        # llm response
                         # todo: metrics, etc.
                         if exchange.llm_response is not None:
                             ex_resp = exchange.llm_response
-                            subscript_context_info += f'{self.llm_string},{ex_resp.api_type}:{ex_resp.model_name},temp:{ex_resp.temp},max_tokens:{ex_resp.max_tokens}'
-                            subscript_results_info += f'tokens:{ex_resp.chat_completion.usage.prompt_tokens}/{ex_resp.chat_completion.usage.completion_tokens}'
-                            subscript_extra_info += f'{self.llm_config.system_message}'
                             for choice in ex_resp.chat_completion.choices:
-                                ui.label(f'[{self.llm_string}]: {choice.message.content}').classes(response_text_classes)
+                                results.append(f'[{self.llm_string}]: {choice.message.content}')  # .classes(response_text_classes)
+                                subscript_results_info.append([f'logprobs: {choice.logprobs}'])
+                            subscript_context_info += f'{self.llm_string},{ex_resp.api_type}:{ex_resp.model_name},temp:{ex_resp.temp},max_tokens:{ex_resp.max_tokens}'
+                            subscript_extra_info.append(f'tokens:{ex_resp.chat_completion.usage.prompt_tokens}/{ex_resp.chat_completion.usage.completion_tokens}')
+                            subscript_extra_info.append(f'{self.llm_config.system_message}')
 
+                        # vector store response
                         if exchange.vector_store_response is not None:
                             subscript_context_info += f'{self.vs_string},{self.source_name}'
                             for result in exchange.vector_store_response.results:
-                                ui.label(f'[{self.vs_string}]: {result.content}').classes(response_text_classes)
-                                ui.label(f'distance:{result.metrics['distance']:.03f}').classes(response_subscript_classes)
+                                results.append(f'[{self.vs_string}]: {result.content}')  # .classes(response_text_classes)
 
-                        # subscripts
-                        ui.label(f'[{subscript_context_info}]: '
-                                 f'{subscript_results_info} '
-                                 f'{exchange.response_duration_secs:.1f}s'
-                                 ).classes(response_subscript_classes)
-                        ui.label(f'{subscript_extra_info}').classes(response_subscript_classes)
+                                metric_list = []
+                                for metric in result.metrics:
+                                    val = result.metrics[metric]
+                                    if val is not None and len(str(val)) > 0:
+                                        if isinstance(val, float):
+                                            metric_list.append(f'{metric}: {result.metrics[metric]:.03f}')
+                                        else:
+                                            metric_list.append(f'{metric}: {result.metrics[metric]}')
+                                subscript_results_info.append(metric_list)
+
+                        # results stuff
+                        for ri in range(0, len(results)):
+                            ui.label(results[ri]).classes(response_text_classes)
+                            for rinfo in subscript_results_info[ri]:
+                                ui.label(rinfo).classes(response_subscript_classes)
+
+                        # entire-response stuff
+                        ui.label(f'[{subscript_context_info}]: {exchange.response_duration_secs:.1f}s').classes(response_subscript_classes)
+                        for ei in subscript_extra_info:
+                            ui.label(f'{ei}').classes(response_subscript_classes)
 
                         # stop problems
                         stop_problems_string = ''
@@ -160,15 +179,6 @@ class ChatPage:
                 prompt=prompt)
             return exchange
 
-        def do_vector_search(prompt: str, idata: InstanceData):
-            sresp: VSAPI.SearchResponse = idata.source_api.search(prompt, howmany=idata.llm_config.n)
-            vs_results: list[VectorStoreResult] = []
-            for result_idx in range(0, len(sresp.results_raw)):
-                metrics = {'distance': sresp.results_raw[result_idx]['distances']}
-                vs_results.append(VectorStoreResult(sresp.results_raw[result_idx]['ids'], metrics,
-                                                    sresp.results_raw[result_idx]['documents']))
-            return VectorStoreResponse(vs_results)
-
         async def handle_enter_llm(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
             prompt = prompt_input.value.strip()
             log.info(
@@ -178,10 +188,6 @@ class ChatPage:
 
             start = timeit.default_timer()
             spinner.set_visibility(True)
-
-            # todo: file of prompts
-            # if prompt.startswith('*'):  # load a file of prompts
-            #     with
 
             exchange: LLMExchange | None = None
             try:
@@ -204,15 +210,7 @@ class ChatPage:
             prompt_input.value = ''
             prompt_input.enable()
             await idata.refresh_instance(scroller)
-            scroller.scroll_to(percent=100.0, axis='vertical', duration=0.0)
             await prompt_input.run_method('focus')
-
-            # make sure client is connected before auto-scroll
-            # try:
-            #     await ui.context.client.connected()
-            # except builtins.TimeoutError:
-            #     pass
-            # scroller.scroll_to(percent=1.0, axis='vertical', duration=0.0)
 
         async def handle_enter_vector_search(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
             prompt = prompt_input.value.strip()
@@ -223,13 +221,10 @@ class ChatPage:
             start = timeit.default_timer()
             spinner.set_visibility(True)
 
-            # todo: file of prompts
-            # if prompt.startswith('*'):  # load a file of prompts
-            #     with
-
             vsresponse: VectorStoreResponse | None = None
             try:
-                vsresponse = await run.io_bound(do_vector_search, prompt, idata)
+                # vsresponse = await run.io_bound(do_vector_search, prompt, idata)
+                vsresponse = await run.io_bound(idata.source_api.search, prompt, howmany=idata.llm_config.n)
                 log.debug(f'vector-search response: {vsresponse}')
             except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)
@@ -245,21 +240,17 @@ class ChatPage:
             prompt_input.value = ''
             prompt_input.enable()
             await idata.refresh_instance(scroller)
-            # scroller.scroll_to(percent=100.0, axis='vertical', duration=0.0)
             await prompt_input.run_method('focus')
-
-            # make sure client is connected before auto-scroll
-            try:
-                await ui.context.client.connected()
-            except builtins.TimeoutError:
-                pass
-            scroller.scroll_to(percent=1.0, axis='vertical', duration=0.0)
 
         async def handle_enter(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
             if idata.source_api is None:
                 await handle_enter_llm(request, prompt_input, spinner, scroller, idata)
             else:
                 await handle_enter_vector_search(request, prompt_input, spinner, scroller, idata)
+
+        async def change_and_focus(callback: Handler[ValueChangeEventArguments], focus_element: Element):
+            callback()
+            await focus_element.run_method('focus')
 
         @ui.page(path)
         async def index(request: Request) -> None:
@@ -277,24 +268,26 @@ class ChatPage:
                         ui.select(label='Source:',
                                   options=source_names,
                                   value=idata.source_select_name,
-                                  ).on_value_change(callback=lambda vc: idata.change_source(vc.value, spinner, prompt_input)).props('square outlined label-color=green')
+                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_source(vc.value, spinner, pinput), pinput)).props('square outlined label-color=green')
                         ui.select(label='n:',
                                   options=[i for i in range(1, 10)],
                                   value=1,
-                                  ).on_value_change(callback=lambda vc: idata.llm_config.change_n(vc.value)).props('square outlined label-color=green')
+                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.llm_config.change_n(vc.value), pinput)).props('square outlined label-color=green')
+                        # ).on_value_change(                            lambda: idata.llm_config.change_n(vc.value)               ).props('square outlined label-color=green')
+
                         ui.select(label='Temp:',
                                   options=[float(t) / 10.0 for t in range(0, 20)],
                                   value=0.7,
-                                  ).on_value_change(callback=lambda vc: idata.llm_config.change_temp(vc.value)).props('square outlined label-color=green')
+                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.llm_config.change_temp(vc.value), pinput)).props('square outlined label-color=green')
                         ui.select(label='Max Tokens:',
                                   options=[80, 200, 400, 1000, 1500, 2000],
                                   value=80,
-                                  ).on_value_change(callback=lambda vc: idata.llm_config.change_max_tokens(vc.value)).props('square outlined label-color=green')
+                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.llm_config.change_max_tokens(vc.value), pinput)).props('square outlined label-color=green')
                         sysmsg_names = [key for key in data.sysmsg_all]
                         ui.select(label='Sys Msg:',
                                   options=sysmsg_names,
                                   value=sysmsg_names[0],
-                                  ).on_value_change(callback=lambda vc: idata.llm_config.change_sysmsg(data.sysmsg_all[vc.value])).props('square outlined label-color=green')
+                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.llm_config.change_sysmsg(data.sysmsg_all[vc.value]), pinput)).props('square outlined label-color=green')
 
                     # with ui.scroll_area(on_scroll=lambda e: print(f'~~~~ e: {e}')).classes('w-full flex-grow border border-solid border-black') as scroller:
                     with ui.scroll_area().classes('w-full flex-grow border border-solid border-black') as scroller:
@@ -305,16 +298,11 @@ class ChatPage:
                 with ui.row().classes('w-full'):
                     spinner = ui.spinner(size='xl')
                     spinner.set_visibility(False)
-                    prompt_input = (ui.input(placeholder="Enter prompt")
-                                    .classes('flex-grow')
-                                    .props('rounded outlined')
-                                    .props('color=primary')
-                                    .props('bg-color=white')
-                                    )
-                    prompt_input.on('keydown.enter', lambda req=request, i=idata: handle_enter(req, prompt_input, spinner, scroller, i))
+                    pinput = ui.input(placeholder="Enter prompt").classes('flex-grow').props('rounded outlined').props('color=primary').props('bg-color=white')
+                    pinput.on('keydown.enter', lambda req=request, i=idata: handle_enter(req, pinput, spinner, scroller, i))
 
             try:
                 await ui.context.client.connected()
             except builtins.TimeoutError:
                 log.warning(f'TimeoutError waiting for client connection, connection ignored')
-            await prompt_input.run_method('focus')
+            await pinput.run_method('focus')

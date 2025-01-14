@@ -9,6 +9,7 @@ from chromadb.utils.embedding_functions.sentence_transformer_embedding_function 
 
 import logstuff
 import pdf_chunkers
+from chatexchanges import VectorStoreResponse, VectorStoreResult
 from vsapi import VSAPI
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -56,7 +57,7 @@ class VSChroma(VSAPI):
         self._build_clients()
         return [c.name for c in self._client.list_collections()]
 
-    def search(self, prompt: str, howmany: int) -> VSAPI.SearchResponse:
+    def raw_search(self, prompt: str, howmany: int) -> VSAPI.SearchResponse:
         self._build_clients()
 
         # dict str->list (1 per prompt) of lists (1 per result): 'ids'->[[str]], 'distances'->[[float]], 'embeddings'-> None?, 'metadatas'->[[None?]]
@@ -82,6 +83,22 @@ class VSChroma(VSAPI):
             results_score=[r['distances'] for r in raw_results],
             results_raw=raw_results
         )
+
+    def search(self, prompt: str, howmany: int) -> VectorStoreResponse:
+        sresp: VSAPI.SearchResponse = self.raw_search(prompt, howmany)
+
+        vs_results: list[VectorStoreResult] = []
+        for result_idx in range(0, len(sresp.results_raw)):
+            metrics = {
+                'distance': sresp.results_raw[result_idx]['distances'],
+                'metadata': sresp.results_raw[result_idx]['metadatas'],
+                'uris': sresp.results_raw[result_idx]['uris'],
+                'data': sresp.results_raw[result_idx]['data'],
+                'id': sresp.results_raw[result_idx]['ids'],
+            }
+            vs_results.append(VectorStoreResult(sresp.results_raw[result_idx]['ids'], metrics,
+                                                sresp.results_raw[result_idx]['documents']))
+        return VectorStoreResponse(vs_results)
 
     def delete_index(self, index_name: str):
         self._build_clients()
@@ -156,9 +173,10 @@ class VSChroma(VSAPI):
                 get_or_create=False
             )
 
-            # create Chroma vectorstore from the chunks, use random uuids for chunk-ids
+            # create Chroma vectorstore from the chunks
             log.debug(f'adding {len(chunks)} chunks to {collection.name}')
-            collection.add(documents=chunks, ids=[str(uuid.uuid4()) for _ in range(0, len(chunks))])
+            #  collection.add(documents=chunks, ids=[str(uuid.uuid4()) for _ in range(0, len(chunks))])  # use random uuids for chunk-ids
+            collection.add(documents=chunks, ids=[f'{pdf_name}-{i}' for i in range(0, len(chunks))])  # use name:count for chunk-ids
 
         return collection
 
