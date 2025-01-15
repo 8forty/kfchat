@@ -2,11 +2,10 @@ import timeit
 
 import config
 import data
-from llmapi import LLMAPI, LLMExchange
-from llmopenai import LLMOpenai
+from llmopenai import LLMOpenai, LLMExchange
 
 
-def model_warmup(api: LLMAPI, model: str):
+def model_warmup(api: LLMOpenai, model: str):
     chat(message_set=data.warmup_data['messageset'],
          api=api,
          model_name=model,
@@ -14,7 +13,7 @@ def model_warmup(api: LLMAPI, model: str):
          max_tokens=data.warmup_data['max_tokens'])
 
 
-def chat(message_set: list[tuple[str, str]], api: LLMAPI, model_name: str, temp: float, max_tokens: int) -> LLMExchange:
+def chat(message_set: list[tuple[str, str]], api: LLMOpenai, model_name: str, temp: float, max_tokens: int) -> LLMExchange:
     messages: list[dict] = []
     for i in message_set:
         messages.append({'role': i[0], 'content': i[1]})

@@ -1,20 +1,16 @@
-import os
 import timeit
 
 import dotenv
-import openai
 from dotenv import load_dotenv
 
-import data
-from llmapi import LLMAPI, LLMExchange
-from llmopenai import LLMOpenai
+from llmopenai import LLMOpenai, LLMExchange
 
 load_dotenv(override=True)
 
 env_values = dotenv.dotenv_values()
 
 
-def chat(sysmsg: str, prompt: str, api: LLMAPI, model_name: str, temp: float, max_tokens: int) -> LLMExchange:
+def chat(sysmsg: str, prompt: str, api: LLMOpenai, model_name: str, temp: float, max_tokens: int) -> LLMExchange:
     return api.run_chat_completion(
         model_name=model_name,
         temp=temp,  # default 1.0, 0.0->2.0
@@ -28,7 +24,6 @@ def chat(sysmsg: str, prompt: str, api: LLMAPI, model_name: str, temp: float, ma
 
         # stream=False,
         # seed=27,
-        # n=1,
         # frequency_penalty=1,  # default 0, -2.0->2.0
         # presence_penalty=1,  # default 0, -2.0->2.0
         # stop=[],

@@ -17,8 +17,8 @@ import data
 import frame
 import logstuff
 from chatexchanges import ChatExchange, VectorStoreResponse, ChatExchanges, LLMResponse
-from llmapi import LLMExchange
 from llmconfig import LLMConfig
+from llmopenai import LLMExchange
 from vsapi import VSAPI
 
 log: logging.Logger = logging.getLogger(__name__)

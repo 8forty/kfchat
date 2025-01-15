@@ -10,11 +10,6 @@ log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
 
-@dataclass
-class LLMExchange:
-    prompt: str
-    completion: ChatCompletion
-
 
 class LLMAPI(ABC):
     def __init__(self, api_type_name: str, parms: dict[str, str]):

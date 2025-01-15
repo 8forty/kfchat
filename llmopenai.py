@@ -1,4 +1,5 @@
 import logging
+from dataclasses import dataclass
 from typing import Iterable
 
 import openai
@@ -6,10 +7,16 @@ from openai.types.chat import ChatCompletion
 
 import logstuff
 from config import redact
-from llmapi import LLMAPI, LLMExchange
+from llmapi import LLMAPI
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
+
+
+@dataclass
+class LLMExchange:
+    prompt: str
+    completion: ChatCompletion
 
 
 class LLMOpenai(LLMAPI):
