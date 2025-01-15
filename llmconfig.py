@@ -1,7 +1,6 @@
 import logging
 
 import logstuff
-from llmapi import LLMAPI
 from llmopenaiapi import LLMOpenaiAPI
 
 log: logging.Logger = logging.getLogger(__name__)
