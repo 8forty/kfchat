@@ -18,7 +18,7 @@ import frame
 import logstuff
 from chatexchanges import ChatExchange, VectorStoreResponse, ChatExchanges, LLMResponse
 from llmconfig import LLMConfig
-from llmopenai import LLMExchange
+from llmopenaiapi import LLMOpenaiExchange
 from vsapi import VSAPI
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -195,10 +195,10 @@ class ChatPage:
 
     def setup(self, path: str, pagename: str):
 
-        def do_llm(prompt: str, idata: InstanceData) -> LLMExchange:
+        def do_llm(prompt: str, idata: InstanceData) -> LLMOpenaiExchange:
             # todo: count tokens, etc.
-            convo = [LLMExchange(ex.prompt, ex.llm_response.chat_completion) for ex in idata.exchanges.list() if ex.llm_response is not None]
-            exchange: LLMExchange = idata.llm_config.llmapi.run_chat_completion(
+            convo = [LLMOpenaiExchange(ex.prompt, ex.llm_response.chat_completion) for ex in idata.exchanges.list() if ex.llm_response is not None]
+            exchange: LLMOpenaiExchange = idata.llm_config.llmapi.run_chat_completion(
                 idata.llm_config.model_name,
                 temp=idata.llm_config.temp,
                 top_p=idata.llm_config.top_p,
@@ -220,7 +220,7 @@ class ChatPage:
             start = timeit.default_timer()
             spinner.set_visibility(True)
 
-            exchange: LLMExchange | None = None
+            exchange: LLMOpenaiExchange | None = None
             try:
                 exchange = await run.io_bound(do_llm, prompt, idata)
             except (Exception,) as e:

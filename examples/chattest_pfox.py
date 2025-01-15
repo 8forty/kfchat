@@ -3,14 +3,14 @@ import timeit
 import dotenv
 from dotenv import load_dotenv
 
-from llmopenai import LLMOpenai, LLMExchange
+from llmopenaiapi import LLMOpenaiAPI, LLMOpenaiExchange
 
 load_dotenv(override=True)
 
 env_values = dotenv.dotenv_values()
 
 
-def chat(sysmsg: str, prompt: str, api: LLMOpenai, model_name: str, temp: float, max_tokens: int) -> LLMExchange:
+def chat(sysmsg: str, prompt: str, api: LLMOpenaiAPI, model_name: str, temp: float, max_tokens: int) -> LLMOpenaiExchange:
     return api.run_chat_completion(
         model_name=model_name,
         temp=temp,  # default 1.0, 0.0->2.0
@@ -33,7 +33,7 @@ def chat(sysmsg: str, prompt: str, api: LLMOpenai, model_name: str, temp: float,
 
 def run(api_type_name: str, model_name: str):
     start = timeit.default_timer()
-    api = LLMOpenai(api_type_name, env_values)
+    api = LLMOpenaiAPI(api_type_name, env_values)
 
     print(f'---- generating response from {api.type()}:{model_name}')
     exchange = chat(sysmsg="You are a helpful assistant that talks like Carl Sagan.",

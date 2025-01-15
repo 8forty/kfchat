@@ -2,10 +2,10 @@ import timeit
 
 import config
 import data
-from llmopenai import LLMOpenai, LLMExchange
+from llmopenaiapi import LLMOpenaiAPI, LLMOpenaiExchange
 
 
-def model_warmup(api: LLMOpenai, model: str):
+def model_warmup(api: LLMOpenaiAPI, model: str):
     chat(message_set=data.warmup_data['messageset'],
          api=api,
          model_name=model,
@@ -13,7 +13,7 @@ def model_warmup(api: LLMOpenai, model: str):
          max_tokens=data.warmup_data['max_tokens'])
 
 
-def chat(message_set: list[tuple[str, str]], api: LLMOpenai, model_name: str, temp: float, max_tokens: int) -> LLMExchange:
+def chat(message_set: list[tuple[str, str]], api: LLMOpenaiAPI, model_name: str, temp: float, max_tokens: int) -> LLMOpenaiExchange:
     messages: list[dict] = []
     for i in message_set:
         messages.append({'role': i[0], 'content': i[1]})
@@ -50,7 +50,7 @@ def run(api_type_name: str, model_set_name: str, settings_set_name: str, message
     for model in data.model_sets[api_type_name][model_set_name]:
         print(f'    {api_type_name}:{model}')
         model_start = timeit.default_timer()
-        api = LLMOpenai(api_type_name, parms=data.model_sets[api_type_name]['parms'])
+        api = LLMOpenaiAPI(api_type_name, parms=data.model_sets[api_type_name]['parms'])
 
         # warmup the model
         try:

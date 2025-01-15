@@ -2,14 +2,14 @@ import logging
 
 import logstuff
 from llmapi import LLMAPI
-from llmopenai import LLMOpenai
+from llmopenaiapi import LLMOpenaiAPI
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
 
 class LLMConfig:
-    def __init__(self, name: str, llmapi: LLMOpenai, model_name: str, init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int, init_system_message: str):
+    def __init__(self, name: str, llmapi: LLMOpenaiAPI, model_name: str, init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int, init_system_message: str):
         """
 
         :param name

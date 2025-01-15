@@ -13,7 +13,7 @@ import logstuff
 import vsapi_factory
 from data import sysmsg_all
 from llmconfig import LLMConfig
-from llmopenai import LLMOpenai
+from llmopenaiapi import LLMOpenaiAPI
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -38,13 +38,13 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
     max_tokens = 80
     system_message = sysmsg_all['generic80']
     llm_configs_list = [
-        LLMConfig(name='groq33', llmapi=LLMOpenai('groq', parms=env_values), model_name='llama-3.3-70b-versatile',
+        LLMConfig(name='groq33', llmapi=LLMOpenaiAPI('groq', parms=env_values), model_name='llama-3.3-70b-versatile',
                   init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens, init_system_message=system_message),
-        LLMConfig(name='ollama321b', llmapi=LLMOpenai('ollama', parms=env_values), model_name='llama3.2:1b',
+        LLMConfig(name='ollama321b', llmapi=LLMOpenaiAPI('ollama', parms=env_values), model_name='llama3.2:1b',
                   init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens, init_system_message=system_message),
-        LLMConfig(name='openai4omini', llmapi=LLMOpenai('openai', parms=env_values), model_name='gpt-4o-mini',
+        LLMConfig(name='openai4omini', llmapi=LLMOpenaiAPI('openai', parms=env_values), model_name='gpt-4o-mini',
                   init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens, init_system_message=system_message),
-        LLMConfig(name='azurerfi', llmapi=LLMOpenai('azure', parms=env_values),
+        LLMConfig(name='azurerfi', llmapi=LLMOpenaiAPI('azure', parms=env_values),
                   model_name='RFI-Automate-GPT-4o-mini-2000k',  # really the deployment name for azure
                   init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens, init_system_message=system_message),
     ]

@@ -14,12 +14,12 @@ log.setLevel(logstuff.logging_level)
 
 
 @dataclass
-class LLMExchange:
+class LLMOpenaiExchange:
     prompt: str
     completion: ChatCompletion
 
 
-class LLMOpenai(LLMAPI):
+class LLMOpenaiAPI(LLMAPI):
     def __init__(self, api_type_name: str, parms: dict[str, str]):
         """
         for any client that supports the well-known OpenAI api
@@ -78,8 +78,8 @@ class LLMOpenai(LLMAPI):
         return self._api_client
 
     def run_chat_completion(self, model_name: str, temp: float, top_p: float, max_tokens: int, n: int,
-                            convo: Iterable[LLMExchange | tuple[str, str] | dict],
-                            sysmsg: str | None = None, prompt: str | None = None) -> LLMExchange:
+                            convo: Iterable[LLMOpenaiExchange | tuple[str, str] | dict],
+                            sysmsg: str | None = None, prompt: str | None = None) -> LLMOpenaiExchange:
         """
         run chat-completion
         :param model_name:
@@ -87,9 +87,9 @@ class LLMOpenai(LLMAPI):
         :param top_p:
         :param max_tokens:
         :param n:
-        :param convo: properly ordered list of either LLMExchange's or tuples of (role, value) ; tuples must include system message and prompt
-        :param sysmsg: used as sysmsg iff convo is provided in LLMExchange objects, otherwise the prompt should be in the tuples of convo
-        :param prompt: used as prompt iff convo is provided in LLMExchange objects, otherwise the prompt should be in the tuples of convo
+        :param convo: properly ordered list of either LLMOpenaiExchange's or tuples of (role, value) ; tuples must include system message and prompt
+        :param sysmsg: used as sysmsg iff convo is provided in LLMOpenaiExchange objects, otherwise the prompt should be in the tuples of convo
+        :param prompt: used as prompt iff convo is provided in LLMOpenaiExchange objects, otherwise the prompt should be in the tuples of convo
         :return: results as an OpenAI ChatCompletion object
         """
         messages: list[dict] = []
@@ -128,4 +128,4 @@ class LLMOpenai(LLMAPI):
             # presence_penalty=1,  # default 0, -2.0->2.0
             # stop=[],
         )
-        return LLMExchange(prompt, chat_completion)
+        return LLMOpenaiExchange(prompt, chat_completion)
