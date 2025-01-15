@@ -83,6 +83,26 @@ class InstanceData:
         prompt_input.enable()
         spinner.set_visibility(False)
 
+    async def change_n(self, new_n: int):
+        for llm_config in self.llm_configs.values():
+            await llm_config.change_n(new_n)
+
+    async def change_temp(self, new_temp: float):
+        for llm_config in self.llm_configs.values():
+            await llm_config.change_temp(new_temp)
+
+    async def change_top_p(self, new_top_p: float):
+        for llm_config in self.llm_configs.values():
+            await llm_config.change_top_p(new_top_p)
+
+    async def change_max_tokens(self, new_max_tokens: int):
+        for llm_config in self.llm_configs.values():
+            await llm_config.change_max_tokens(new_max_tokens)
+
+    async def change_sysmsg(self, new_system_message: str):
+        for llm_config in self.llm_configs.values():
+            await llm_config.change_sysmsg(new_system_message)
+
     def source_names_list(self) -> list[str]:
         source_names: list[str] = [self.source_api_name_llm(llm_config) for llm_config in self.llm_configs.values()]
         source_names.extend([f'{self.vs_name_prefix}{name}' for name in self.vectorstore.list_index_names()])
@@ -283,24 +303,24 @@ class ChatPage:
                         ui.select(label='n:',
                                   options=[i for i in range(1, 10)],
                                   value=1,
-                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.llm_config.change_n(vc.value), pinput)).props('square outlined label-color=green')
+                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_n(vc.value), pinput)).props('square outlined label-color=green')
                         ui.select(label='Temp:',
                                   options=[float(t) / 10.0 for t in range(0, 21)],
                                   value=0.7,
-                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.llm_config.change_temp(vc.value), pinput)).props('square outlined label-color=green')
+                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_temp(vc.value), pinput)).props('square outlined label-color=green')
                         ui.select(label='Top_p:',
                                   options=[float(t) / 10.0 for t in range(0, 11)],
                                   value=1.0,
-                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.llm_config.change_top_p(vc.value), pinput)).props('square outlined label-color=green')
+                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_top_p(vc.value), pinput)).props('square outlined label-color=green')
                         ui.select(label='Max Tokens:',
                                   options=[80, 200, 400, 1000, 1500, 2000],
                                   value=80,
-                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.llm_config.change_max_tokens(vc.value), pinput)).props('square outlined label-color=green')
+                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_max_tokens(vc.value), pinput)).props('square outlined label-color=green')
                         sysmsg_names = [key for key in data.sysmsg_all]
                         ui.select(label='Sys Msg:',
                                   options=sysmsg_names,
                                   value=sysmsg_names[0],
-                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.llm_config.change_sysmsg(data.sysmsg_all[vc.value]), pinput)).props('square outlined label-color=green')
+                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_sysmsg(data.sysmsg_all[vc.value]), pinput)).props('square outlined label-color=green')
 
                     # with ui.scroll_area(on_scroll=lambda e: print(f'~~~~ e: {e}')).classes('w-full flex-grow border border-solid border-black') as scroller:
                     with ui.scroll_area().classes('w-full flex-grow border border-solid border-black') as scroller:
