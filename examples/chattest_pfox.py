@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 
 import data
 from llmapi import LLMAPI, LLMExchange
+from llmopenai import LLMOpenai
 
 load_dotenv(override=True)
 
@@ -37,7 +38,7 @@ def chat(sysmsg: str, prompt: str, api: LLMAPI, model_name: str, temp: float, ma
 
 def run(api_type_name: str, model_name: str):
     start = timeit.default_timer()
-    api = LLMAPI(api_type_name, env_values)
+    api = LLMOpenai(api_type_name, env_values)
 
     print(f'---- generating response from {api.type()}:{model_name}')
     exchange = chat(sysmsg="You are a helpful assistant that talks like Carl Sagan.",

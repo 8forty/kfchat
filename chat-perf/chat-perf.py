@@ -1,11 +1,9 @@
-import sys
 import timeit
-
-import openai
 
 import config
 import data
 from llmapi import LLMAPI, LLMExchange
+from llmopenai import LLMOpenai
 
 
 def model_warmup(api: LLMAPI, model: str):
@@ -53,7 +51,7 @@ def run(api_type_name: str, model_set_name: str, settings_set_name: str, message
     for model in data.model_sets[api_type_name][model_set_name]:
         print(f'    {api_type_name}:{model}')
         model_start = timeit.default_timer()
-        api = LLMAPI(api_type_name, parms=data.model_sets[api_type_name]['parms'])
+        api = LLMOpenai(api_type_name, parms=data.model_sets[api_type_name]['parms'])
 
         # warmup the model
         try:
