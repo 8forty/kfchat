@@ -16,9 +16,8 @@ import config
 import data
 import frame
 import logstuff
-from chatexchanges import ChatExchange, VectorStoreResponse, ChatExchanges, LLMResponse
-from llmconfig import LLMConfig
-from llmopenaiapi import LLMOpenaiExchange
+from chatexchanges import ChatExchange, VectorStoreResponse, ChatExchanges, LLMOaiResponse
+from llmoaiconfig import LLMOaiExchange, LLMOaiConfig
 from vsapi import VSAPI
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -28,7 +27,7 @@ log.setLevel(logstuff.logging_level)
 class InstanceData:
     _next_id: int = 1
 
-    def __init__(self, llm_configs: dict[str, LLMConfig], llm_config: LLMConfig, vectorstore: VSAPI, env_values: dict[str, str]):
+    def __init__(self, llm_configs: dict[str, LLMOaiConfig], llm_config: LLMOaiConfig, vectorstore: VSAPI, env_values: dict[str, str]):
         self._id = InstanceData._next_id
         InstanceData._next_id += 1
 
@@ -39,7 +38,7 @@ class InstanceData:
         self.llm_string: str = 'llm'
         self.llm_name_prefix: str = 'llm: '
         self.llm_configs = llm_configs
-        self.llm_config: LLMConfig = llm_config
+        self.llm_config = llm_config
         self.source_llm_name: str = self.source_api_name_llm(self.llm_config)
 
         # vs stuff
@@ -56,7 +55,7 @@ class InstanceData:
     def api_type(self) -> str:
         return self.llm_string if self.source_api is None else self.vs_string
 
-    def source_api_name_llm(self, llm_config: LLMConfig) -> str:
+    def source_api_name_llm(self, llm_config: LLMOaiConfig) -> str:
         return f'{self.llm_name_prefix}{llm_config.name}:{llm_config.model_name}'
 
     async def change_source(self, selected_name: str, spinner: Spinner, prompt_input: Input):
@@ -186,19 +185,19 @@ class InstanceData:
 
 class ChatPage:
 
-    def __init__(self, llm_configs: dict[str, LLMConfig], init_llm_name: str, vectorstore: VSAPI, env_values: dict[str, str]):
+    def __init__(self, llm_configs: dict[str, LLMOaiConfig], init_llm_name: str, vectorstore: VSAPI, env_values: dict[str, str]):
         # anything in here is shared by all instances of ChatPage
         self.llm_configs = llm_configs
-        self.llm_configx = llm_configs[init_llm_name]
+        self.llm_config = llm_configs[init_llm_name]
         self.vectorstore = vectorstore
         self.env_values = env_values
 
     def setup(self, path: str, pagename: str):
 
-        def do_llm(prompt: str, idata: InstanceData) -> LLMOpenaiExchange:
+        def do_llm(prompt: str, idata: InstanceData) -> LLMOaiExchange:
             # todo: count tokens, etc.
-            convo = [LLMOpenaiExchange(ex.prompt, ex.llm_response.chat_completion) for ex in idata.exchanges.list() if ex.llm_response is not None]
-            exchange: LLMOpenaiExchange = idata.llm_config.llmapi.run_chat_completion(
+            convo = [LLMOaiExchange(ex.prompt, ex.llm_response.chat_completion) for ex in idata.exchanges.list() if ex.llm_response is not None]
+            exchange: LLMOaiExchange = idata.llm_config.run_chat_completion(
                 idata.llm_config.model_name,
                 temp=idata.llm_config.temp,
                 top_p=idata.llm_config.top_p,
@@ -212,7 +211,7 @@ class ChatPage:
         async def handle_enter_llm(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
             prompt = prompt_input.value.strip()
             log.info(
-                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.api_type()}:{idata.llm_config.llmapi.type()}:{idata.llm_config.model_name},'
+                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.api_type()}:{idata.llm_config.api_type()}:{idata.llm_config.model_name},'
                 f'{idata.llm_config.temp},{idata.llm_config.top_p},{idata.llm_config.max_tokens}): "{prompt}"')
             prompt_input.disable()
             logstuff.update_from_request(request)  # updates logging prefix with info from each request
@@ -220,7 +219,7 @@ class ChatPage:
             start = timeit.default_timer()
             spinner.set_visibility(True)
 
-            exchange: LLMOpenaiExchange | None = None
+            exchange: LLMOaiExchange | None = None
             try:
                 exchange = await run.io_bound(do_llm, prompt, idata)
             except (Exception,) as e:
@@ -233,7 +232,7 @@ class ChatPage:
             if exchange is not None:
                 log.debug(f'chat completion: {exchange.completion}')
                 ce = ChatExchange(exchange.prompt, response_duration_secs=timeit.default_timer() - start,
-                                  llm_response=LLMResponse(exchange.completion, idata.llm_config), vector_store_response=None)
+                                  llm_response=LLMOaiResponse(exchange.completion, idata.llm_config), vector_store_response=None)
                 for choice_idx, sp_text in ce.stop_problems().items():
                     log.warning(f'stop problem from prompt {prompt} choice[{choice_idx}]: {sp_text}')
                 idata.exchanges.append(ce)
@@ -288,7 +287,7 @@ class ChatPage:
             logstuff.update_from_request(request)
             log.info(f'route triggered')
 
-            idata = InstanceData(self.llm_configs, self.llm_configx, self.vectorstore, self.env_values)
+            idata = InstanceData(self.llm_configs, self.llm_config, self.vectorstore, self.env_values)
 
             # setup the standard "frame" for all pages
             with frame.frame(f'{config.name} {pagename}', 'bg-white'):

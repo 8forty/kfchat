@@ -2,24 +2,24 @@ import timeit
 
 import config
 import data
-from llmopenaiapi import LLMOpenaiAPI, LLMOpenaiExchange
+from llmoaiconfig import LLMOaiConfig, LLMOaiExchange
 
 
-def model_warmup(api: LLMOpenaiAPI, model: str):
+def model_warmup(cfg: LLMOaiConfig, model: str):
     chat(message_set=data.warmup_data['messageset'],
-         api=api,
+         cfg=cfg,
          model_name=model,
          temp=data.warmup_data['temp'],
          max_tokens=data.warmup_data['max_tokens'])
 
 
-def chat(message_set: list[tuple[str, str]], api: LLMOpenaiAPI, model_name: str, temp: float, max_tokens: int) -> LLMOpenaiExchange:
+def chat(message_set: list[tuple[str, str]], cfg: LLMOaiConfig, model_name: str, temp: float, max_tokens: int) -> LLMOaiExchange:
     messages: list[dict] = []
     for i in message_set:
         messages.append({'role': i[0], 'content': i[1]})
 
     try:
-        return api.run_chat_completion(
+        return cfg.run_chat_completion(
             model_name=model_name,
             temp=temp,  # default 1.0, 0.0->2.0
             top_p=1.0,  # default 1, ~0.01->1.0
@@ -50,17 +50,19 @@ def run(api_type_name: str, model_set_name: str, settings_set_name: str, message
     for model in data.model_sets[api_type_name][model_set_name]:
         print(f'    {api_type_name}:{model}')
         model_start = timeit.default_timer()
-        api = LLMOpenaiAPI(api_type_name, parms=data.model_sets[api_type_name]['parms'])
+        # cfg = LLMOaiConfig(api_type_name, parms=data.model_sets[api_type_name]['parms'])
+        cfg = LLMOaiConfig('chattest', api_type_name, data.model_sets[api_type_name]['parms'], model,
+                           init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=80, init_system_message="")
 
         # warmup the model
         try:
-            model_warmup(api, model)
+            model_warmup(cfg, model)
         except (Exception,) as e:
             print(f'warmup Exception! {api_type_name}:{model}: {e} skipping...')
             break
 
-        print(f'{config.secs_string(all_start)}: [{api.type()}:{model}] model-warmup: [{timeit.default_timer() - model_start:.0f}]s')
-        csv_data.append([api.type(), model, '', '', '(warm-up)', '', '', str(int(timeit.default_timer() - model_start)), ''])
+        print(f'{config.secs_string(all_start)}: [{cfg.api_type()}:{model}] model-warmup: [{timeit.default_timer() - model_start:.0f}]s')
+        csv_data.append([cfg.api_type(), model, '', '', '(warm-up)', '', '', str(int(timeit.default_timer() - model_start)), ''])
 
         # settings
         for settings_set in data.settings_sets[settings_set_name]:
@@ -70,22 +72,22 @@ def run(api_type_name: str, model_set_name: str, settings_set_name: str, message
                 ms_start = timeit.default_timer()
                 try:
                     exchange = chat(message_set=message_set['messages'],
-                                    api=api,
+                                    cfg=cfg,
                                     model_name=model,
                                     temp=settings_set['temp'],
                                     max_tokens=settings_set['max_tokens'])
                 except (Exception,) as e:
-                    print(f'run Exception! {api.type()}:{model} {settings_set_name} {message_set["name"]}: {e} skipping...')
+                    print(f'run Exception! {cfg.api_type()}:{model} {settings_set_name} {message_set["name"]}: {e} skipping...')
                     break
 
                 ms_end = timeit.default_timer()
 
-                print(f'{config.secs_string(all_start)}: [{api.type()}:{model}] [{settings_set['temp']}] [{settings_set['max_tokens']}] [{message_set["name"]}]: '
+                print(f'{config.secs_string(all_start)}: [{cfg.api_type()}:{model}] [{settings_set['temp']}] [{settings_set['max_tokens']}] [{message_set["name"]}]: '
                       f'[{exchange.completion.usage.prompt_tokens}+{exchange.completion.usage.completion_tokens}] '
                       f'[{ms_end - ms_start:.0f}]s')
                 response_1line = str(exchange.completion.choices[0].message.content).replace("\n", "  ").replace('"', '""')
                 print(f'{config.secs_string(all_start)}:     {response_1line}')
-                csv_data.append([api.type(), model, str(settings_set['temp']), str(settings_set['max_tokens']),
+                csv_data.append([cfg.api_type(), model, str(settings_set['temp']), str(settings_set['max_tokens']),
                                  message_set["name"],
                                  str(exchange.completion.usage.prompt_tokens), str(exchange.completion.usage.completion_tokens),
                                  str(int(ms_end - ms_start)),
@@ -93,8 +95,8 @@ def run(api_type_name: str, model_set_name: str, settings_set_name: str, message
                                 )
 
         model_end = timeit.default_timer()
-        print(f'{config.secs_string(all_start)}: [{api.type()}:{model}] [{model_end - model_start:.0f}]s')
-        csv_data.append([api.type(), model, '', '', '', '', '', str(int(model_end - model_start)), ''])
+        print(f'{config.secs_string(all_start)}: [{cfg.api_type()}:{model}] [{model_end - model_start:.0f}]s')
+        csv_data.append([cfg.api_type(), model, '', '', '', '', '', str(int(model_end - model_start)), ''])
 
     api_end_time = timeit.default_timer()
     print(f'{config.secs_string(all_start)}: [{api_type_name}] [{api_end_time - api_start_time:.0f}]s')
@@ -107,7 +109,8 @@ def run(api_type_name: str, model_set_name: str, settings_set_name: str, message
         print(','.join(line))
 
 
-run(api_type_name='ollama', model_set_name='mistral7b', settings_set_name='1:800', message_sets_name='space')
+run(api_type_name='ollama', model_set_name='ll1b', settings_set_name='1:800', message_sets_name='space')
+# run(api_type_name='ollama', model_set_name='mistral7b', settings_set_name='1:800', message_sets_name='space')
 # run(api='groq', model_set_name='ll33', settings_set_name='1:800', message_sets_name='text')
 
 # run(api='ollama', model_set_name='mistral7b', settings_set_name='std4', message_sets_name='std7')

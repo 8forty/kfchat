@@ -3,16 +3,16 @@ import logging
 from openai.types.chat import ChatCompletion
 
 import logstuff
-from llmconfig import LLMConfig
+from llmoaiconfig import LLMOaiConfig
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
 
-class LLMResponse:
-    def __init__(self, chat_completion: ChatCompletion, llm_config: LLMConfig):
+class LLMOaiResponse:
+    def __init__(self, chat_completion: ChatCompletion, llm_config: LLMOaiConfig):
         self.chat_completion: ChatCompletion = chat_completion
-        self.api_type: str = llm_config.llmapi.type()
+        self.api_type: str = llm_config.api_type()
         self.model_name: str = llm_config.model_name
         self.n: int = llm_config.n
         self.temp: float = llm_config.temp
@@ -54,11 +54,11 @@ class ChatExchange:
     #     usage: Optional[CompletionUsage] = None  Usage statistics for the completion request.
 
     def __init__(self, prompt: str, response_duration_secs: float,
-                 llm_response: LLMResponse | None, vector_store_response: VectorStoreResponse | None):
+                 llm_response: LLMOaiResponse | None, vector_store_response: VectorStoreResponse | None):
         self.prompt: str = prompt
         self.response_duration_secs: float = response_duration_secs
 
-        self.llm_response: LLMResponse | None = llm_response
+        self.llm_response: LLMOaiResponse | None = llm_response
         self.vector_store_response: VectorStoreResponse | None = vector_store_response
 
         self._stop_problems: dict[int, str] = {}
