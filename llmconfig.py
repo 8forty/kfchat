@@ -2,13 +2,14 @@ import logging
 
 import logstuff
 from llmapi import LLMAPI
+from llmopenai import LLMOpenai
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
 
 class LLMConfig:
-    def __init__(self, name: str, llmapi: LLMAPI, model_name: str, init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int, init_system_message: str):
+    def __init__(self, name: str, llmapi: LLMOpenai, model_name: str, init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int, init_system_message: str):
         """
 
         :param name
@@ -22,14 +23,14 @@ class LLMConfig:
 
         """
         self.name = name
-        self.llmapi: LLMAPI = llmapi
+        self.llmapi = llmapi
 
-        self.model_name: str = model_name
-        self.n: int = init_n
-        self.temp: float = init_temp
-        self.top_p: float = init_top_p
-        self.max_tokens: int = init_max_tokens
-        self.system_message: str = init_system_message
+        self.model_name = model_name
+        self.n = init_n
+        self.temp = init_temp
+        self.top_p = init_top_p
+        self.max_tokens = init_max_tokens
+        self.system_message = init_system_message
 
     async def change_n(self, new_n: int):
         log.info(f'{self.name} changing n to: {new_n}')
