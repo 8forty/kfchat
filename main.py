@@ -2,7 +2,6 @@ import logging
 import time
 import traceback
 
-import chromadb
 import dotenv
 from fastapi import FastAPI
 from nicegui import ui
@@ -14,9 +13,7 @@ import logstuff
 import vsapi_factory
 from data import sysmsg_all
 from llmconfig import LLMConfig
-from llmapi import LLMAPI
 from llmopenai import LLMOpenai
-from vschroma import VSChroma
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -40,15 +37,18 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
     # todo: these should come from e.g. pref screen
     max_tokens = 80
     system_message = sysmsg_all['generic80']
-    # llm_config: LLMConfig = LLMConfig(LLMOpenai('ollama', parms=env_values), model_name='llama3.2:1b',
-    #                                   init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens, init_system_message=system_message)
-    llm_config: LLMConfig = LLMConfig(LLMOpenai('openai', parms=env_values), model_name='gpt-4o-mini',
-                                      init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens, init_system_message=system_message)
-    # llm_config: LLMConfig = LLMConfig(LLMOpenai('groq', parms=env_values), model_name='llama-3.3-70b-versatile',
-    #                                   init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens, init_system_message=system_message)
-    # llm_config: LLMConfig = LLMConfig(LLMOpenai('azure', parms=env_values),
-    #                                   model_name='RFI-Automate-GPT-4o-mini-2000k',  # really the deployment name for azure
-    #                                   init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens, init_system_message=system_message)
+    llm_configs_list = [
+        LLMConfig(name='groq33', llmapi=LLMOpenai('groq', parms=env_values), model_name='llama-3.3-70b-versatile',
+                  init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens, init_system_message=system_message),
+        LLMConfig(name='ollama321b', llmapi=LLMOpenai('ollama', parms=env_values), model_name='llama3.2:1b',
+                  init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens, init_system_message=system_message),
+        LLMConfig(name='openai4omini', llmapi=LLMOpenai('openai', parms=env_values), model_name='gpt-4o-mini',
+                  init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens, init_system_message=system_message),
+        LLMConfig(name='azurerfi', llmapi=LLMOpenai('azure', parms=env_values),
+                  model_name='RFI-Automate-GPT-4o-mini-2000k',  # really the deployment name for azure
+                  init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens, init_system_message=system_message),
+    ]
+    llm_configs = {lc.name: lc for lc in llm_configs_list}
 
     # setup vs
     try:
@@ -68,11 +68,11 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         raise
 
     # the chat page
-    cp = chatpage.ChatPage(llm_config=llm_config, vectorstore=vectorstore, env_values=env_values)
+    cp = chatpage.ChatPage(llm_configs=llm_configs, init_llm_name='groq33', vectorstore=vectorstore, env_values=env_values)
     cp.setup('/', 'Chat')
 
     # the chromadb page
-    chromadbpage.setup('/chromadb', 'ChromaDB Page', vectorstore, env_values)
+    chromadbpage.setup('/chromadb', 'ChromaDB Page', vectorstore, env_values)  # todo: enforce VSChroma vectorstore here
 
 
 def run():

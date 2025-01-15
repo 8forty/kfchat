@@ -16,7 +16,7 @@ import config
 import data
 import frame
 import logstuff
-from chatexchanges import ChatExchange, VectorStoreResponse, ChatExchanges, LLMResponse, VectorStoreResult
+from chatexchanges import ChatExchange, VectorStoreResponse, ChatExchanges, LLMResponse
 from llmapi import LLMExchange
 from llmconfig import LLMConfig
 from vsapi import VSAPI
@@ -28,7 +28,7 @@ log.setLevel(logstuff.logging_level)
 class InstanceData:
     _next_id: int = 1
 
-    def __init__(self, llm_config: LLMConfig, vectorstore: VSAPI, env_values: dict[str, str]):
+    def __init__(self, llm_configs: dict[str, LLMConfig], llm_config: LLMConfig, vectorstore: VSAPI, env_values: dict[str, str]):
         self._id = InstanceData._next_id
         InstanceData._next_id += 1
 
@@ -38,8 +38,9 @@ class InstanceData:
         # llm stuff
         self.llm_string: str = 'llm'
         self.llm_name_prefix: str = 'llm: '
+        self.llm_configs = llm_configs
         self.llm_config: LLMConfig = llm_config
-        self.source_llm_name: str = f'{self.llm_name_prefix}{self.llm_config.model_name}'
+        self.source_llm_name: str = self.source_api_name_llm(self.llm_config)
 
         # vs stuff
         self.vs_string: str = 'vs'
@@ -49,10 +50,14 @@ class InstanceData:
         # #### source info
         self.source_select_name: str = self.source_llm_name
         self.source_name: str = self.source_select_name  # name of the source object (we want to start with the llm, so select-name and name are the same)
-        self.source_api: VSAPI | None = None  # VS api or None for llm
+        self.source_api: VSAPI | None = None  # the current VS api, or None for any llm
+        # todo: use current llm api for source_api?!?!
 
     def api_type(self) -> str:
         return self.llm_string if self.source_api is None else self.vs_string
+
+    def source_api_name_llm(self, llm_config: LLMConfig) -> str:
+        return f'{self.llm_name_prefix}{llm_config.name}:{llm_config.model_name}'
 
     async def change_source(self, selected_name: str, spinner: Spinner, prompt_input: Input):
         log.info(f'Changing source to: {selected_name}')
@@ -62,10 +67,13 @@ class InstanceData:
         try:
             if selected_name.startswith(self.llm_name_prefix):
                 self.source_api = None
+                self.source_name = selected_name.removeprefix(self.llm_name_prefix)
+                self.llm_config = self.llm_configs[self.source_name.split(':')[0]]
             else:
                 self.source_name = selected_name.removeprefix(self.vs_name_prefix)
                 self.source_api = self.vectorstore
                 await run.io_bound(self.vectorstore.change_index, self.source_name)
+
             self.source_select_name = selected_name
         except (Exception,) as e:
             errmsg = f'change source failed! {e}'
@@ -76,7 +84,7 @@ class InstanceData:
         spinner.set_visibility(False)
 
     def source_names_list(self) -> list[str]:
-        source_names: list[str] = [self.source_llm_name]
+        source_names: list[str] = [self.source_api_name_llm(llm_config) for llm_config in self.llm_configs.values()]
         source_names.extend([f'{self.vs_name_prefix}{name}' for name in self.vectorstore.list_index_names()])
         source_names.sort(key=lambda k: 'zzz' + k if k.startswith(self.vs_name_prefix) else k)  # sort with the vs sources after the llm sources
         return source_names
@@ -158,9 +166,10 @@ class InstanceData:
 
 class ChatPage:
 
-    def __init__(self, llm_config: LLMConfig, vectorstore: VSAPI, env_values: dict[str, str]):
+    def __init__(self, llm_configs: dict[str, LLMConfig], init_llm_name: str, vectorstore: VSAPI, env_values: dict[str, str]):
         # anything in here is shared by all instances of ChatPage
-        self.llm_config = llm_config
+        self.llm_configs = llm_configs
+        self.llm_configx = llm_configs[init_llm_name]
         self.vectorstore = vectorstore
         self.env_values = env_values
 
@@ -259,7 +268,7 @@ class ChatPage:
             logstuff.update_from_request(request)
             log.info(f'route triggered')
 
-            idata = InstanceData(self.llm_config, self.vectorstore, self.env_values)
+            idata = InstanceData(self.llm_configs, self.llm_configx, self.vectorstore, self.env_values)
 
             # setup the standard "frame" for all pages
             with frame.frame(f'{config.name} {pagename}', 'bg-white'):
