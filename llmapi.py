@@ -1,8 +1,5 @@
 import logging
 from abc import ABC
-from dataclasses import dataclass
-
-from openai.types.chat import ChatCompletion
 
 import logstuff
 
