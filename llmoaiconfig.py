@@ -114,49 +114,19 @@ class LLMOaiConfig(LLMConfig):
 
         return self._api_client
 
-    def run_chat_completion(self, model_name: str, temp: float, top_p: float, max_tokens: int, n: int,
-                            convo: Iterable[LLMOaiExchange | tuple[str, str] | dict],
-                            sysmsg: str | None = None, prompt: str | None = None) -> LLMOaiExchange:
-        """
-        run chat-completion
-        :param model_name:
-        :param temp:
-        :param top_p:
-        :param max_tokens:
-        :param n:
-        :param convo: properly ordered list of either LLMOpenaiExchange's or tuples of (role, value) ; tuples must include system message and prompt
-        :param sysmsg: used as sysmsg iff convo is provided in LLMOpenaiExchange objects, otherwise the prompt should be in the tuples of convo
-        :param prompt: used as prompt iff convo is provided in LLMOpenaiExchange objects, otherwise the prompt should be in the tuples of convo
-        :return: results as an OpenAI ChatCompletion object
-        """
-        messages: list[dict] = []
-        if sysmsg is not None:
-            # add the system message
-            if sysmsg is not None and len(sysmsg) > 0:
-                messages = [{'role': 'system', 'content': sysmsg}]
-
-            # add the convo
-            for exchange in convo:
-                # todo: what about previous vector-store responses?
-                messages.append({'role': 'user', 'content': exchange.prompt})
-                for choice in exchange.completion.choices:
-                    messages.append({'role': choice.message.role, 'content': choice.message.content})
-
-            # add the prompt
-            messages.append({'role': 'user', 'content': prompt})
-        else:
-            # transform convo to list-of-dicts, elements are either tuples or already dicts (and I guess a mix of each, why not?)
-            messages = [{t[0]: t[1]} if isinstance(t, tuple) else t for t in convo]
+    def _do_chat(self, messages: list[dict]) -> LLMOaiExchange:
+        # prompt is the last dict in the list
+        prompt = messages[-1]['content']
+        log.debug(f'{self.model_name=}, {self.temp=}, {self.top_p=}, {self.max_tokens=}, {self.n=}, {self.system_message=} {prompt=}')
 
         # todo: seed, etc. (by actual llm?)
-        log.debug(f'{model_name=}, {temp=}, {top_p=}, {max_tokens=}, {n=}, {sysmsg=} {prompt=}')
         chat_completion: ChatCompletion = self._client().chat.completions.create(
-            model=model_name,
-            temperature=temp,  # default 1.0, 0.0->2.0
-            top_p=top_p,  # default 1, ~0.01->1.0
+            model=self.model_name,
+            temperature=self.temp,  # default 1.0, 0.0->2.0
+            top_p=self.top_p,  # default 1, ~0.01->1.0
             messages=messages,
-            max_tokens=max_tokens,  # default 16?
-            n=n,
+            max_tokens=self.max_tokens,  # default 16?
+            n=self.n,
 
             stream=False,  # todo: allow streaming
 
@@ -166,3 +136,33 @@ class LLMOaiConfig(LLMConfig):
             # stop=[],
         )
         return LLMOaiExchange(prompt, chat_completion)
+
+    def chat_messages(self, messages: Iterable[tuple[str, str] | dict]) -> LLMOaiExchange:
+        """
+        run chat-completion from a list of messages
+        :param messages: properly ordered list of either tuples of (role, value) or dicts; must include system message and prompt
+        """
+        # transform convo to list-of-dicts, elements are either tuples or already dicts (and I guess a mix of each, why not?)
+        msgs_list = [{t[0]: t[1]} if isinstance(t, tuple) else t for t in messages]
+        return self._do_chat(msgs_list)
+
+    def chat_convo(self, convo: Iterable[LLMOaiExchange], prompt: str) -> LLMOaiExchange:
+        """
+        run chat-completion
+        :param convo: properly ordered list of LLMOpenaiExchange's
+        :param prompt: the prompt duh
+        """
+        messages: list[dict] = []
+        if self.system_message is not None and len(self.system_message) > 0:
+            messages.append({'role': 'system', 'content': self.system_message})
+
+        # add the convo
+        for exchange in convo:
+            # todo: what about previous vector-store responses?
+            messages.append({'role': 'user', 'content': exchange.prompt})
+            for choice in exchange.completion.choices:
+                messages.append({'role': choice.message.role, 'content': choice.message.content})
+
+        # add the prompt
+        messages.append({'role': 'user', 'content': prompt})
+        return self._do_chat(messages)

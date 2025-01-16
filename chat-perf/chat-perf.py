@@ -19,20 +19,7 @@ def chat(message_set: list[tuple[str, str]], cfg: LLMOaiConfig, model_name: str,
         messages.append({'role': i[0], 'content': i[1]})
 
     try:
-        return cfg.run_chat_completion(
-            model_name=model_name,
-            temp=temp,  # default 1.0, 0.0->2.0
-            top_p=1.0,  # default 1, ~0.01->1.0
-            max_tokens=max_tokens,  # default 16?
-            n=1,
-            convo=messages,
-
-            # stream=False,
-            # seed=27,
-            # frequency_penalty=1,  # default 0, -2.0->2.0
-            # presence_penalty=1,  # default 0, -2.0->2.0
-            # stop=[],
-        )
+        return cfg.chat_messages(messages)
     except (Exception,) as e:
         print(f'chat Exception! {model_name}:  {e}')
         raise
@@ -50,7 +37,6 @@ def run(api_type_name: str, model_set_name: str, settings_set_name: str, message
     for model in data.model_sets[api_type_name][model_set_name]:
         print(f'    {api_type_name}:{model}')
         model_start = timeit.default_timer()
-        # cfg = LLMOaiConfig(api_type_name, parms=data.model_sets[api_type_name]['parms'])
         cfg = LLMOaiConfig('chattest', api_type_name, data.model_sets[api_type_name]['parms'], model,
                            init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=80, init_system_message="")
 

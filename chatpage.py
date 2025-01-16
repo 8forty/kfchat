@@ -197,15 +197,7 @@ class ChatPage:
         def do_llm(prompt: str, idata: InstanceData) -> LLMOaiExchange:
             # todo: count tokens, etc.
             convo = [LLMOaiExchange(ex.prompt, ex.llm_response.chat_completion) for ex in idata.exchanges.list() if ex.llm_response is not None]
-            exchange: LLMOaiExchange = idata.llm_config.run_chat_completion(
-                idata.llm_config.model_name,
-                temp=idata.llm_config.temp,
-                top_p=idata.llm_config.top_p,
-                max_tokens=idata.llm_config.max_tokens,
-                n=idata.llm_config.n,  # todo: openai:any value works, ollama: get 1 resp for any value, groq: only 1 allowed
-                convo=convo,
-                sysmsg=idata.llm_config.system_message,
-                prompt=prompt)
+            exchange: LLMOaiExchange = idata.llm_config.chat_convo(convo=convo, prompt=prompt)
             return exchange
 
         async def handle_enter_llm(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
