@@ -124,6 +124,9 @@ class ChatExchanges:
     def len(self) -> int:
         return len(self._exchanges)
 
+    def clear(self):
+        self._exchanges.clear()
+
     def max_exchanges(self) -> int:
         return self._max_exchanges
 

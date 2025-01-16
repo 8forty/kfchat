@@ -32,17 +32,19 @@ class InstanceData:
         InstanceData._next_id += 1
 
         self.env_values: dict[str, str] = env_values
+        self.info_messages: list[str] = []
         self.exchanges: ChatExchanges = ChatExchanges(config.chat_exchanges_circular_list_count)
+        self.last_prompt: str | None = None
 
         # llm stuff
-        self.llm_string: str = 'llm'
+        self.llm_source_type: str = 'llm'
         self.llm_name_prefix: str = 'llm: '
         self.llm_configs = llm_configs
         self.llm_config = llm_config
         self.source_llm_name: str = self.source_api_name_llm(self.llm_config)
 
         # vs stuff
-        self.vs_string: str = 'vs'
+        self.vs_source_type: str = 'vs'
         self.vs_name_prefix: str = 'vs: '
         self.vectorstore = vectorstore
 
@@ -52,11 +54,14 @@ class InstanceData:
         self.source_api: VSAPI | None = None  # the current VS api, or None for any llm
         # todo: use current llm api for source_api?!?!
 
-    def api_type(self) -> str:
-        return self.llm_string if self.source_api is None else self.vs_string
+    def source_type(self) -> str:
+        return self.llm_source_type if self.source_api is None else self.vs_source_type
 
     def source_api_name_llm(self, llm_config: LLMOaiConfig) -> str:
         return f'{self.llm_name_prefix}{llm_config.name}:{llm_config.model_name}'
+
+    def forget(self):
+        self.exchanges.clear()
 
     async def change_source(self, selected_name: str, spinner: Spinner, prompt_input: Input):
         log.info(f'Changing source to: {selected_name}')
@@ -112,7 +117,12 @@ class InstanceData:
         # todo: local-storage-session to separate messages
         scroller.clear()
         with scroller:
-            if self.exchanges.len() > 0:
+            if len(self.info_messages) > 0:
+                for im in self.info_messages:
+                    ui.label(im).classes('w-full text-left')
+                self.info_messages.clear()
+            elif self.exchanges.len() > 0:
+                self.last_prompt = self.exchanges.list()[-1].prompt
                 response_text_classes = 'w-full font-bold text-lg text-green text-left px-10'
                 response_subscript_classes = 'w-full italic text-xs text-black text-left px-10'
 
@@ -133,17 +143,17 @@ class InstanceData:
                         if exchange.llm_response is not None:
                             ex_resp = exchange.llm_response
                             for choice in ex_resp.chat_completion.choices:
-                                results.append(f'[{self.llm_string}]: {choice.message.content}')  # .classes(response_text_classes)
+                                results.append(f'[{self.llm_source_type}]: {choice.message.content}')  # .classes(response_text_classes)
                                 subscript_results_info.append([f'logprobs: {choice.logprobs}'])
-                            subscript_context_info += f'{self.llm_string},{ex_resp.api_type}:{ex_resp.model_name},n:{ex_resp.n},temp:{ex_resp.temp},top_p:{ex_resp.top_p},max_tokens:{ex_resp.max_tokens}'
+                            subscript_context_info += f'{self.llm_source_type},{ex_resp.api_type}:{ex_resp.model_name},n:{ex_resp.n},temp:{ex_resp.temp},top_p:{ex_resp.top_p},max_tokens:{ex_resp.max_tokens}'
                             subscript_extra_info.append(f'tokens:{ex_resp.chat_completion.usage.prompt_tokens}/{ex_resp.chat_completion.usage.completion_tokens}')
                             subscript_extra_info.append(f'{self.llm_config.system_message}')
 
                         # vector store response
                         if exchange.vector_store_response is not None:
-                            subscript_context_info += f'{self.vs_string},{self.source_name}'
+                            subscript_context_info += f'{self.vs_source_type},{self.source_name}'
                             for result in exchange.vector_store_response.results:
-                                results.append(f'[{self.vs_string}]: {result.content}')  # .classes(response_text_classes)
+                                results.append(f'[{self.vs_source_type}]: {result.content}')  # .classes(response_text_classes)
 
                                 metric_list = []
                                 for metric in result.metrics:
@@ -200,13 +210,43 @@ class ChatPage:
             exchange: LLMOaiExchange = idata.llm_config.chat_convo(convo=convo, prompt=prompt)
             return exchange
 
+        async def handle_enter_special(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
+            logstuff.update_from_request(request)  # updates logging prefix with info from each request
+            prompt = prompt_input.value.strip()
+            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.source_type()}:{idata.llm_config.api_type()}:{idata.llm_config.model_name}): "{prompt}"')
+
+            prompt_input.disable()
+            # start = timeit.default_timer()
+            # spinner.set_visibility(True)
+            if len(prompt) == 1:
+                idata.info_messages.append('special commands: *, *info, *repeat, *forget')
+            elif prompt.startswith('*info'):
+                idata.info_messages.append('env:')
+                for key in self.env_values.keys():
+                    idata.info_messages.append(f'----{key}: {self.env_values[key]}')
+            elif prompt.startswith('*repeat'):
+                prompt_input.set_value(idata.last_prompt)
+                await handle_enter_llm(request, prompt_input, spinner, scroller, idata)
+            elif prompt.startswith('*forget'):
+                idata.forget()
+                idata.info_messages.append('conversation forgotten')
+            else:
+                idata.info_messages.append(f'unknown special command: {prompt}')
+
+            spinner.set_visibility(False)
+
+            prompt_input.value = ''
+            prompt_input.enable()
+            await idata.refresh_instance(scroller)
+            await prompt_input.run_method('focus')
+
         async def handle_enter_llm(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
+            logstuff.update_from_request(request)  # updates logging prefix with info from each request
             prompt = prompt_input.value.strip()
             log.info(
-                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.api_type()}:{idata.llm_config.api_type()}:{idata.llm_config.model_name},'
+                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.source_type()}:{idata.llm_config.api_type()}:{idata.llm_config.model_name},'
                 f'{idata.llm_config.temp},{idata.llm_config.top_p},{idata.llm_config.max_tokens}): "{prompt}"')
             prompt_input.disable()
-            logstuff.update_from_request(request)  # updates logging prefix with info from each request
 
             start = timeit.default_timer()
             spinner.set_visibility(True)
@@ -235,10 +275,10 @@ class ChatPage:
             await prompt_input.run_method('focus')
 
         async def handle_enter_vector_search(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
-            prompt = prompt_input.value.strip()
-            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.api_type()}:{idata.source_name}): "{prompt}"')
-            prompt_input.disable()
             logstuff.update_from_request(request)  # updates logging prefix with info from each request
+            prompt = prompt_input.value.strip()
+            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.source_type()}:{idata.source_name}): "{prompt}"')
+            prompt_input.disable()
 
             start = timeit.default_timer()
             spinner.set_visibility(True)
@@ -265,7 +305,9 @@ class ChatPage:
             await prompt_input.run_method('focus')
 
         async def handle_enter(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
-            if idata.source_api is None:
+            if prompt_input.value.startswith('*'):
+                await handle_enter_special(request, prompt_input, spinner, scroller, idata)
+            elif idata.source_api is None:
                 await handle_enter_llm(request, prompt_input, spinner, scroller, idata)
             else:
                 await handle_enter_vector_search(request, prompt_input, spinner, scroller, idata)
