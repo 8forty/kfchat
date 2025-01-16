@@ -103,17 +103,22 @@ class InstanceData:
         source_names.sort(key=lambda k: 'zzz' + k if k.startswith(self.vs_name_prefix) else k)  # sort with the vs sources after the llm sources
         return source_names
 
+    @staticmethod
+    def pp(resp: str) -> str:
+        return f'{resp}'
+
     async def refresh_instance(self, scroller: ScrollArea) -> None:
         # todo: local-storage-session to separate messages
         scroller.clear()
         with scroller:
+            # info-messages are not exchanges/responses, e.g. they come from special commands
             if len(self.info_messages) > 0:
                 for im in self.info_messages:
                     ui.label(im).classes('w-full text-left')
                 self.info_messages.clear()
             elif self.exchanges.len() > 0:
                 self.last_prompt = self.exchanges.list()[-1].prompt
-                response_text_classes = 'w-full font-bold text-lg text-green text-left px-10'
+                response_text_classes = 'w-full text-lg text-green text-left px-10'
                 response_subscript_classes = 'w-full italic text-xs text-black text-left px-10'
 
                 for exchange in self.exchanges.list():
@@ -132,10 +137,10 @@ class InstanceData:
                         if exchange.llm_response is not None:
                             ex_resp = exchange.llm_response
                             for choice in ex_resp.chat_completion.choices:
-                                results.append(f'[{self.llm_source_type}]: {choice.message.content}')  # .classes(response_text_classes)
+                                results.append(f'{choice.message.content}')  # .classes(response_text_classes)
                                 subscript_results_info.append([f'logprobs: {choice.logprobs}'])
                             subscript_context_info += f'{self.llm_source_type},{ex_resp.api_type}:{ex_resp.model_name},n:{ex_resp.n},temp:{ex_resp.temp},top_p:{ex_resp.top_p},max_tokens:{ex_resp.max_tokens}'
-                            subscript_extra_info.append(f'tokens:{ex_resp.chat_completion.usage.prompt_tokens}/{ex_resp.chat_completion.usage.completion_tokens}')
+                            subscript_extra_info.append(f'tokens:{ex_resp.chat_completion.usage.prompt_tokens}->{ex_resp.chat_completion.usage.completion_tokens}')
                             subscript_extra_info.append(f'{self.llm_config.system_message}')
 
                         # vector store response
@@ -154,13 +159,14 @@ class InstanceData:
                                             metric_list.append(f'{metric}: {result.metrics[metric]}')
                                 subscript_results_info.append(metric_list)
 
-                        # results stuff
+                        # results
                         for ri in range(0, len(results)):
-                            ui.label(results[ri]).classes(response_text_classes)
+                            for line in self.pp(results[ri]).split('\n'):
+                                ui.label(line).classes(response_text_classes)
                             for rinfo in subscript_results_info[ri]:
                                 ui.label(rinfo).classes(response_subscript_classes)
 
-                        # entire-response stuff
+                        # entire-response extra stuff
                         ui.label(f'[{subscript_context_info}]: {exchange.response_duration_secs:.1f}s').classes(response_subscript_classes)
                         for ei in subscript_extra_info:
                             ui.label(f'{ei}').classes(response_subscript_classes)
