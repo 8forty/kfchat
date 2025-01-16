@@ -5,6 +5,7 @@ from typing import Iterable
 import openai
 from openai.types.chat import ChatCompletion
 
+import data
 import logstuff
 from config import redact
 from llmconfig import LLMConfig
@@ -21,7 +22,7 @@ class LLMOaiExchange:
 
 class LLMOaiConfig(LLMConfig):
     def __init__(self, name: str, api_type_name: str, parms: dict[str, str], model_name: str,
-                 init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int, init_system_message: str):
+                 init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int, init_system_message_name: str):
         """
 
         :param name
@@ -32,7 +33,7 @@ class LLMOaiConfig(LLMConfig):
         :param init_temp:
         :param init_top_p:
         :param init_max_tokens:
-        :param init_system_message:
+        :param init_system_message_name:
 
         """
         super().__init__(name, api_type_name, parms)
@@ -42,7 +43,8 @@ class LLMOaiConfig(LLMConfig):
         self.temp = init_temp
         self.top_p = init_top_p
         self.max_tokens = init_max_tokens
-        self.system_message = init_system_message
+        self.system_message_name = init_system_message_name
+        self.system_message = data.sysmsg_all[init_system_message_name]
 
         if self.api_type_name not in ['azure', 'ollama', 'openai', 'groq']:
             raise ValueError(f'{__class__.__name__}: invalid api_type! {api_type_name}')
@@ -67,8 +69,10 @@ class LLMOaiConfig(LLMConfig):
         log.info(f'{self.name} changing max_tokens to: {new_max_tokens}')
         self.max_tokens = new_max_tokens
 
-    async def change_sysmsg(self, new_system_message: str):
-        log.info(f'{self.name} changing system message to: {new_system_message}')
+    async def change_sysmsg(self, new_system_message_name: str):
+        new_system_message = data.sysmsg_all[new_system_message_name]
+        log.info(f'{self.name} changing system message to: {new_system_message_name}:{new_system_message}')
+        self.system_message_name = new_system_message_name
         self.system_message = new_system_message
 
     def _client(self) -> openai.OpenAI:

@@ -52,7 +52,6 @@ class InstanceData:
         self.source_select_name: str = self.source_llm_name
         self.source_name: str = self.source_select_name  # name of the source object (we want to start with the llm, so select-name and name are the same)
         self.source_api: VSAPI | None = None  # the current VS api, or None for any llm
-        # todo: use current llm api for source_api?!?!
 
     def source_type(self) -> str:
         return self.llm_source_type if self.source_api is None else self.vs_source_type
@@ -103,9 +102,9 @@ class InstanceData:
         for llm_config in self.llm_configs.values():
             await llm_config.change_max_tokens(new_max_tokens)
 
-    async def change_sysmsg(self, new_system_message: str):
+    async def change_sysmsg(self, new_system_message_name: str):
         for llm_config in self.llm_configs.values():
-            await llm_config.change_sysmsg(new_system_message)
+            await llm_config.change_sysmsg(new_system_message_name)
 
     def source_names_list(self) -> list[str]:
         source_names: list[str] = [self.source_api_name_llm(llm_config) for llm_config in self.llm_configs.values()]
@@ -139,7 +138,6 @@ class InstanceData:
                         subscript_extra_info: list[str] = []
 
                         # llm response
-                        # todo: metrics, etc.
                         if exchange.llm_response is not None:
                             ex_resp = exchange.llm_response
                             for choice in ex_resp.chat_completion.choices:
@@ -335,25 +333,25 @@ class ChatPage:
                                   ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_source(vc.value, spinner, pinput), pinput)).props('square outlined label-color=green')
                         ui.select(label='n:',
                                   options=[i for i in range(1, 10)],
-                                  value=1,
+                                  value=self.llm_config.n,
                                   ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_n(vc.value), pinput)).props('square outlined label-color=green')
                         ui.select(label='Temp:',
                                   options=[float(t) / 10.0 for t in range(0, 21)],
-                                  value=0.7,
+                                  value=self.llm_config.temp,
                                   ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_temp(vc.value), pinput)).props('square outlined label-color=green')
                         ui.select(label='Top_p:',
                                   options=[float(t) / 10.0 for t in range(0, 11)],
-                                  value=1.0,
+                                  value=self.llm_config.top_p,
                                   ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_top_p(vc.value), pinput)).props('square outlined label-color=green')
                         ui.select(label='Max Tokens:',
                                   options=[80, 200, 400, 1000, 1500, 2000],
-                                  value=80,
+                                  value=self.llm_config.max_tokens,
                                   ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_max_tokens(vc.value), pinput)).props('square outlined label-color=green')
                         sysmsg_names = [key for key in data.sysmsg_all]
                         ui.select(label='Sys Msg:',
                                   options=sysmsg_names,
-                                  value=sysmsg_names[0],
-                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_sysmsg(data.sysmsg_all[vc.value]), pinput)).props('square outlined label-color=green')
+                                  value=self.llm_config.system_message_name
+                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_sysmsg(vc.value), pinput)).props('square outlined label-color=green')
 
                     # with ui.scroll_area(on_scroll=lambda e: print(f'~~~~ e: {e}')).classes('w-full flex-grow border border-solid border-black') as scroller:
                     with ui.scroll_area().classes('w-full flex-grow border border-solid border-black') as scroller:
