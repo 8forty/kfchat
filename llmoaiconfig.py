@@ -126,7 +126,7 @@ class LLMOaiConfig(LLMConfig):
             top_p=self.top_p,  # default 1, ~0.01->1.0
             messages=messages,
             max_tokens=self.max_tokens,  # default 16?
-            n=self.n,
+            n=self.n,  # todo: openai:any(?) value works, ollama: get 1 resp for any value, groq: only 1 allowed
 
             stream=False,  # todo: allow streaming
 
