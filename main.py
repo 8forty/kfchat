@@ -34,8 +34,8 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
 
     # setup llm
     # todo: these should come from e.g. pref screen
-    max_tokens = 200
-    system_message_name = 'technical'
+    max_tokens = 800
+    system_message_name = 'technical800'
     llm_configs_list = [
         LLMOaiConfig(name='groq33', api_type_name='groq', parms=env_values, model_name='llama-3.3-70b-versatile',
                      init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens, init_system_message_name=system_message_name),
