@@ -34,10 +34,11 @@ class UploadPDFDialog(Dialog):
             await run.io_bound(tmp.write, contents)
             log.debug(f'saved file {evt.name} to server file {tmp.name}...')
 
-        collection: Collection = None
+        collection: Collection | None = None
         try:
             log.debug(f'ingesting server file {tmp.name}...')
-            collection = await run.io_bound(vectorstore.ingest_pdf, tmp.name, evt.name)
+            # todo: configure splitter and parms
+            collection = await run.io_bound(vectorstore.ingest_pdf_text_splitter, tmp.name, evt.name, 1000, 200)
 
             if collection is None:
                 errmsg = f'ingest failed for {evt.name}'

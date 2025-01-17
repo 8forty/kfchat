@@ -1,10 +1,9 @@
 import logging
-import uuid
 
 import chromadb
+from chromadb.api.models.Collection import Collection
 from chromadb.api.types import IncludeEnum
 from chromadb.errors import InvalidCollectionException
-from chromadb.types import Collection
 from chromadb.utils.embedding_functions.sentence_transformer_embedding_function import SentenceTransformerEmbeddingFunction
 
 import logstuff
@@ -137,13 +136,13 @@ class VSChroma(VSAPI):
         self._build_clients()
         return self._collection.__dict__
 
-    def ingest_pdf(self, pdf_file_path: str, pdf_name: str) -> Collection:
+    def ingest_pdf_text_splitter(self, pdf_file_path: str, pdf_name: str, chunk_size: int, chunk_overlap: int) -> Collection | None:
         self._build_clients()
 
         collection: Collection | None = None
 
         # todo: configure this
-        chunks = pdf_chunkers.chunk_recursive_character_text_splitter(server_pdf_path=pdf_file_path, chunk_size=1000, chunk_overlap=200)
+        chunks = pdf_chunkers.chunk_recursive_character_text_splitter(server_pdf_path=pdf_file_path, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
         if len(chunks) == 0:
             log.warning(f'no chunks found in {pdf_name} ({pdf_file_path})!')
         else:
@@ -164,7 +163,7 @@ class VSChroma(VSAPI):
 
             # create the collection
             # todo: configure this
-            collection = self._client.create_collection(
+            collection: Collection = self._client.create_collection(
                 name=collection_name,
                 configuration=None,
                 metadata=None,
@@ -176,7 +175,12 @@ class VSChroma(VSAPI):
             # create Chroma vectorstore from the chunks
             log.debug(f'adding {len(chunks)} chunks to {collection.name}')
             #  collection.add(documents=chunks, ids=[str(uuid.uuid4()) for _ in range(0, len(chunks))])  # use random uuids for chunk-ids
-            collection.add(documents=chunks, ids=[f'{pdf_name}-{i}' for i in range(0, len(chunks))])  # use name:count for chunk-ids
+            collection.add(documents=chunks,
+                           ids=[f'{pdf_name}-{i}' for i in range(0, len(chunks))],  # use name:count for chunk-ids
+                           metadatas=[{'method': f'{VSChroma.__name__}.{self.ingest_pdf_text_splitter.__name__}',
+                                       'original_filename:': f'{pdf_name}', 'path': pdf_file_path,
+                                       'chunk_size': chunk_size, 'chunk_overlap': chunk_overlap} for _ in range(0, len(chunks))],
+                           )
 
         return collection
 
