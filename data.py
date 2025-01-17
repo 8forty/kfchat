@@ -70,7 +70,16 @@ model_sets = {
         'gemma29b': ['gemma2-9b-it'],
         'parms': {
             'GROQ_API_KEY': os.getenv('GROQ_API_KEY'),
-            'GROQ_ENDPOINT': os.getenv('GROQ_ENDPOINT'),
+            'GROQ_ENDPOINT': os.getenv('GROQ_OPENAI_ENDPOINT'),
+        }
+    },
+    'gemini': {
+        'g158b': ['gemini-1.5-flash-8b'],
+        'g15': ['gemini-1.5-flash'],
+        'g15pro': ['gemini-1.5-pro'],
+        'parms': {
+            'GEMINI_API_KEY': os.getenv('GEMINI_API_KEY'),
+            'GEMINI_ENDPOINT': os.getenv('GEMINI_OPENAI_ENDPOINT'),
         }
     },
 }
