@@ -48,10 +48,10 @@ class ChatPage:
             log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.source_type()}:{idata.llm_config.api_type()}:{idata.llm_config.model_name}): "{prompt}"')
 
             prompt_input.disable()
-            # start = timeit.default_timer()
-            # spinner.set_visibility(True)
+            about = 'special commands: *, *info, *repeat, *forget'
+
             if len(prompt) == 1:
-                idata.info_messages.append('special commands: *, *info, *repeat, *forget')
+                idata.info_messages.append(about)
             elif prompt.startswith('*info'):
                 idata.info_messages.append('env:')
                 for key in self.env_values.keys():
@@ -63,7 +63,7 @@ class ChatPage:
                 idata.forget()
                 idata.info_messages.append('conversation forgotten')
             else:
-                idata.info_messages.append(f'unknown special command: {prompt}')
+                idata.info_messages.append(f'unknown special command: {prompt}; {about}')
 
             spinner.set_visibility(False)
 

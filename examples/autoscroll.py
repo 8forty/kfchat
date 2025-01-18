@@ -8,7 +8,7 @@ def setup(path: str):
     async def show_numbers(scroller: ScrollArea) -> None:
         for i in numbers:
             ui.label(f'scrolling:{i} ')
-        scroller.scroll_to(percent=1.1)
+        scroller.scroll_to(percent=100.0)
 
     async def add(scroller: ScrollArea) -> None:
         numbers.append(len(numbers))

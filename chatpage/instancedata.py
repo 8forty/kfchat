@@ -185,4 +185,4 @@ class InstanceData:
             else:
                 ui.label('No messages yet').classes('mx-auto my-36 absolute-center text-2xl italic')
 
-        scroller.scroll_to(percent=1.1)
+        scroller.scroll_to(percent=100.0)

@@ -1,4 +1,5 @@
 import logging
+import time
 from dataclasses import dataclass
 from typing import Iterable
 
@@ -123,28 +124,43 @@ class LLMOaiConfig(LLMConfig):
 
         return self._api_client
 
-    def _do_chat(self, messages: list[dict]) -> LLMOaiExchange:
+    # todo: configure max_quota_retries
+    def _do_chat(self, messages: list[dict], max_quota_retries: int = 10) -> LLMOaiExchange:
         # prompt is the last dict in the list
         prompt = messages[-1]['content']
         log.debug(f'{self.model_name=}, {self.temp=}, {self.top_p=}, {self.max_tokens=}, {self.n=}, {self.system_message=} {prompt=}')
 
-        # todo: seed, etc. (by actual llm?)
-        chat_completion: ChatCompletion = self._client().chat.completions.create(
-            model=self.model_name,
-            temperature=self.temp,  # default 1.0, 0.0->2.0
-            top_p=self.top_p,  # default 1, ~0.01->1.0
-            messages=messages,
-            max_tokens=self.max_tokens,  # default 16?
-            n=self.n,  # todo: openai:any(?) value works, ollama: get 1 resp for any value, groq: only 1 allowed
+        quota_retries = 0
+        while True:
+            try:
+                # todo: seed, etc. (by actual llm?)
+                chat_completion: ChatCompletion = self._client().chat.completions.create(
+                    model=self.model_name,
+                    temperature=self.temp,  # default 1.0, 0.0->2.0
+                    top_p=self.top_p,  # default 1, ~0.01->1.0
+                    messages=messages,
+                    max_tokens=self.max_tokens,  # default 16?
+                    n=self.n,  # todo: openai,azure,gemini:any(?) value works; ollama: only 1 resp for any value; groq: requires 1;
 
-            stream=False,  # todo: allow streaming
+                    stream=False,  # todo: allow streaming
 
-            # seed=27,
-            # frequency_penalty=1,  # default 0, -2.0->2.0
-            # presence_penalty=1,  # default 0, -2.0->2.0
-            # stop=[],
-        )
-        return LLMOaiExchange(prompt, chat_completion)
+                    # seed=27,
+                    # frequency_penalty=1,  # default 0, -2.0->2.0
+                    # presence_penalty=1,  # default 0, -2.0->2.0
+                    # stop=[],
+                )
+                return LLMOaiExchange(prompt, chat_completion)
+            except openai.RateLimitError as e:
+                quota_retries += 1
+                log.debug(f'{self.api_type_name}:{self.model_name}: rate limit exceeded attempt {quota_retries}, {("will retry" if quota_retries <= max_quota_retries else "")}')
+                if quota_retries > max_quota_retries:
+                    log.warning(f'chat quota error! {self.api_type_name}:{self.model_name}: rate limit exceeded all {quota_retries} retries')
+                    raise e
+                else:
+                    time.sleep(1.0 * quota_retries)  # todo: progressive backoff?
+            except (Exception,) as e:
+                log.warning(f'chat error! {self.api_type_name}:{self.model_name}: {e}')
+                raise e
 
     def chat_messages(self, messages: Iterable[tuple[str, str] | dict]) -> LLMOaiExchange:
         """

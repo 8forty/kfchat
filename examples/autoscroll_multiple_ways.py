@@ -16,7 +16,7 @@ def setup_manual(path: str):
         scroller.clear()
         with scroller:
             show_numbers()
-        scroller.scroll_to(percent=1.1)
+        scroller.scroll_to(percent=100.0)
 
     @ui.page(path)
     def index():
@@ -26,7 +26,7 @@ def setup_manual(path: str):
             with ui.card().classes('w-40 h-48'):
                 with ui.scroll_area().classes() as scroller:
                     show_numbers()
-                    scroller.scroll_to(percent=1.1)
+                    scroller.scroll_to(percent=100.1)
 
 
 def setup_refreshable_async(path: str):
@@ -68,7 +68,7 @@ def setup_refreshable_async2(path: str):
         # make sure client is connected before doing javascript
         try:
             await ui.context.client.connected(timeout=5.0)
-            scroller.scroll_to(percent=1.1)  # this is unpredictable, usually scrolls to penultimate item
+            scroller.scroll_to(percent=100.0)  # this is unpredictable, usually scrolls to penultimate item
         except builtins.TimeoutError:
             pass
 

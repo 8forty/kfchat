@@ -74,9 +74,10 @@ model_sets = {
         }
     },
     'gemini': {
-        'g158b': ['gemini-1.5-flash-8b'],
-        'g15': ['gemini-1.5-flash'],
-        'g15pro': ['gemini-1.5-pro'],
+        'g15flash': ['gemini-1.5-flash'],
+        'g15flash002': ['gemini-1.5-flash-002'],
+        'g15flash8b': ['gemini-1.5-flash-8b'],
+        'g15flash8b001': ['gemini-1.5-flash-8b-001'],
         'parms': {
             'GEMINI_API_KEY': os.getenv('GEMINI_API_KEY'),
             'GEMINI_ENDPOINT': os.getenv('GEMINI_OPENAI_ENDPOINT'),

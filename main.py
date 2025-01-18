@@ -51,7 +51,10 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         LLMOaiConfig(name='azurerfi', api_type_name='azure', parms=env_values,
                      model_name='RFI-Automate-GPT-4o-mini-2000k',  # really the deployment name for azure
                      init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens, init_system_message_name=system_message_name),
-        LLMOaiConfig(name='gemini15', api_type_name='gemini', parms=env_values, model_name='gemini-1.5-flash-8b',
+        LLMOaiConfig(name='gemini15flash', api_type_name='gemini', parms=env_values, model_name='gemini-1.5-flash',
+                     init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens,
+                     init_system_message_name=system_message_name),
+        LLMOaiConfig(name='gemini15flash8b', api_type_name='gemini', parms=env_values, model_name='gemini-1.5-flash-8b',
                      init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens,
                      init_system_message_name=system_message_name),
     ]
