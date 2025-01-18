@@ -21,15 +21,15 @@ def run(prompt: str, api_type_name: str, index_name: str, howmany: int):
     api.change_index(index_name)
     print(f'---- generating response from {api.type()}:{index_name}')
 
-    results = api.search(prompt, howmany)
-    for i in range(0, len(results.results_text)):
-        print(f'{results.results_score[i]:0.3f}: {results.results_text[i]}')
+    # response = api.search(prompt, howmany)
+    # for i in range(0, len(results.results_text)):
+    #     print(f'{results.results_score[i]:0.3f}: {results.results_text[i]}')
 
     end = timeit.default_timer()
 
-    print(f'\n{api.type()}:{index_name} '
-          f'responded with {len(results.results_text)} responses '
-          f'in {end - start:.0f} seconds\n')
+    # print(f'\n{api.type()}:{index_name} '
+    #       f'responded with {len(results.results_text)} responses '
+    #       f'in {end - start:.0f} seconds\n')
 
 
 indexes = {

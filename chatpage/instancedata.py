@@ -48,7 +48,7 @@ class InstanceData:
         return self.llm_source_type if self.source_api is None else self.vs_source_type
 
     def source_api_name_llm(self, llm_config: LLMOaiConfig) -> str:
-        return f'{self.llm_name_prefix}{llm_config.name}:{llm_config.model_name}'
+        return f'{self.llm_name_prefix}{llm_config.model_name}'
 
     def forget(self):
         self.exchanges.clear()
@@ -141,7 +141,7 @@ class InstanceData:
                                 subscript_results_info.append([f'logprobs: {choice.logprobs}'])
                             subscript_context_info += f'{self.llm_source_type},{ex_resp.api_type}:{ex_resp.model_name},n:{ex_resp.n},temp:{ex_resp.temp},top_p:{ex_resp.top_p},max_tokens:{ex_resp.max_tokens}'
                             subscript_extra_info.append(f'tokens:{ex_resp.chat_completion.usage.prompt_tokens}->{ex_resp.chat_completion.usage.completion_tokens}')
-                            subscript_extra_info.append(f'{self.llm_config.system_message}')
+                            subscript_extra_info.append(f'{self.llm_config.settings.system_message}')
 
                         # vector store response
                         if exchange.vector_store_response is not None:

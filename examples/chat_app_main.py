@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-import asyncio
-import time
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import List, Tuple
 from uuid import uuid4
 
 from fastapi import FastAPI
-from nicegui import ui, run
+from nicegui import ui
 
 messages: List[Tuple[str, str, str, str]] = []
 
@@ -26,7 +24,7 @@ def chat_messages(own_id: str) -> None:
 @ui.page('/')
 async def setup():
     def handle_enter() -> None:
-        stamp = datetime.utcnow().strftime('%X')
+        stamp = datetime.now(UTC).strftime('%X')
         messages.append((user_id, avatar, text.value, stamp))
         text.value = ''
         chat_messages.refresh()

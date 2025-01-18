@@ -21,15 +21,10 @@ class LLMOaiExchange:
     completion: ChatCompletion
 
 
-class LLMOaiConfig(LLMConfig):
-    def __init__(self, name: str, api_type_name: str, parms: dict[str, str], model_name: str,
-                 init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int, init_system_message_name: str):
+class LLMOaiSettings:
+    def __init__(self, init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int, init_system_message_name: str):
         """
 
-        :param name
-        :param api_type_name
-        :param parms
-        :param model_name:
         :param init_n:
         :param init_temp:
         :param init_top_p:
@@ -37,15 +32,26 @@ class LLMOaiConfig(LLMConfig):
         :param init_system_message_name:
 
         """
-        super().__init__(name, api_type_name, parms)
-
-        self.model_name = model_name
         self.n = init_n
         self.temp = init_temp
         self.top_p = init_top_p
         self.max_tokens = init_max_tokens
         self.system_message_name = init_system_message_name
         self.system_message = data.sysmsg_all[init_system_message_name]
+
+
+class LLMOaiConfig(LLMConfig):
+    def __init__(self, model_name: str, api_type_name: str, parms: dict[str, str], settings: LLMOaiSettings):
+        """
+
+        :param api_type_name
+        :param parms
+        :param model_name:
+
+        """
+        super().__init__(model_name, api_type_name, parms)
+
+        self.settings = settings
 
         if self.api_type_name not in ['azure', 'ollama', 'openai', 'groq', 'gemini']:
             raise ValueError(f'{__class__.__name__}: invalid api_type! {api_type_name}')
@@ -55,26 +61,26 @@ class LLMOaiConfig(LLMConfig):
         return f'[{self.__class__!s}:{self.__dict__!r}]'
 
     async def change_n(self, new_n: int):
-        log.info(f'{self.name} changing n to: {new_n}')
-        self.n = new_n
+        log.info(f'{self.model_name} changing n to: {new_n}')
+        self.settings.n = new_n
 
     async def change_temp(self, new_temp: float):
-        log.info(f'{self.name} changing temp to: {new_temp}')
-        self.temp = new_temp
+        log.info(f'{self.model_name} changing temp to: {new_temp}')
+        self.settings.temp = new_temp
 
     async def change_top_p(self, new_top_p: float):
-        log.info(f'{self.name} changing top_p to: {new_top_p}')
-        self.temp = new_top_p
+        log.info(f'{self.model_name} changing top_p to: {new_top_p}')
+        self.settings.temp = new_top_p
 
     async def change_max_tokens(self, new_max_tokens: int):
-        log.info(f'{self.name} changing max_tokens to: {new_max_tokens}')
-        self.max_tokens = new_max_tokens
+        log.info(f'{self.model_name} changing max_tokens to: {new_max_tokens}')
+        self.settings.max_tokens = new_max_tokens
 
     async def change_sysmsg(self, new_system_message_name: str):
         new_system_message = data.sysmsg_all[new_system_message_name]
-        log.info(f'{self.name} changing system message to: {new_system_message_name}:{new_system_message}')
-        self.system_message_name = new_system_message_name
-        self.system_message = new_system_message
+        log.info(f'{self.model_name} changing system message to: {new_system_message_name}:{new_system_message}')
+        self.settings.system_message_name = new_system_message_name
+        self.settings.system_message = new_system_message
 
     def _client(self) -> openai.OpenAI:
         if self._api_client is not None:
@@ -128,7 +134,8 @@ class LLMOaiConfig(LLMConfig):
     def _do_chat(self, messages: list[dict], max_quota_retries: int = 10) -> LLMOaiExchange:
         # prompt is the last dict in the list
         prompt = messages[-1]['content']
-        log.debug(f'{self.model_name=}, {self.temp=}, {self.top_p=}, {self.max_tokens=}, {self.n=}, {self.system_message=} {prompt=}')
+        log.debug(f'{self.model_name=}, {self.settings.temp=}, {self.settings.top_p=}, {self.settings.max_tokens=}, {self.settings.n=}, '
+                  f'{self.settings.system_message=} {prompt=}')
 
         quota_retries = 0
         while True:
@@ -136,11 +143,11 @@ class LLMOaiConfig(LLMConfig):
                 # todo: seed, etc. (by actual llm?)
                 chat_completion: ChatCompletion = self._client().chat.completions.create(
                     model=self.model_name,
-                    temperature=self.temp,  # default 1.0, 0.0->2.0
-                    top_p=self.top_p,  # default 1, ~0.01->1.0
+                    temperature=self.settings.temp,  # default 1.0, 0.0->2.0
+                    top_p=self.settings.top_p,  # default 1, ~0.01->1.0
                     messages=messages,
-                    max_tokens=self.max_tokens,  # default 16?
-                    n=self.n,  # todo: openai,azure,gemini:any(?) value works; ollama: only 1 resp for any value; groq: requires 1;
+                    max_tokens=self.settings.max_tokens,  # default 16?
+                    n=self.settings.n,  # todo: openai,azure,gemini:any(?) value works; ollama: only 1 resp for any value; groq: requires 1;
 
                     stream=False,  # todo: allow streaming
 
@@ -178,8 +185,8 @@ class LLMOaiConfig(LLMConfig):
         :param prompt: the prompt duh
         """
         messages: list[dict] = []
-        if self.system_message is not None and len(self.system_message) > 0:
-            messages.append({'role': 'system', 'content': self.system_message})
+        if self.settings.system_message is not None and len(self.settings.system_message) > 0:
+            messages.append({'role': 'system', 'content': self.settings.system_message})
 
         # add the convo
         for exchange in convo:

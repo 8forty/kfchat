@@ -1,6 +1,4 @@
-import builtins
 import random
-from typing import Literal
 
 from fastapi import Request
 from nicegui import ui, app
@@ -24,7 +22,7 @@ class NiceguiPageClass:
             await refresh_npc(npc)
 
         @ui.page('/')
-        async def index(request: Request) -> None:
+        async def index(_: Request) -> None:
 
             # unique instance data for each incoming top-level connection
             npc = NiceguiPageClass.PageInstanceData()

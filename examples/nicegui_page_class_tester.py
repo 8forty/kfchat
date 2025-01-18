@@ -3,9 +3,7 @@ import logging
 from fastapi import FastAPI
 from nicegui import ui
 
-import config
 import logstuff
-from examples.NiceguiPageClass import NiceguiPageClass
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -21,7 +19,7 @@ async def root():
 def init_with_fastapi(fastapi_app: FastAPI) -> None:
     log.info('init_with_fastapi')
     ui.run_with(fastapi_app, storage_secret='pick your private secret here')
-    ngpc = NiceguiPageClass()
+    # ngpc = NiceguiPageClass()
 
 
 def run():

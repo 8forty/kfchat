@@ -27,10 +27,10 @@ log.setLevel(logstuff.logging_level)
 
 class ChatPage:
 
-    def __init__(self, llm_configs: dict[str, LLMOaiConfig], init_llm_name: str, vectorstore: VSAPI, env_values: dict[str, str]):
+    def __init__(self, llm_configs: dict[str, LLMOaiConfig], init_llm_model_name: str, vectorstore: VSAPI, env_values: dict[str, str]):
         # anything in here is shared by all instances of ChatPage
         self.llm_configs = llm_configs
-        self.llm_config = llm_configs[init_llm_name]
+        self.llm_config = llm_configs[init_llm_model_name]
         self.vectorstore = vectorstore
         self.env_values = env_values
 
@@ -77,7 +77,7 @@ class ChatPage:
             prompt = prompt_input.value.strip()
             log.info(
                 f'(exchanges[{idata.exchanges.id()}]) prompt({idata.source_type()}:{idata.llm_config.api_type()}:{idata.llm_config.model_name},'
-                f'{idata.llm_config.temp},{idata.llm_config.top_p},{idata.llm_config.max_tokens}): "{prompt}"')
+                f'{idata.llm_config.settings.temp},{idata.llm_config.settings.top_p},{idata.llm_config.settings.max_tokens}): "{prompt}"')
             prompt_input.disable()
 
             start = timeit.default_timer()
@@ -118,7 +118,7 @@ class ChatPage:
             vsresponse: VectorStoreResponse | None = None
             try:
                 # vsresponse = await run.io_bound(do_vector_search, prompt, idata)
-                vsresponse = await run.io_bound(idata.source_api.search, prompt, howmany=idata.llm_config.n)
+                vsresponse = await run.io_bound(idata.source_api.search, prompt, howmany=idata.llm_config.settings.n)
                 log.debug(f'vector-search response: {vsresponse}')
             except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)
@@ -161,30 +161,31 @@ class ChatPage:
                     # the source selection/info row
                     with (ui.row().classes('w-full border-solid border border-black')):  # place-content-center')):
                         source_names = idata.source_names_list()
+                        settings = self.llm_config.settings
                         ui.select(label='Source:',
                                   options=source_names,
                                   value=idata.source_select_name,
                                   ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_source(vc.value, spinner, pinput), pinput)).props('square outlined label-color=green')
                         ui.select(label='n:',
                                   options=[i for i in range(1, 10)],
-                                  value=self.llm_config.n,
+                                  value=settings.n,
                                   ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_n(vc.value), pinput)).props('square outlined label-color=green')
                         ui.select(label='Temp:',
                                   options=[float(t) / 10.0 for t in range(0, 21)],
-                                  value=self.llm_config.temp,
+                                  value=settings.temp,
                                   ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_temp(vc.value), pinput)).props('square outlined label-color=green')
                         ui.select(label='Top_p:',
                                   options=[float(t) / 10.0 for t in range(0, 11)],
-                                  value=self.llm_config.top_p,
+                                  value=settings.top_p,
                                   ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_top_p(vc.value), pinput)).props('square outlined label-color=green')
                         ui.select(label='Max Tokens:',
                                   options=[80, 200, 400, 800, 1000, 1500, 2000],
-                                  value=self.llm_config.max_tokens,
+                                  value=settings.max_tokens,
                                   ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_max_tokens(vc.value), pinput)).props('square outlined label-color=green')
                         sysmsg_names = [key for key in data.sysmsg_all]
                         ui.select(label='Sys Msg:',
                                   options=sysmsg_names,
-                                  value=self.llm_config.system_message_name
+                                  value=settings.system_message_name
                                   ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_sysmsg(vc.value), pinput)).props('square outlined label-color=green')
 
                     # with ui.scroll_area(on_scroll=lambda e: print(f'~~~~ e: {e}')).classes('w-full flex-grow border border-solid border-black') as scroller:

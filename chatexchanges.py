@@ -14,10 +14,10 @@ class LLMOaiResponse:
         self.chat_completion: ChatCompletion = chat_completion
         self.api_type: str = llm_config.api_type()
         self.model_name: str = llm_config.model_name
-        self.n: int = llm_config.n
-        self.temp: float = llm_config.temp
-        self.top_p: float = llm_config.top_p
-        self.max_tokens: int = llm_config.max_tokens
+        self.n: int = llm_config.settings.n
+        self.temp: float = llm_config.settings.temp
+        self.top_p: float = llm_config.settings.top_p
+        self.max_tokens: int = llm_config.settings.max_tokens
 
     def __repr__(self) -> str:
         return f'[{self.__class__!s}:{self.__dict__!r}]'

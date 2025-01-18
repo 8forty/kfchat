@@ -11,7 +11,7 @@ log.setLevel(logstuff.logging_level)
 
 def menu() -> None:
     with ui.button(icon='menu').classes('h-12'):
-        with ui.menu() as uimenu:
+        with ui.menu():
             ui.menu_item('Chat', on_click=lambda: ui.navigate.to('/'))
             ui.separator()
             ui.menu_item('Chromadb', on_click=lambda: ui.navigate.to('/chromadb'))

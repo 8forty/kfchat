@@ -2,18 +2,16 @@ import timeit
 
 import config
 import data
-from llmoaiconfig import LLMOaiConfig, LLMOaiExchange
+from llmoaiconfig import LLMOaiConfig, LLMOaiExchange, LLMOaiSettings
 
 
 def model_warmup(cfg: LLMOaiConfig, model: str):
     chat(message_set=data.warmup_data['messageset'],
          cfg=cfg,
-         model_name=model,
-         temp=data.warmup_data['temp'],
-         max_tokens=data.warmup_data['max_tokens'])
+         model_name=model)
 
 
-def chat(message_set: list[tuple[str, str]], cfg: LLMOaiConfig, model_name: str, temp: float, max_tokens: int) -> LLMOaiExchange:
+def chat(message_set: list[tuple[str, str]], cfg: LLMOaiConfig, model_name: str) -> LLMOaiExchange:
     messages: list[dict] = []
     for i in message_set:
         messages.append({'role': i[0], 'content': i[1]})
@@ -37,8 +35,8 @@ def run(api_type_name: str, model_set_name: str, settings_set_name: str, message
     for model in data.model_sets[api_type_name][model_set_name]:
         print(f'    {api_type_name}:{model}')
         model_start = timeit.default_timer()
-        cfg = LLMOaiConfig('chattest', api_type_name, data.model_sets[api_type_name]['parms'], model,
-                           init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=80, init_system_message="")
+        cfg = LLMOaiConfig(model, api_type_name, data.model_sets[api_type_name]['parms'],
+                           LLMOaiSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=80, init_system_message_name="carl-sagan"))
 
         # warmup the model
         try:
@@ -59,9 +57,7 @@ def run(api_type_name: str, model_set_name: str, settings_set_name: str, message
                 try:
                     exchange = chat(message_set=message_set['messages'],
                                     cfg=cfg,
-                                    model_name=model,
-                                    temp=settings_set['temp'],
-                                    max_tokens=settings_set['max_tokens'])
+                                    model_name=model)
                 except (Exception,) as e:
                     print(f'run Exception! {cfg.api_type()}:{model} {settings_set_name} {message_set["name"]}: {e} skipping...')
                     break

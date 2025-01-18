@@ -3,29 +3,26 @@ import timeit
 import dotenv
 from dotenv import load_dotenv
 
-from llmoaiconfig import LLMOaiConfig, LLMOaiExchange
+from llmoaiconfig import LLMOaiConfig, LLMOaiExchange, LLMOaiSettings
 
 load_dotenv(override=True)
 
 env_values = dotenv.dotenv_values()
 
 
-def chat(sysmsg: str, prompt: str, cfg: LLMOaiConfig, model_name: str, temp: float, max_tokens: int) -> LLMOaiExchange:
+def chat(sysmsg: str, prompt: str, cfg: LLMOaiConfig) -> LLMOaiExchange:
     return cfg.chat_messages([{"role": "system", "content": sysmsg}, {"role": "user", "content": prompt}])
 
 
 def run(api_type_name: str, model_name: str):
     start = timeit.default_timer()
-    cfg = LLMOaiConfig('chattest', api_type_name, env_values, model_name, init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=80,
-                       init_system_message="You are a helpful assistant that talks like Carl Sagan.")
+    cfg = LLMOaiConfig(model_name, api_type_name, env_values,
+                       LLMOaiSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=80, init_system_message_name="carl-sagan"))
 
     print(f'---- generating response from {cfg.api_type()}:{model_name}')
-    exchange = chat(sysmsg=cfg.system_message,
+    exchange = chat(sysmsg=cfg.settings.system_message,
                     prompt="How many galaxies are there?",
-                    cfg=cfg,
-                    model_name=cfg.model_name,
-                    temp=cfg.temp,
-                    max_tokens=cfg.max_tokens)
+                    cfg=cfg)
     end = timeit.default_timer()
 
     print(exchange.completion.choices[0].message.content)

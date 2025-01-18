@@ -61,5 +61,5 @@ class td(ui.element):
                 # with ui.tooltip().classes(ttclasses if tt_classes is None else tt_classes).props('anchor="bottom middle", self="top middle", offset="[14,14]"') as tt:  # .props('anchor="top middle"'):
                 with (ui.tooltip()
                         .classes(self.tt_base_classes if tt_classes is None else tt_classes)
-                        .props('anchor="top middle" self="bottom middle" :offset="[14,2]"')) as tt:
+                        .props('anchor="top middle" self="bottom middle" :offset="[14,2]"')):
                     ui.label(tt_text).classes('max-w-80 font-bold')
