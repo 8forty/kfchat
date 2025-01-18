@@ -1,6 +1,8 @@
 import logging
 
 import chromadb
+from chromadb.api import CollectionConfiguration
+from chromadb.api.configuration import HNSWConfiguration
 from chromadb.api.models.Collection import Collection
 from chromadb.api.types import IncludeEnum
 from chromadb.errors import InvalidCollectionException
@@ -50,11 +52,12 @@ class VSChroma(VSAPI):
 
         log.info(f'building VS API for [{self._api_type_name}]: {self.parms.get("CHROMA_HOST")=}, {self.parms.get("CHROMA_PORT")=}, '
                  f'{self.parms.get("CHROMA_EMBEDDING_MODEL")=}, {self.parms.get("CHROMA_COLLECTION")=} ')
+
         self._client = chromadb.HttpClient(host=self.parms.get("CHROMA_HOST"), port=int(self.parms.get("CHROMA_PORT")))
 
     def list_index_names(self) -> list[str]:
         self._build_clients()
-        return [c.name for c in self._client.list_collections()]
+        return [name for name in self._client.list_collections()]
 
     def raw_search(self, prompt: str, howmany: int) -> VSAPI.SearchResponse:
         self._build_clients()
@@ -161,25 +164,42 @@ class VSChroma(VSAPI):
             if collection_name != pdf_name:
                 log.info(f'collection name [{pdf_name}] modified for chroma restrictions to [{collection_name}]')
 
+            # {'space': 'l2', 'construction_ef': 100, 'search_ef': 10, 'num_threads': 22, 'M': 16, 'resize_factor': 1.2, 'batch_size': 100, 'sync_threshold': 1000, '_type': 'HNSWConfigurationInternal'}
+
             # create the collection
-            # todo: configure this
+            # todo: configure all this
+            # todo: recommended hnsw config from:
+            # metadata={
+            #     "hnsw:space": "cosine",
+            #     "hnsw:construction_ef": 600,
+            #     "hnsw:search_ef": 1000,
+            #     "hnsw:M": 60
+            # },
+            # todo: CollectionConfiguration will eventually be implemented: https://github.com/chroma-core/chroma/pull/2495
+            embedding_function = SentenceTransformerEmbeddingFunction  # default: 'all-MiniLM-L6-v2'
+            #  x: CollectionConfiguration = CollectionConfiguration(hnsw_configuration=HNSWConfiguration(space='cosine'))
             collection: Collection = self._client.create_collection(
                 name=collection_name,
-                configuration=None,
-                metadata=None,
-                embedding_function=SentenceTransformerEmbeddingFunction(model_name=self.embedding_model_name),  # default: 'all-MiniLM-L6-v2'
+                metadata={
+                    'chunk_method': f'{VSChroma.__name__}.{self.ingest_pdf_text_splitter.__name__}',
+                    'original_filename:': f'{pdf_name}', 'path': pdf_file_path,
+                    'chunk_size': chunk_size, 'chunk_overlap': chunk_overlap,
+                    'embedding_model_name': self.embedding_model_name,
+                    'hnsw:space': 'l2',  # default l2
+                    'hnsw:construction_ef': 500,  # default 100
+                    'hnsw:search_ef': 500,  # default 10
+                    'hnsw:M': 40,  # default 16
+                    # 'hnsw:num_threads': 22,  # default is <number of CPU cores>
+                },
+                embedding_function=embedding_function(model_name=self.embedding_model_name),
                 data_loader=None,
                 get_or_create=False
             )
-
             # create Chroma vectorstore from the chunks
             log.debug(f'adding {len(chunks)} chunks to {collection.name}')
             #  collection.add(documents=chunks, ids=[str(uuid.uuid4()) for _ in range(0, len(chunks))])  # use random uuids for chunk-ids
             collection.add(documents=chunks,
                            ids=[f'{pdf_name}-{i}' for i in range(0, len(chunks))],  # use name:count for chunk-ids
-                           metadatas=[{'method': f'{VSChroma.__name__}.{self.ingest_pdf_text_splitter.__name__}',
-                                       'original_filename:': f'{pdf_name}', 'path': pdf_file_path,
-                                       'chunk_size': chunk_size, 'chunk_overlap': chunk_overlap} for _ in range(0, len(chunks))],
                            )
 
         return collection

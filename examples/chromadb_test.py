@@ -12,7 +12,14 @@ async def main():
     except (Exception,) as e:
         print(f'no existing collection to delete: {collection_name} {e}')
 
-    collection = await client.create_collection(name=collection_name)
+    collection = await client.create_collection(name=collection_name,
+                                                metadata={
+                                                    "hnsw:space": "cosine",
+                                                    "hnsw:construction_ef": 600,
+                                                    "hnsw:search_ef": 1000,
+                                                    "hnsw:M": 60
+                                                },
+                                                )
     await collection.add(
         documents=[
             "This is a document about pineapple",
@@ -28,8 +35,10 @@ async def main():
     #     distances = "distances"
     #     uris = "uris"
     #     data = "data"
+    query = "This is a query document about florida"
+    print(f'running query: {query}...')
     results = await collection.query(
-        query_texts=["This is a query document about florida"],  # Chroma will embed this for you
+        query_texts=[query],  # Chroma will embed this for you
         n_results=2,  # how many results to return
         include=[IncludeEnum('documents'), IncludeEnum('metadatas'), IncludeEnum('distances'), IncludeEnum('uris'), IncludeEnum('data')],
     )

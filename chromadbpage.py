@@ -72,21 +72,49 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, env_values: dict[str,
                     # details table
                     with rbui.table():
                         with rbui.tr():
-                            rbui.td('document/chunk count')
+                            rbui.td('id')
+                            rbui.td(f'{collection.id}')
+                        with rbui.tr():
+                            rbui.td('doc/chunk count')
                             rbui.td(f'{collection.count()}')
                         with rbui.tr():
-                            peek_n = 3
-                            rbui.td(f'peek.documents({peek_n})')
-                            peek_docs = [d[0:100] + '[...]' for d in collection.peek(limit=peek_n)['documents']]
-                            docs = '\n-----[doc]-----\n'.join(peek_docs)  # 'ids', 'embeddings', 'metadatas', 'documents', 'data', 'uris', 'included'
-                            rbui.td(f'{docs}')
+                            rbui.td('metadata')
+                            metadata_string: str = ''
+                            for key in sorted(collection.metadata.keys()):
+                                metadata_string += f'{key}: {collection.metadata[key]}\n'
+                            rbui.td(f'{metadata_string}')
+                        with rbui.tr():
+                            rbui.td('configuration')
+                            config_string: str = '[NOTE: hnsw values overridden by metadata v.6*]\n'
+                            for key in sorted(collection.configuration_json.keys()):
+                                config_string += f'{key}: {collection.configuration_json[key]}\n'
+                            rbui.td(f'{config_string}')
+                        with rbui.tr():
+                            rbui.td('model dimensions')
+                            rbui.td(f'{collection._model.dimension}')
+                        with rbui.tr():
+                            rbui.td('embedding func')
+                            rbui.td(f'{collection._embedding_function.__class__.__name__}\n{collection._embedding_function.__dict__}')
+                        with rbui.tr():
+                            rbui.td('tenant')
+                            rbui.td(f'{collection.tenant}')
+                        with rbui.tr():
+                            rbui.td('database')
+                            rbui.td(f'{collection.database}')
+
+                        # with rbui.tr():
+                        #     peek_n = 3
+                        #     rbui.td(f'peek.documents({peek_n})')
+                        #     peek_docs = [d[0:100] + '[...]' for d in collection.peek(limit=peek_n)['documents']]
+                        #     docs = '\n-----[doc]-----\n'.join(peek_docs)  # 'ids', 'embeddings', 'metadatas', 'documents', 'data', 'uris', 'included'
+                        #     rbui.td(f'{docs}')
 
                         # _client, _model, _embedding_function, _data_loader, ?
-                        for key in collection.__dict__['_model'].__dict__.keys():
-                            val = collection.__dict__['_model'].__dict__[key]
-                            with rbui.tr():
-                                rbui.td(f'_model.{key}')
-                                rbui.td(str(val))
+                        # for key in collection.__dict__['_model'].__dict__.keys():
+                        #     val = collection.__dict__['_model'].__dict__[key]
+                        #     with rbui.tr():
+                        #         rbui.td(f'_model.{key}')
+                        #         rbui.td(str(val))
 
     async def delete_coll(coll_name: str) -> None:
         log.info(f'deleting collection {coll_name}')

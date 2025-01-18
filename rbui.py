@@ -52,14 +52,15 @@ class td(ui.element):
         if td_style is not None:
             self.style(td_style)
         with self:
-            for line in label.split(sep='\n'):
-                # add a ' ' in case the line is just '\n'
-                ui.label(line + ' ').classes(self.label_base_classes if label_classes is None else label_classes)
+            with ui.column().classes('gap-y-0'):
+                for line in label.split(sep='\n'):
+                    # add a ' ' in case the line is just '\n'
+                    ui.label(line + ' ').classes(self.label_base_classes if label_classes is None else label_classes)
 
-            if tt_text is not None:
-                # tooltip is on the whole td, not just the label
-                # with ui.tooltip().classes(ttclasses if tt_classes is None else tt_classes).props('anchor="bottom middle", self="top middle", offset="[14,14]"') as tt:  # .props('anchor="top middle"'):
-                with (ui.tooltip()
-                        .classes(self.tt_base_classes if tt_classes is None else tt_classes)
-                        .props('anchor="top middle" self="bottom middle" :offset="[14,2]"')):
-                    ui.label(tt_text).classes('max-w-80 font-bold')
+                if tt_text is not None:
+                    # tooltip is on the whole td, not just the label
+                    # with ui.tooltip().classes(ttclasses if tt_classes is None else tt_classes).props('anchor="bottom middle", self="top middle", offset="[14,14]"') as tt:  # .props('anchor="top middle"'):
+                    with (ui.tooltip()
+                            .classes(self.tt_base_classes if tt_classes is None else tt_classes)
+                            .props('anchor="top middle" self="bottom middle" :offset="[14,2]"')):
+                        ui.label(tt_text).classes('max-w-80 font-bold')
