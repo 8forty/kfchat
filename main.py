@@ -33,28 +33,32 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
 
     # setup llm
     # todo: these should come from e.g. pref screen
+    # todo: the "name" is pointless
     max_tokens = 800
     system_message_name = 'technical800'
     llm_configs_list = [
-        LLMOaiConfig(name='groq33', api_type_name='groq', parms=env_values, model_name='llama-3.3-70b-versatile',
+        LLMOaiConfig(name='groq-llama-33-70b', api_type_name='groq', parms=env_values, model_name='llama-3.3-70b-versatile',
                      init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens, init_system_message_name=system_message_name),
-        LLMOaiConfig(name='ollama321b', api_type_name='ollama', parms=env_values, model_name='llama3.2:1b',
+        LLMOaiConfig(name='ollama-llama-32-1b', api_type_name='ollama', parms=env_values, model_name='llama3.2:1b',
                      init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens, init_system_message_name=system_message_name),
-        LLMOaiConfig(name='ollama323b', api_type_name='ollama', parms=env_values, model_name='llama3.2:3b',
+        LLMOaiConfig(name='ollama-llama-32-3b', api_type_name='ollama', parms=env_values, model_name='llama3.2:3b',
                      init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens, init_system_message_name=system_message_name),
-        LLMOaiConfig(name='ollamag2-9b', api_type_name='ollama', parms=env_values, model_name='gemma2:9b',
+        LLMOaiConfig(name='ollama-gemma2-9b', api_type_name='ollama', parms=env_values, model_name='gemma2:9b',
                      init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens, init_system_message_name=system_message_name),
-        LLMOaiConfig(name='ollamag2-27b', api_type_name='ollama', parms=env_values, model_name='gemma2:27b',
+        LLMOaiConfig(name='ollama-gemma2-27b', api_type_name='ollama', parms=env_values, model_name='gemma2:27b',
                      init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens, init_system_message_name=system_message_name),
-        LLMOaiConfig(name='openai4omini', api_type_name='openai', parms=env_values, model_name='gpt-4o-mini',
+        LLMOaiConfig(name='openai-gpt-4o-mini', api_type_name='openai', parms=env_values, model_name='gpt-4o-mini',
                      init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens, init_system_message_name=system_message_name),
-        LLMOaiConfig(name='azurerfi', api_type_name='azure', parms=env_values,
+        LLMOaiConfig(name='azure-rfi-gpt-40-mini', api_type_name='azure', parms=env_values,
                      model_name='RFI-Automate-GPT-4o-mini-2000k',  # really the deployment name for azure
                      init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens, init_system_message_name=system_message_name),
-        LLMOaiConfig(name='gemini15flash', api_type_name='gemini', parms=env_values, model_name='gemini-1.5-flash',
+        LLMOaiConfig(name='gemini-15-flash', api_type_name='gemini', parms=env_values, model_name='gemini-1.5-flash',
                      init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens,
                      init_system_message_name=system_message_name),
-        LLMOaiConfig(name='gemini15flash8b', api_type_name='gemini', parms=env_values, model_name='gemini-1.5-flash-8b',
+        LLMOaiConfig(name='gemini-15-flash-8b', api_type_name='gemini', parms=env_values, model_name='gemini-1.5-flash-8b',
+                     init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens,
+                     init_system_message_name=system_message_name),
+        LLMOaiConfig(name='gemini-15-pro', api_type_name='gemini', parms=env_values, model_name='gemini-1.5-pro',
                      init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=max_tokens,
                      init_system_message_name=system_message_name),
     ]
@@ -78,7 +82,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         raise
 
     # the chat page
-    cp = chatpage.ChatPage(llm_configs=llm_configs, init_llm_name='ollama323b', vectorstore=vectorstore, env_values=env_values)
+    cp = chatpage.ChatPage(llm_configs=llm_configs, init_llm_name='ollama-llama-32-3b', vectorstore=vectorstore, env_values=env_values)
     cp.setup('/', 'Chat')
 
     # the chromadb page
