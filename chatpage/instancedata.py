@@ -48,7 +48,7 @@ class InstanceData:
         return self.llm_source_type if self.source_vs_api is None else self.vs_source_type
 
     def source_api_name_llm(self, llm_config: LLMOaiConfig) -> str:
-        return f'{self.llm_name_prefix}{llm_config.model_name}'
+        return f'{self.llm_name_prefix}{llm_config.api_type()}:{llm_config.model_name}'
 
     def forget(self):
         self.exchanges.clear()
@@ -61,14 +61,15 @@ class InstanceData:
         try:
             if selected_name.startswith(self.llm_name_prefix):
                 self.source_vs_api = None
-                self.source_name = selected_name.removeprefix(self.llm_name_prefix)
-                new_llm_name = self.source_name  # self.source_name.split(':')[0]
-                log.debug(f'new llm name: {new_llm_name}')
-                self.llm_config = self.llm_configs[new_llm_name]
+                long_name = selected_name.removeprefix(self.llm_name_prefix)  # removes "llm: "
+                self.source_name = ':'.join(long_name.split(':')[1:])  # removes e.g. "groq:"
+                self.llm_config = self.llm_configs[self.source_name]
+                log.debug(f'new llm name: {self.source_name} (api_type: {self.llm_config.api_type()})')
             else:
                 self.source_name = selected_name.removeprefix(self.vs_name_prefix)
                 self.source_vs_api = self.vectorstore
                 await run.io_bound(self.vectorstore.switch_index, self.source_name)
+                log.debug(f'new vs name: {self.source_name}')
 
             self.source_select_name = selected_name
         except (Exception,) as e:
