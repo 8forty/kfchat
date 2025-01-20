@@ -28,32 +28,33 @@ class UploadFileDialog(Dialog):
         self.chunker_type: str | None = None
 
     async def handle_upload(self, ulargs: events.UploadEventArguments, vectorstore: VSChroma):
-        log.info(f'uploading local file {ulargs.name}...')
+        local_file_name = ulargs.name
+        log.info(f'uploading local file {local_file_name}...')
         with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
             contents: AnyStr = await run.io_bound(ulargs.content.read)
-            log.debug(f'loaded {ulargs.name}...')
+            log.debug(f'loaded {local_file_name}...')
             await run.io_bound(tmpfile.write, contents)
-            log.debug(f'saved file {ulargs.name} to server file {tmpfile.name}...')
+            log.debug(f'saved file {local_file_name} to server file {tmpfile.name}...')
 
         collection: Collection | None = None
         try:
             log.debug(f'chunking ({self.chunker_type}) server file {tmpfile.name}...')
             # todo: configure splitter and parms
-            collection = await run.io_bound(vectorstore.ingest_pdf_text_splitter, tmpfile.name, ulargs.name, 1000, 200)
+            collection = await run.io_bound(vectorstore.ingest_pdf_text_splitter, tmpfile.name, local_file_name, 1000, 200)
 
             if collection is None:
-                errmsg = f'ingest failed for {ulargs.name}'
+                errmsg = f'ingest failed for {local_file_name}'
                 log.warning(errmsg)
                 ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
         except (Exception,) as e:
-            errmsg = f'Error ingesting {ulargs.name}: {e}'
+            errmsg = f'Error ingesting {local_file_name}: {e}'
             traceback.print_exc(file=sys.stdout)
             log.error(errmsg)
             ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
 
         os.remove(tmpfile.name)
         if collection is not None:
-            log.info(f'ingested {ulargs.name} via {tmpfile.name}')
+            log.info(f'ingested {local_file_name} via {tmpfile.name}')
         self.close()
 
     async def do_upload_file(self, doc_type: str, chunker_type: str):
@@ -95,7 +96,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, env_values: dict[str,
                             rbui.td(f'{metadata_string}')
                         with rbui.tr():
                             rbui.td('configuration')
-                            config_string: str = '[NOTE: hnsw values overridden by metadata v.6*]\n'
+                            config_string: str = '[NOTE: these hnsw values overridden by metadata v.6+]\n'
                             for key in sorted(collection.configuration_json.keys()):
                                 config_string += f'{key}: {collection.configuration_json[key]}\n'
                             rbui.td(f'{config_string}')

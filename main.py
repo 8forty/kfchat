@@ -32,7 +32,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
     ui.run_with(fastapi_app, storage_secret='pick your private secret here', favicon='pluto.jpg', title=config.name)
 
     # setup llm
-    # todo: these should come from e.g. pref screen
+    # todo: these should come from somewhere, e.g. pref screen
     settings = LLMOaiSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_system_message_name='technical800')
     llm_configs_list = [
         LLMOaiConfig(model_name='llama-3.3-70b-versatile', api_type_name='groq', parms=env_values, settings=settings),
@@ -54,7 +54,8 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         retry_wait_seconds = 15
         while True:
             try:
-                vectorstore = vsapi_factory.create_one('chroma', env_values)
+                vsparms = env_values.copy()
+                vectorstore = vsapi_factory.create_one('chroma', parms=vsparms)  # todo: add to env_values
                 vectorstore.warmup()
                 break
             except (Exception,) as e:
@@ -67,7 +68,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         raise
 
     # the chat page
-    cp = chatpage.ChatPage(llm_configs=llm_configs, init_llm_model_name=llm_configs_list[2].model_name, vectorstore=vectorstore, env_values=env_values)
+    cp = chatpage.ChatPage(llm_configs=llm_configs, init_llm_model_name=llm_configs_list[0].model_name, vectorstore=vectorstore, env_values=env_values)
     cp.setup('/', 'Chat')
 
     # the chromadb page

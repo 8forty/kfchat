@@ -42,10 +42,10 @@ class InstanceData:
         # #### source info
         self.source_select_name: str = self.source_llm_name
         self.source_name: str = self.source_select_name  # name of the source object (we want to start with the llm, so select-name and name are the same)
-        self.source_api: VSAPI | None = None  # the current VS api, or None for any llm
+        self.source_vs_api: VSAPI | None = None  # the current VS api, or None for any llm
 
     def source_type(self) -> str:
-        return self.llm_source_type if self.source_api is None else self.vs_source_type
+        return self.llm_source_type if self.source_vs_api is None else self.vs_source_type
 
     def source_api_name_llm(self, llm_config: LLMOaiConfig) -> str:
         return f'{self.llm_name_prefix}{llm_config.model_name}'
@@ -60,12 +60,14 @@ class InstanceData:
 
         try:
             if selected_name.startswith(self.llm_name_prefix):
-                self.source_api = None
+                self.source_vs_api = None
                 self.source_name = selected_name.removeprefix(self.llm_name_prefix)
-                self.llm_config = self.llm_configs[self.source_name.split(':')[0]]
+                new_llm_name = self.source_name  # self.source_name.split(':')[0]
+                log.debug(f'new llm name: {new_llm_name}')
+                self.llm_config = self.llm_configs[new_llm_name]
             else:
                 self.source_name = selected_name.removeprefix(self.vs_name_prefix)
-                self.source_api = self.vectorstore
+                self.source_vs_api = self.vectorstore
                 await run.io_bound(self.vectorstore.switch_index, self.source_name)
 
             self.source_select_name = selected_name

@@ -1,9 +1,13 @@
+import json
 import logging
 
 import chromadb
 from chromadb.api.models.Collection import Collection
 from chromadb.api.types import IncludeEnum
 from chromadb.errors import InvalidCollectionException
+from chromadb.utils.embedding_functions.google_embedding_function import GoogleVertexEmbeddingFunction, GoogleGenerativeAiEmbeddingFunction
+from chromadb.utils.embedding_functions.ollama_embedding_function import OllamaEmbeddingFunction
+from chromadb.utils.embedding_functions.openai_embedding_function import OpenAIEmbeddingFunction
 from chromadb.utils.embedding_functions.sentence_transformer_embedding_function import SentenceTransformerEmbeddingFunction
 
 import logstuff
@@ -23,6 +27,13 @@ class VSChroma(VSAPI):
         self.embedding_model_name: str = 'all-MiniLM-L6-v2'
         self.collection_name: str | None = None
         self._collection: chromadb.Collection | None = None
+
+    embedding_functions: dict[str, any] = {
+        SentenceTransformerEmbeddingFunction.__name__: SentenceTransformerEmbeddingFunction,
+        OpenAIEmbeddingFunction.__name__: OpenAIEmbeddingFunction,
+        GoogleGenerativeAiEmbeddingFunction.__name__: GoogleGenerativeAiEmbeddingFunction,
+        OllamaEmbeddingFunction.__name__: OllamaEmbeddingFunction,
+    }
 
     def warmup(self):
         self._build_clients()
@@ -194,12 +205,16 @@ class VSChroma(VSAPI):
                     'path': file_path,
                     'chunk_size': chunk_size,
                     'chunk_overlap': chunk_overlap,
-                    'embedding_model_name': self.embedding_model_name,
+
+                    'embedding_function_name': embedding_function.__name__,
+                    'embedding_function_parms': json.dumps({'model_name': self.embedding_model_name}, ensure_ascii=False),
+
                     'hnsw:space': 'l2',  # default l2
                     'hnsw:construction_ef': 500,  # default 100
                     'hnsw:search_ef': 500,  # default 10
                     'hnsw:M': 40,  # default 16
-                    # 'hnsw:num_threads': 22,  # default is <number of CPU cores>
+
+                    'chroma_version': self._client.get_version(),
                 },
                 embedding_function=embedding_function(model_name=self.embedding_model_name),
                 data_loader=None,

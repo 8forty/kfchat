@@ -118,7 +118,7 @@ class ChatPage:
             vsresponse: VectorStoreResponse | None = None
             try:
                 # vsresponse = await run.io_bound(do_vector_search, prompt, idata)
-                vsresponse = await run.io_bound(idata.source_api.search, prompt, howmany=idata.llm_config.settings.n)
+                vsresponse = await run.io_bound(idata.source_vs_api.search, prompt, howmany=idata.llm_config.settings.n)
                 log.debug(f'vector-search response: {vsresponse}')
             except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)
@@ -139,7 +139,7 @@ class ChatPage:
         async def handle_enter(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
             if prompt_input.value.startswith('*'):
                 await handle_enter_special(request, prompt_input, spinner, scroller, idata)
-            elif idata.source_api is None:
+            elif idata.source_vs_api is None:
                 await handle_enter_llm(request, prompt_input, spinner, scroller, idata)
             else:
                 await handle_enter_vector_search(request, prompt_input, spinner, scroller, idata)
