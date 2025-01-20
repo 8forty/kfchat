@@ -38,14 +38,18 @@ class InstanceData:
         self.vs_source_type: str = 'vs'
         self.vs_name_prefix: str = 'vs: '
         self.vectorstore = vectorstore
+        self.source_vs_api: VSAPI | None = None
 
         # #### source info
         self.source_select_name: str = self.source_llm_name
+        self.current_source_type: str = self.llm_source_type
         self.source_name: str = self.source_select_name  # name of the source object (we want to start with the llm, so select-name and name are the same)
-        self.source_vs_api: VSAPI | None = None  # the current VS api, or None for any llm
 
-    def source_type(self) -> str:
-        return self.llm_source_type if self.source_vs_api is None else self.vs_source_type
+    def source_type_is_llm(self) -> bool:
+        return self.current_source_type == self.llm_source_type
+
+    def source_type_is_vs(self) -> bool:
+        return self.current_source_type == self.vs_source_type
 
     def source_api_name_llm(self, llm_config: LLMOaiConfig) -> str:
         return f'{self.llm_name_prefix}{llm_config.api_type()}:{llm_config.model_name}'
@@ -60,13 +64,14 @@ class InstanceData:
 
         try:
             if selected_name.startswith(self.llm_name_prefix):
-                self.source_vs_api = None
+                self.current_source_type = self.llm_source_type
                 long_name = selected_name.removeprefix(self.llm_name_prefix)  # removes "llm: "
                 self.source_name = ':'.join(long_name.split(':')[1:])  # removes e.g. "groq:"
                 self.llm_config = self.llm_configs[self.source_name]
                 log.debug(f'new llm name: {self.source_name} (api_type: {self.llm_config.api_type()})')
             else:
                 self.source_name = selected_name.removeprefix(self.vs_name_prefix)
+                self.current_source_type = self.vs_source_type
                 self.source_vs_api = self.vectorstore
                 await run.io_bound(self.vectorstore.switch_index, self.source_name)
                 log.debug(f'new vs name: {self.source_name}')

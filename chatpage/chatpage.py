@@ -45,7 +45,7 @@ class ChatPage:
         async def handle_enter_special(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
             logstuff.update_from_request(request)  # updates logging prefix with info from each request
             prompt = prompt_input.value.strip()
-            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.source_type()}:{idata.llm_config.api_type()}:{idata.llm_config.model_name}): "{prompt}"')
+            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.current_source_type}:{idata.llm_config.api_type()}:{idata.llm_config.model_name}): "{prompt}"')
 
             prompt_input.disable()
             about = 'special commands: *, *info, *repeat, *forget'
@@ -76,7 +76,7 @@ class ChatPage:
             logstuff.update_from_request(request)  # updates logging prefix with info from each request
             prompt = prompt_input.value.strip()
             log.info(
-                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.source_type()}:{idata.llm_config.api_type()}:{idata.llm_config.model_name},'
+                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.current_source_type}:{idata.llm_config.api_type()}:{idata.llm_config.model_name},'
                 f'{idata.llm_config.settings.temp},{idata.llm_config.settings.top_p},{idata.llm_config.settings.max_tokens}): "{prompt}"')
             prompt_input.disable()
 
@@ -109,7 +109,7 @@ class ChatPage:
         async def handle_enter_vector_search(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
             logstuff.update_from_request(request)  # updates logging prefix with info from each request
             prompt = prompt_input.value.strip()
-            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.source_type()}:{idata.source_name}): "{prompt}"')
+            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.current_source_type}:{idata.source_name}): "{prompt}"')
             prompt_input.disable()
 
             start = timeit.default_timer()
@@ -139,7 +139,7 @@ class ChatPage:
         async def handle_enter(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
             if prompt_input.value.startswith('*'):
                 await handle_enter_special(request, prompt_input, spinner, scroller, idata)
-            elif idata.source_vs_api is None:
+            elif idata.source_type_is_llm():
                 await handle_enter_llm(request, prompt_input, spinner, scroller, idata)
             else:
                 await handle_enter_vector_search(request, prompt_input, spinner, scroller, idata)
