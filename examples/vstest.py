@@ -18,7 +18,7 @@ def run(prompt: str, api_type_name: str, index_name: str, howmany: int):
     print(f'---- index names from {api.type()}:{index_name}')
     print(f'     {api.list_index_names()}')
 
-    api.change_index(index_name)
+    api.switch_index(index_name)
     print(f'---- generating response from {api.type()}:{index_name}')
 
     # response = api.search(prompt, howmany)

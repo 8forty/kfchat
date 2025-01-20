@@ -9,10 +9,11 @@ from nicegui import ui
 
 # noinspection PyPep8Naming
 class table(ui.element):
+    default_table_classes = 'border-solid border border-black w-11/12 table-fixed'
+
     def __init__(self, table_classes: str = None):
         super().__init__('table')
-        tclasses = 'border-solid border border-black w-11/12 table-fixed'
-        self.classes(tclasses if table_classes is None else table_classes)
+        self.classes(self.default_table_classes if table_classes is None else table_classes)
 
 
 # noinspection PyPep8Naming
@@ -61,6 +62,6 @@ class td(ui.element):
                     # tooltip is on the whole td, not just the label
                     # with ui.tooltip().classes(ttclasses if tt_classes is None else tt_classes).props('anchor="bottom middle", self="top middle", offset="[14,14]"') as tt:  # .props('anchor="top middle"'):
                     with (ui.tooltip()
-                            .classes(self.tt_base_classes if tt_classes is None else tt_classes)
-                            .props('anchor="top middle" self="bottom middle" :offset="[14,2]"')):
+                                  .classes(self.tt_base_classes if tt_classes is None else tt_classes)
+                                  .props('anchor="top middle" self="bottom middle" :offset="[14,2]"')):
                         ui.label(tt_text).classes('max-w-80 font-bold')

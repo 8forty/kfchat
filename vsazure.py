@@ -119,7 +119,7 @@ class VSAzure(VSAPI):
                                                 sresp.results_raw[result_idx]['documents']))
         return VectorStoreResponse(vs_results)
 
-    def change_index(self, new_index_name: str) -> None:
+    def switch_index(self, new_index_name: str) -> None:
         log.info(f'changing index to [{new_index_name}]')
         self._build_clients()
         self.index_name = new_index_name

@@ -1,15 +1,13 @@
 import logging
 
 import chromadb
-from chromadb.api import CollectionConfiguration
-from chromadb.api.configuration import HNSWConfiguration
 from chromadb.api.models.Collection import Collection
 from chromadb.api.types import IncludeEnum
 from chromadb.errors import InvalidCollectionException
 from chromadb.utils.embedding_functions.sentence_transformer_embedding_function import SentenceTransformerEmbeddingFunction
 
 import logstuff
-import pdf_chunkers
+import chunkers
 from chatexchanges import VectorStoreResponse, VectorStoreResult
 from vsapi import VSAPI
 
@@ -22,7 +20,7 @@ class VSChroma(VSAPI):
     def __init__(self, api_type_name: str, parms: dict[str, str]):
         super().__init__(api_type_name, parms)
         self._client: chromadb.ClientAPI | None = None
-        self.embedding_model_name: str = parms.get("CHROMA_EMBEDDING_MODEL")
+        self.embedding_model_name: str = 'all-MiniLM-L6-v2'
         self.collection_name: str | None = None
         self._collection: chromadb.Collection | None = None
 
@@ -50,8 +48,7 @@ class VSChroma(VSAPI):
         if self._client is not None:
             return
 
-        log.info(f'building VS API for [{self._api_type_name}]: {self.parms.get("CHROMA_HOST")=}, {self.parms.get("CHROMA_PORT")=}, '
-                 f'{self.parms.get("CHROMA_EMBEDDING_MODEL")=}, {self.parms.get("CHROMA_COLLECTION")=} ')
+        log.info(f'building VS API for [{self._api_type_name}]: {self.parms.get("CHROMA_HOST")=}, {self.parms.get("CHROMA_PORT")=}')
 
         self._client = chromadb.HttpClient(host=self.parms.get("CHROMA_HOST"), port=int(self.parms.get("CHROMA_PORT")))
 
@@ -139,30 +136,41 @@ class VSChroma(VSAPI):
         self._build_clients()
         return self._collection.__dict__
 
-    def ingest_pdf_text_splitter(self, pdf_file_path: str, pdf_name: str, chunk_size: int, chunk_overlap: int) -> Collection | None:
+    @staticmethod
+    def compute_collection_name(file_name: str) -> str:
+        """
+        chroma collection name:
+        (1) contains 3-63 characters,
+        (2) starts and ends with an alphanumeric character,
+        (3) otherwise contains only alphanumeric characters, underscores or hyphens (-) [NO SPACES!],
+        (4) contains no two consecutive periods (..) and
+        (5) is not a valid IPv4 address
+
+        :param file_name:
+        :return:
+        """
+        collection_name = file_name.replace(' ', '-')
+        collection_name = collection_name.replace('..', '._')
+        if len(collection_name) > 63:
+            collection_name = collection_name[:63]
+            log.warning(f'collection name too long, shortened')
+
+        if collection_name != file_name:
+            log.info(f'collection name [{file_name}] modified for chroma restrictions to [{collection_name}]')
+
+        return collection_name
+
+    def ingest_pdf_text_splitter(self, file_path: str, file_name: str, chunk_size: int, chunk_overlap: int) -> Collection | None:
         self._build_clients()
 
         collection: Collection | None = None
 
         # todo: configure this
-        chunks = pdf_chunkers.chunk_recursive_character_text_splitter(server_pdf_path=pdf_file_path, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+        chunks = chunkers.pypdf_text(server_pdf_path=file_path, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
         if len(chunks) == 0:
-            log.warning(f'no chunks found in {pdf_name} ({pdf_file_path})!')
+            log.warning(f'no chunks found in {file_name} ({file_path})!')
         else:
-            # chroma collection name:
-            # (1) contains 3-63 characters,
-            # (2) starts and ends with an alphanumeric character,
-            # (3) otherwise contains only alphanumeric characters, underscores or hyphens (-) [NO SPACES!],
-            # (4) contains no two consecutive periods (..) and
-            # (5) is not a valid IPv4 address
-            collection_name = pdf_name.replace(' ', '-')
-            collection_name = collection_name.replace('..', '._')
-            if len(collection_name) > 63:
-                collection_name = collection_name[:63]
-                log.warning(f'collection name too long, shortened')
-
-            if collection_name != pdf_name:
-                log.info(f'collection name [{pdf_name}] modified for chroma restrictions to [{collection_name}]')
+            collection_name = self.compute_collection_name(file_name)
 
             # {'space': 'l2', 'construction_ef': 100, 'search_ef': 10, 'num_threads': 22, 'M': 16, 'resize_factor': 1.2, 'batch_size': 100, 'sync_threshold': 1000, '_type': 'HNSWConfigurationInternal'}
 
@@ -182,8 +190,10 @@ class VSChroma(VSAPI):
                 name=collection_name,
                 metadata={
                     'chunk_method': f'{VSChroma.__name__}.{self.ingest_pdf_text_splitter.__name__}',
-                    'original_filename:': f'{pdf_name}', 'path': pdf_file_path,
-                    'chunk_size': chunk_size, 'chunk_overlap': chunk_overlap,
+                    'original_filename:': f'{file_name}',
+                    'path': file_path,
+                    'chunk_size': chunk_size,
+                    'chunk_overlap': chunk_overlap,
                     'embedding_model_name': self.embedding_model_name,
                     'hnsw:space': 'l2',  # default l2
                     'hnsw:construction_ef': 500,  # default 100
@@ -199,13 +209,13 @@ class VSChroma(VSAPI):
             log.debug(f'adding {len(chunks)} chunks to {collection.name}')
             #  collection.add(documents=chunks, ids=[str(uuid.uuid4()) for _ in range(0, len(chunks))])  # use random uuids for chunk-ids
             collection.add(documents=chunks,
-                           ids=[f'{pdf_name}-{i}' for i in range(0, len(chunks))],  # use name:count for chunk-ids
+                           ids=[f'{file_name}-{i}' for i in range(0, len(chunks))],  # use name:count for chunk-ids
                            )
 
         return collection
 
-    def change_index(self, new_index_name: str) -> None:
-        log.info(f'changing index to [{new_index_name}]')
+    def switch_index(self, new_index_name: str) -> None:
+        log.info(f'switching index to [{new_index_name}]')
         self._build_clients()
         self.collection_name = new_index_name
         self._collection: Collection = self.get_collection(self.collection_name)

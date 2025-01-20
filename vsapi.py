@@ -59,5 +59,5 @@ class VSAPI(ABC):
         pass
 
     @abstractmethod
-    def change_index(self, new_index_name: str) -> None:
+    def switch_index(self, new_index_name: str) -> None:
         pass

@@ -66,7 +66,7 @@ class InstanceData:
             else:
                 self.source_name = selected_name.removeprefix(self.vs_name_prefix)
                 self.source_api = self.vectorstore
-                await run.io_bound(self.vectorstore.change_index, self.source_name)
+                await run.io_bound(self.vectorstore.switch_index, self.source_name)
 
             self.source_select_name = selected_name
         except (Exception,) as e:

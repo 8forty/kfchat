@@ -20,42 +20,50 @@ log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
 
-class UploadPDFDialog(Dialog):
+class UploadFileDialog(Dialog):
+    upload_id_class = 'chroma-upload'
+
     def __init__(self):
         Dialog.__init__(self)
+        self.chunker_type: str | None = None
 
-    async def handle_upload(self, evt: events.UploadEventArguments, vectorstore: VSChroma):
-        log.info(f'uploading local file {evt.name}...')
-        with tempfile.NamedTemporaryFile(delete=False) as tmp:
-            # tmp.write(evt.content.read())
-            contents: AnyStr = await run.io_bound(evt.content.read)
-            # contents: AnyStr = evt.content.read()
-            log.debug(f'loaded {evt.name}...')
-            await run.io_bound(tmp.write, contents)
-            log.debug(f'saved file {evt.name} to server file {tmp.name}...')
+    async def handle_upload(self, ulargs: events.UploadEventArguments, vectorstore: VSChroma):
+        log.info(f'uploading local file {ulargs.name}...')
+        with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
+            contents: AnyStr = await run.io_bound(ulargs.content.read)
+            log.debug(f'loaded {ulargs.name}...')
+            await run.io_bound(tmpfile.write, contents)
+            log.debug(f'saved file {ulargs.name} to server file {tmpfile.name}...')
 
         collection: Collection | None = None
         try:
-            log.debug(f'ingesting server file {tmp.name}...')
+            log.debug(f'chunking ({self.chunker_type}) server file {tmpfile.name}...')
             # todo: configure splitter and parms
-            collection = await run.io_bound(vectorstore.ingest_pdf_text_splitter, tmp.name, evt.name, 1000, 200)
+            collection = await run.io_bound(vectorstore.ingest_pdf_text_splitter, tmpfile.name, ulargs.name, 1000, 200)
 
             if collection is None:
-                errmsg = f'ingest failed for {evt.name}'
+                errmsg = f'ingest failed for {ulargs.name}'
                 log.warning(errmsg)
                 ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
         except (Exception,) as e:
-            errmsg = f'Error ingesting {evt.name}: {e}'
+            errmsg = f'Error ingesting {ulargs.name}: {e}'
             traceback.print_exc(file=sys.stdout)
             log.error(errmsg)
             ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
 
-        os.remove(tmp.name)
+        os.remove(tmpfile.name)
         if collection is not None:
-            log.info(f'ingested {evt.name} via {tmp.name}')
+            log.info(f'ingested {ulargs.name} via {tmpfile.name}')
         self.close()
 
-    async def do_upload_pdf(self):
+    async def do_upload_file(self, doc_type: str, chunker_type: str):
+        for d in self.descendants(include_self=False):
+            if self.upload_id_class in d.classes:
+                if doc_type in ['pypdf', 'pymupdf']:
+                    d.props(add='accept=".pdf"')
+                else:
+                    d.props(add='accept=".doc,.docx,.txt"')
+        self.chunker_type = chunker_type  # communicates to other functions in this instance
         self.open()
 
 
@@ -68,6 +76,8 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, env_values: dict[str,
                 with rbui.tr():
                     with rbui.td(label=f'collection [{collection_name}]', td_style='width: 300px'):
                         ui.button(text='delete', on_click=lambda c=collection_name: delete_coll(c))
+                        ui.separator()
+                        ui.button(text='peek', on_click=lambda c=collection_name: peek(c))
 
                     # details table
                     with rbui.table():
@@ -102,13 +112,6 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, env_values: dict[str,
                             rbui.td('database')
                             rbui.td(f'{collection.database}')
 
-                        # with rbui.tr():
-                        #     peek_n = 3
-                        #     rbui.td(f'peek.documents({peek_n})')
-                        #     peek_docs = [d[0:100] + '[...]' for d in collection.peek(limit=peek_n)['documents']]
-                        #     docs = '\n-----[doc]-----\n'.join(peek_docs)  # 'ids', 'embeddings', 'metadatas', 'documents', 'data', 'uris', 'included'
-                        #     rbui.td(f'{docs}')
-
                         # _client, _model, _embedding_function, _data_loader, ?
                         # for key in collection.__dict__['_model'].__dict__.keys():
                         #     val = collection.__dict__['_model'].__dict__[key]
@@ -121,18 +124,45 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, env_values: dict[str,
         vectorstore.delete_index(coll_name)
         chroma_ui.refresh()
 
+    async def peek(coll_name: str) -> None:
+        collection = vectorstore.get_collection(coll_name)
+        peek_n = 3  # todo: configure this?
+        peeks = collection.peek(limit=peek_n)
+        with ui.dialog() as peek_dialog, ui.card().classes('min-w-full'):
+            with ui.column().classes('gap-y-0'):
+                with ui.row():
+                    ui.input(placeholder='id').props('outlined').props('color=primary').props('bg-color=white')
+                    ui.button(text='id')
+                ui.separator()
+                with rbui.table():
+                    for i in range(0, peek_n):
+                        with rbui.tr():
+                            doc = peeks['documents'][i][0:100] + '[...]'
+                            doc_id = peeks['ids'][i]
+                            rbui.td(label=f'{doc_id}')
+                            rbui.td(label=f'{doc}')
+
+        await peek_dialog
+        peek_dialog.close()
+
     @ui.page(path)
     async def index(request: Request) -> None:
         logstuff.update_from_request(request)
         log.debug(f'chromadbpage route triggered')
 
-        with UploadPDFDialog() as upload_pdf_dialog, ui.card():
-            ui.label('Upload a PDF')
-            ui.upload(auto_upload=True, on_upload=lambda e: upload_pdf_dialog.handle_upload(e, vectorstore)).props('accept=".pdf"')
+        with UploadFileDialog() as upload_file_dialog, ui.card():
+            ui.label('Upload a File')
+            ui.upload(auto_upload=True, on_upload=lambda e: upload_file_dialog.handle_upload(e, vectorstore)).classes(add=upload_file_dialog.upload_id_class)
 
         with frame.frame(f'{config.name} {pagename}', 'bg-white'):
             with ui.column().classes('w-full flex-grow'):  # .classes('w-full max-w-2xl mx-auto items-stretch'):
-                with ui.row().classes('w-full border-solid border border-black'):
-                    ui.button('Upload PDF...', on_click=lambda: upload_pdf_dialog.do_upload_pdf())
-                    ui.button('refresh', on_click=lambda: chroma_ui.refresh())
+                with ui.row().classes('w-full border-solid border border-black items-center'):
+                    with ui.column().classes('gap-y-2'):
+                        ui.button('Refresh', on_click=lambda: chroma_ui.refresh()).props('no-caps')
+                    with ui.column().classes('gap-y-2'):
+                        ui.button('Upload PDF + Text Chunker...', on_click=lambda: upload_file_dialog.do_upload_file('pypdf', 'text')).props('no-caps')
+                        ui.button('Upload PDF + Semantic Chunker...', on_click=lambda: upload_file_dialog.do_upload_file('pypdf', 'semantic')).props('no-caps')
+                    with ui.column().classes('gap-y-2'):
+                        ui.button('Upload File + Text Chunker...', on_click=lambda: upload_file_dialog.do_upload_file('pydoc', 'text')).props('no-caps')
+                        ui.button('Upload File + Semantic Chunker...', on_click=lambda: upload_file_dialog.do_upload_file('pydoc', 'semantic')).props('no-caps')
                 await chroma_ui()
