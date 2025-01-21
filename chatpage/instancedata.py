@@ -18,13 +18,14 @@ log.setLevel(logstuff.logging_level)
 class InstanceData:
     _next_id: int = 1
 
-    def __init__(self, llm_configs: dict[str, LLMOaiConfig], llm_config: LLMOaiConfig, vectorstore: VSAPI, env_values: dict[str, str]):
+    def __init__(self, llm_configs: dict[str, LLMOaiConfig], llm_config: LLMOaiConfig, vectorstore: VSAPI, parms: dict[str, str]):
         self._id = InstanceData._next_id
         InstanceData._next_id += 1
-
-        self.env_values: dict[str, str] = env_values
-        self.info_messages: list[str] = []
+        self.parms: dict[str, str] = parms
         self.exchanges: ChatExchanges = ChatExchanges(config.chat_exchanges_circular_list_count)
+
+        # from special commands
+        self.info_messages: list[str] = []
         self.last_prompt: str | None = None
 
         # llm stuff
@@ -38,7 +39,6 @@ class InstanceData:
         self.vs_source_type: str = 'vs'
         self.vs_name_prefix: str = 'vs: '
         self.vectorstore = vectorstore
-        self.source_vs_api: VSAPI | None = None
 
         # #### source info
         self.source_select_name: str = self.source_llm_name
@@ -72,7 +72,6 @@ class InstanceData:
             else:
                 self.source_name = selected_name.removeprefix(self.vs_name_prefix)
                 self.current_source_type = self.vs_source_type
-                self.source_vs_api = self.vectorstore
                 await run.io_bound(self.vectorstore.switch_index, self.source_name)
                 log.debug(f'new vs name: {self.source_name}')
 
