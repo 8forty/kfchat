@@ -10,6 +10,7 @@ from chromadb.utils.embedding_functions.ollama_embedding_function import OllamaE
 from chromadb.utils.embedding_functions.openai_embedding_function import OpenAIEmbeddingFunction
 from chromadb.utils.embedding_functions.sentence_transformer_embedding_function import SentenceTransformerEmbeddingFunction
 
+import config
 import logstuff
 import chunkers
 from chatexchanges import VectorStoreResponse, VectorStoreResult
@@ -29,10 +30,15 @@ class VSChroma(VSAPI):
         self._collection: chromadb.Collection | None = None
 
     embedding_functions: dict[str, any] = {
-        SentenceTransformerEmbeddingFunction.__name__: SentenceTransformerEmbeddingFunction,
-        OpenAIEmbeddingFunction.__name__: OpenAIEmbeddingFunction,
-        GoogleGenerativeAiEmbeddingFunction.__name__: GoogleGenerativeAiEmbeddingFunction,
-        OllamaEmbeddingFunction.__name__: OllamaEmbeddingFunction,
+        'ST/all-MiniLM-L6-v2': {'function': SentenceTransformerEmbeddingFunction, 'parms': {'model_name': 'all-MiniLM-L6-v2'}},
+        'ST/all-mpnet-base-v2': {'function': SentenceTransformerEmbeddingFunction, 'parms': {'model_name': 'all-mpnet-base-v2'}},
+        'OpenAI/text-embedding-3-large': {'function': OpenAIEmbeddingFunction, 'parms': {'model_name': 'text-embedding-3-large',
+                                                                                         'api_key': config.env.get('OPENAI_API_KEY'),
+                                                                                         }},
+        'OpenAI/text-embedding-ada-002': {'function': OpenAIEmbeddingFunction, 'parms': {'model_name': 'text-embedding-ada-002'}},
+        'OpenAI/text-embedding-3-small': {'function': OpenAIEmbeddingFunction, 'parms': {'model_name': 'text-embedding-3-small'}},
+        'ST/Google': {'function': GoogleGenerativeAiEmbeddingFunction, 'parms': {}},
+        'ST/Ollama': {'function': OllamaEmbeddingFunction, 'parms': {}},
     }
 
     def warmup(self):
@@ -170,6 +176,60 @@ class VSChroma(VSAPI):
             log.info(f'collection name [{file_name}] modified for chroma restrictions to [{collection_name}]')
 
         return collection_name
+
+    def create_collection(self, name: str, embedding_type: str) -> Collection:
+        """
+        chroma collection name requirements:
+        (1) contains 3-63 characters,
+        (2) starts and ends with an alphanumeric character,
+        (3) otherwise contains only alphanumeric characters, underscores or hyphens (-) [NO SPACES!],
+        (4) contains no two consecutive periods (..) and
+        (5) is not a valid IPv4 address
+        (*) unique per... tenant? database? all?
+
+        :param name:
+        :param embedding_type:
+        """
+        self._build_clients()
+
+        # create the collection
+        # todo: configure all this
+        # todo: recommended hnsw config from:
+        # metadata={
+        #     "hnsw:space": "cosine",
+        #     "hnsw:construction_ef": 600,
+        #     "hnsw:search_ef": 1000,
+        #     "hnsw:M": 60
+        # },
+        # default hnsw: {'space': 'l2', 'construction_ef': 100, 'search_ef': 10, 'num_threads': 22, 'M': 16, 'resize_factor': 1.2, 'batch_size': 100, 'sync_threshold': 1000, '_type': 'HNSWConfigurationInternal'}
+        # todo: CollectionConfiguration will eventually be implemented: https://github.com/chroma-core/chroma/pull/2495
+        embedding_function_info = self.embedding_functions[embedding_type]  # default: 'all-MiniLM-L6-v2'
+        #  x: CollectionConfiguration = CollectionConfiguration(hnsw_configuration=HNSWConfiguration(space='cosine'))
+        collection: Collection = self._client.create_collection(
+            name=name,
+            metadata={
+                # 'chunk_method': f'{VSChroma.__name__}.{self.ingest_pdf_text_splitter.__name__}',
+                # 'original_filename:': f'{file_name}',
+                # 'path': file_path,
+                # 'chunk_size': chunk_size,
+                # 'chunk_overlap': chunk_overlap,
+
+                'embedding_function_name': embedding_function_info['function'].__name__,
+                'embedding_function_parms': json.dumps(config.redact_parms(embedding_function_info['parms']), ensure_ascii=False),
+
+                'hnsw:space': 'l2',  # default l2
+                'hnsw:construction_ef': 500,  # default 100
+                'hnsw:search_ef': 500,  # default 10
+                'hnsw:M': 40,  # default 16
+
+                'chroma_version': self._client.get_version(),
+            },
+            embedding_function=embedding_function_info['function'](**embedding_function_info['parms']),
+            data_loader=None,
+            get_or_create=False
+        )
+
+        return collection
 
     def ingest_pdf_text_splitter(self, file_path: str, file_name: str, chunk_size: int, chunk_overlap: int) -> Collection | None:
         self._build_clients()

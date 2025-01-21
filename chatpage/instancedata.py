@@ -40,8 +40,8 @@ class InstanceData:
         self.vs_name_prefix: str = 'vs: '
         self.vectorstore = vectorstore
 
-        # #### source info
-        self.source_select_name: str = self.source_llm_name
+        # source info
+        self.source_select_name: str = self.source_llm_name  # start with llm
         self.current_source_type: str = self.llm_source_type
         self.source_name: str = self.source_select_name  # name of the source object (we want to start with the llm, so select-name and name are the same)
 

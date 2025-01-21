@@ -2,7 +2,6 @@ import logging
 import time
 import traceback
 
-import dotenv
 from fastapi import FastAPI
 from nicegui import ui
 
@@ -18,9 +17,6 @@ log.setLevel(logstuff.logging_level)
 
 app = FastAPI()
 
-dotenv.load_dotenv(override=True)
-env_values: dict[str, str] = dotenv.dotenv_values()
-
 
 @app.get("/kfchatroot")
 async def root():
@@ -35,17 +31,17 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
     # todo: these should come from somewhere, e.g. pref screen
     settings = LLMOaiSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_system_message_name='technical800')
     llm_configs_list = [
-        LLMOaiConfig(model_name='llama-3.3-70b-versatile', api_type_name='groq', parms=env_values, settings=settings),
-        LLMOaiConfig(model_name='llama3.2:1b', api_type_name='ollama', parms=env_values, settings=settings),
-        LLMOaiConfig(model_name='llama3.2:3b', api_type_name='ollama', parms=env_values, settings=settings),
-        LLMOaiConfig(model_name='gemma2:9b', api_type_name='ollama', parms=env_values, settings=settings),
-        LLMOaiConfig(model_name='gemma2:27b', api_type_name='ollama', parms=env_values, settings=settings),
-        LLMOaiConfig(model_name='gpt-4o-mini', api_type_name='openai', parms=env_values, settings=settings),
+        LLMOaiConfig(model_name='llama-3.3-70b-versatile', api_type_name='groq', parms=config.env, settings=settings),
+        LLMOaiConfig(model_name='llama3.2:1b', api_type_name='ollama', parms=config.env, settings=settings),
+        LLMOaiConfig(model_name='llama3.2:3b', api_type_name='ollama', parms=config.env, settings=settings),
+        LLMOaiConfig(model_name='gemma2:9b', api_type_name='ollama', parms=config.env, settings=settings),
+        LLMOaiConfig(model_name='gemma2:27b', api_type_name='ollama', parms=config.env, settings=settings),
+        LLMOaiConfig(model_name='gpt-4o-mini', api_type_name='openai', parms=config.env, settings=settings),
         LLMOaiConfig(model_name='RFI-Automate-GPT-4o-mini-2000k',  # really the deployment name for azure
-                     api_type_name='azure', parms=env_values, settings=settings),
-        LLMOaiConfig(model_name='gemini-1.5-flash', api_type_name='gemini', parms=env_values, settings=settings),
-        LLMOaiConfig(model_name='gemini-1.5-flash-8b', api_type_name='gemini', parms=env_values, settings=settings),
-        LLMOaiConfig(model_name='gemini-1.5-pro', api_type_name='gemini', parms=env_values, settings=settings),
+                     api_type_name='azure', parms=config.env, settings=settings),
+        LLMOaiConfig(model_name='gemini-1.5-flash', api_type_name='gemini', parms=config.env, settings=settings),
+        LLMOaiConfig(model_name='gemini-1.5-flash-8b', api_type_name='gemini', parms=config.env, settings=settings),
+        LLMOaiConfig(model_name='gemini-1.5-pro', api_type_name='gemini', parms=config.env, settings=settings),
     ]
     llm_configs = {lc.model_name: lc for lc in llm_configs_list}
 
@@ -54,8 +50,8 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         retry_wait_seconds = 15
         while True:
             try:
-                vsparms = env_values.copy()
-                vectorstore = vsapi_factory.create_one('chroma', parms=vsparms)  # todo: add to env_values
+                vsparms = config.env.copy()
+                vectorstore = vsapi_factory.create_one('chroma', parms=vsparms)  # todo: add to env
                 vectorstore.warmup()
                 break
             except (Exception,) as e:
@@ -68,11 +64,11 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         raise
 
     # the chat page
-    cp = chatpage.ChatPage(llm_configs=llm_configs, init_llm_model_name=llm_configs_list[0].model_name, vectorstore=vectorstore, env_values=env_values)
+    cp = chatpage.ChatPage(llm_configs=llm_configs, init_llm_model_name=llm_configs_list[0].model_name, vectorstore=vectorstore, parms=config.env)
     cp.setup('/', 'Chat')
 
     # the chromadb page
-    chromadbpage.setup('/chromadb', 'ChromaDB Page', vectorstore, env_values)  # todo: enforce VSChroma vectorstore here
+    chromadbpage.setup('/chromadb', 'ChromaDB Page', vectorstore, config.env)  # todo: enforce VSChroma vectorstore here
 
 
 def run():

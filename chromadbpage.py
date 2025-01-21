@@ -146,6 +146,30 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, env_values: dict[str,
         await peek_dialog
         peek_dialog.close()
 
+    async def do_create_dialog():
+        def do_create(collection_name: str, embedding_type: str):
+            if len(collection_name.strip()) < 3 or len(collection_name.strip()) > 63 or len(collection_name.strip()) != len(collection_name):
+                ui.notify(message='Invalid collection name', position='top', type='negative', close_button='Dismiss')
+            vectorstore.create_collection(collection_name, embedding_type)
+            create_dialog.submit(collection_name)
+
+        with ui.dialog() as create_dialog, ui.card():
+            ui.label('Create A Collection')
+            cinput = ui.input(label='Collection Name',
+                              placeholder='3-63 chars, no spaces, unders or hyphens',
+                              validation={'Too short!': lambda value: len(value) >= 3,
+                                          'Too long!': lambda value: len(value) <= 63,
+                                          'No Spaces!': lambda value: str(value).find(' ') == -1},
+                              ).classes('flex-grow').props('outlined').props('color=primary').props('bg-color=white')
+            ui.button('Create: ST/all-MiniLM-L6-v2 Embedding', on_click=lambda: do_create(cinput.value, 'ST/all-MiniLM-L6-v2')).props('no-caps')
+            ui.button('Create: ST/all-mpnet-base-v2 Embedding...', on_click=lambda: do_create(cinput.value, 'ST/all-mpnet-base-v2')).props('no-caps')
+            ui.button('Create: OpenAI/text-embedding-3-large Embedding...', on_click=lambda: do_create(cinput.value, 'OpenAI/text-embedding-3-large')).props('no-caps')
+
+        _ = await create_dialog
+        create_dialog.close()
+        create_dialog.clear()
+        chroma_ui.refresh()
+
     @ui.page(path)
     async def index(request: Request) -> None:
         logstuff.update_from_request(request)
@@ -160,10 +184,14 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, env_values: dict[str,
                 with ui.row().classes('w-full border-solid border border-black items-center'):
                     with ui.column().classes('gap-y-2'):
                         ui.button('Refresh', on_click=lambda: chroma_ui.refresh()).props('no-caps')
+                        ui.button('Create...', on_click=lambda: do_create_dialog()).props('no-caps')
                     with ui.column().classes('gap-y-2'):
-                        ui.button('Upload PDF + Text Chunker...', on_click=lambda: upload_file_dialog.do_upload_file('pypdf', 'text')).props('no-caps')
-                        ui.button('Upload PDF + Semantic Chunker...', on_click=lambda: upload_file_dialog.do_upload_file('pypdf', 'semantic')).props('no-caps')
-                    with ui.column().classes('gap-y-2'):
-                        ui.button('Upload File + Text Chunker...', on_click=lambda: upload_file_dialog.do_upload_file('pydoc', 'text')).props('no-caps')
-                        ui.button('Upload File + Semantic Chunker...', on_click=lambda: upload_file_dialog.do_upload_file('pydoc', 'semantic')).props('no-caps')
+                        ui.button('Add: RCTS Chunker...', on_click=lambda: upload_file_dialog.do_upload_file('pypdf', 'text')).props('no-caps')
+                        ui.button('Add: Semantic Chunker...', on_click=lambda: upload_file_dialog.do_upload_file('pypdf', 'semantic')).props('no-caps')
+                        # ui.button('Create: ST/all-MiniLM-L6-v2 Embedding...', on_click=lambda: upload_file_dialog.do_upload_file('pypdf', 'text')).props('no-caps')
+                        # ui.button('Create: ST/all-mpnet-base-v2 Embedding...', on_click=lambda: upload_file_dialog.do_upload_file('pypdf', 'text')).props('no-caps')
+                        # ui.button('Create: ST/OpenAI Embedding...', on_click=lambda: upload_file_dialog.do_upload_file('pypdf', 'semantic')).props('no-caps')
+                    # with ui.column().classes('gap-y-2'):
+                    #     ui.button('Upload File + Text Chunker...', on_click=lambda: upload_file_dialog.do_upload_file('pydoc', 'text')).props('no-caps')
+                    #     ui.button('Upload File + Semantic Chunker...', on_click=lambda: upload_file_dialog.do_upload_file('pydoc', 'semantic')).props('no-caps')
                 await chroma_ui()

@@ -27,12 +27,12 @@ log.setLevel(logstuff.logging_level)
 
 class ChatPage:
 
-    def __init__(self, llm_configs: dict[str, LLMOaiConfig], init_llm_model_name: str, vectorstore: VSAPI, env_values: dict[str, str]):
+    def __init__(self, llm_configs: dict[str, LLMOaiConfig], init_llm_model_name: str, vectorstore: VSAPI, parms: dict[str, str]):
         # anything in here is shared by all instances of ChatPage
         self.llm_configs = llm_configs
         self.llm_config = llm_configs[init_llm_model_name]
         self.vectorstore = vectorstore
-        self.env_values = env_values
+        self.parms = parms
 
     def setup(self, path: str, pagename: str):
 
@@ -54,8 +54,8 @@ class ChatPage:
                 idata.info_messages.append(about)
             elif prompt.startswith('*info'):
                 idata.info_messages.append('env:')
-                for key in self.env_values.keys():
-                    idata.info_messages.append(f'----{key}: {self.env_values[key]}')
+                for key in self.parms.keys():
+                    idata.info_messages.append(f'----{key}: {self.parms[key]}')
             elif prompt.startswith('*repeat'):
                 prompt_input.set_value(idata.last_prompt)
                 await handle_enter_llm(request, prompt_input, spinner, scroller, idata)
@@ -153,7 +153,7 @@ class ChatPage:
             logstuff.update_from_request(request)
             log.info(f'route triggered')
 
-            idata = InstanceData(self.llm_configs, self.llm_config, self.vectorstore, self.env_values)
+            idata = InstanceData(self.llm_configs, self.llm_config, self.vectorstore, self.parms)
 
             # setup the standard "frame" for all pages
             with frame.frame(f'{config.name} {pagename}', 'bg-white'):
