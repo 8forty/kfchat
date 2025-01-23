@@ -94,9 +94,10 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         with (UploadFileDialog(collection, doc_type, chunker_type, chunker_args) as upload_file_dialog, ui.card()):
             ui.label('Upload a File')
             ui.upload(auto_upload=True, on_upload=lambda ulargs: upload_file_dialog.handle_upload(ulargs, vectorstore)).classes(add=upload_file_dialog.upload_id_class)
+            with ui.row().classes('w-full place-content-center'):
+                ui.button(text='Done', on_click=lambda: upload_file_dialog.submit(None)).props('no-caps')
         await upload_file_dialog.set_filetype_props()
         await upload_file_dialog
-        print(f'~~~ upload closing...')
         upload_file_dialog.close()
         upload_file_dialog.clear()
         chroma_ui.refresh()

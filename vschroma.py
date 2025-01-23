@@ -280,7 +280,7 @@ class VSChroma(VSAPI):
         else:
             raise ValueError(f'unknown chunker type [{chunker_type}]')
 
-        log.debug(f'adding {len(chunks)} chunks to {collection.name}')
+        log.debug(f'adding embeddings for {len(chunks)} chunks to {collection.name}')
         now = config.now_datetime()
         collection.metadata[f'file:{org_filename}'] = now
         collection.metadata[f'file:{org_filename}.doc_type'] = doc_type
