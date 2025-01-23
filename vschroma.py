@@ -3,12 +3,15 @@ import logging
 
 import chromadb
 from chromadb.api.models.Collection import Collection
-from chromadb.api.types import IncludeEnum
+from chromadb.api.types import IncludeEnum, EmbeddingFunction, Documents, Document
 from chromadb.errors import InvalidCollectionException
 from chromadb.utils.embedding_functions.google_embedding_function import GoogleVertexEmbeddingFunction, GoogleGenerativeAiEmbeddingFunction
 from chromadb.utils.embedding_functions.ollama_embedding_function import OllamaEmbeddingFunction
 from chromadb.utils.embedding_functions.openai_embedding_function import OpenAIEmbeddingFunction
 from chromadb.utils.embedding_functions.sentence_transformer_embedding_function import SentenceTransformerEmbeddingFunction
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.vectorstores.utils import filter_complex_metadata
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 import config
 import logstuff
@@ -25,15 +28,21 @@ class VSChroma(VSAPI):
     def __init__(self, api_type_name: str, parms: dict[str, str]):
         super().__init__(api_type_name, parms)
         self._client: chromadb.ClientAPI | None = None
-        self.embedding_model_name: str = 'all-MiniLM-L6-v2'
-        self.collection_name: str | None = None
-        self._collection: chromadb.Collection | None = None
+        self.collection_name: str | None = None  # todo: get rid of this
+        self._collection: chromadb.Collection | None = None  # todo: and this
 
-    embedding_functions: dict[str, any] = {
+    embedding_functions: dict[str, EmbeddingFunction[Documents]] = {
+        SentenceTransformerEmbeddingFunction.__name__: SentenceTransformerEmbeddingFunction,
+        OpenAIEmbeddingFunction.__name__: OpenAIEmbeddingFunction,
+        GoogleGenerativeAiEmbeddingFunction.__name__: GoogleGenerativeAiEmbeddingFunction,
+        OllamaEmbeddingFunction.__name__: OllamaEmbeddingFunction
+    }
+
+    embedding_types_data: dict[str, any] = {
         'ST/all-MiniLM-L6-v2': {'function': SentenceTransformerEmbeddingFunction, 'parms': {'model_name': 'all-MiniLM-L6-v2'}},
         'ST/all-mpnet-base-v2': {'function': SentenceTransformerEmbeddingFunction, 'parms': {'model_name': 'all-mpnet-base-v2'}},
         'OpenAI/text-embedding-3-large': {'function': OpenAIEmbeddingFunction, 'parms': {'model_name': 'text-embedding-3-large',
-                                                                                         'api_key': config.env.get('OPENAI_API_KEY'),
+                                                                                         'api_key': config.env.get('OPENAI_API_KEY'),  # todo: fix this!
                                                                                          }},
         'OpenAI/text-embedding-ada-002': {'function': OpenAIEmbeddingFunction, 'parms': {'model_name': 'text-embedding-ada-002'}},
         'OpenAI/text-embedding-3-small': {'function': OpenAIEmbeddingFunction, 'parms': {'model_name': 'text-embedding-3-small'}},
@@ -50,12 +59,19 @@ class VSChroma(VSAPI):
 
     def get_collection(self, collection_name: str) -> Collection:
         try:
-            # todo: assuming SentenceTransformerEmbeddingFunction here
-            return self._client.get_collection(
-                name=collection_name,
-                embedding_function=SentenceTransformerEmbeddingFunction(model_name=self.embedding_model_name),  # default: 'all-MiniLM-L6-v2'
-                data_loader=None,
-            )
+            # first figure out the embedding function
+            metadata = self._client.get_collection(name=collection_name).metadata
+            if 'embedding_function_name' in metadata:
+                embedding_function_name = metadata['embedding_function_name']
+                ef: EmbeddingFunction[Documents] = self.embedding_functions[embedding_function_name]
+                embedding_function_parms: dict[str, str] = json.loads(metadata['embedding_function_parms'])
+
+                return self._client.get_collection(
+                    name=collection_name,
+                    embedding_function=ef(**embedding_function_parms)
+                )
+            else:
+                raise ValueError(f'collection {collection_name} has no embedding_function_name in metadata!')
         except InvalidCollectionException:
             errmsg = f'bad collection name: {self.collection_name}'
             log.warning(errmsg)
@@ -87,11 +103,13 @@ class VSChroma(VSAPI):
         # chroma results are lists with one element per prompt, since we only have 1 prompt we only use element 0 from each list
         # transform from dict-of-lists to more sensible list-of-dicts
         raw_results = []
+        # for each expected result
         for i in range(0, howmany):
             rdict = {}
+            # for each of the chroma result keys
             for k in results:
-                if k != 'included':  # the 'included' key is diff from the rest
-                    rdict[k] = results[k][0][i] if results[k] is not None else None
+                if k != 'included':  # we ignore the 'included' key
+                    rdict[k] = results[k][0][i] if results[k] is not None and len(results[k]) > 0 and len(results[k][0]) > i else None
             raw_results.append(rdict)
 
         return VSAPI.SearchResponse(
@@ -203,7 +221,7 @@ class VSChroma(VSAPI):
         # },
         # default hnsw: {'space': 'l2', 'construction_ef': 100, 'search_ef': 10, 'num_threads': 22, 'M': 16, 'resize_factor': 1.2, 'batch_size': 100, 'sync_threshold': 1000, '_type': 'HNSWConfigurationInternal'}
         # todo: CollectionConfiguration will eventually be implemented: https://github.com/chroma-core/chroma/pull/2495
-        embedding_function_info = self.embedding_functions[embedding_type]  # default: 'all-MiniLM-L6-v2'
+        embedding_function_info = self.embedding_types_data[embedding_type]  # default: 'all-MiniLM-L6-v2'
         #  x: CollectionConfiguration = CollectionConfiguration(hnsw_configuration=HNSWConfiguration(space='cosine'))
         collection: Collection = self._client.create_collection(
             name=name,
@@ -215,7 +233,8 @@ class VSChroma(VSAPI):
                 # 'chunk_overlap': chunk_overlap,
 
                 'embedding_function_name': embedding_function_info['function'].__name__,
-                'embedding_function_parms': json.dumps(config.redact_parms(embedding_function_info['parms']), ensure_ascii=False),
+                # todo: the key!?!? 'embedding_function_parms': json.dumps(config.redact_parms(embedding_function_info['parms']), ensure_ascii=False),
+                'embedding_function_parms': json.dumps(embedding_function_info['parms'], ensure_ascii=False),
 
                 'hnsw:space': 'l2',  # default l2
                 'hnsw:construction_ef': 500,  # default 100
@@ -231,61 +250,28 @@ class VSChroma(VSAPI):
 
         return collection
 
-    def ingest_pdf_text_splitter(self, file_path: str, file_name: str, chunk_size: int, chunk_overlap: int) -> Collection | None:
-        self._build_clients()
-
-        collection: Collection | None = None
-
-        # todo: configure this
-        chunks = chunkers.pypdf_text(server_pdf_path=file_path, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-        if len(chunks) == 0:
-            log.warning(f'no chunks found in {file_name} ({file_path})!')
+    def ingest(self, collection: Collection, file_path: str, file_name: str, doc_type: str, chunker_type: str, chunker_args: dict[str, any]) -> Collection:
+        docs: list[Document]
+        if doc_type == 'pypdf':
+            # load the PDF into LC Document's
+            docs = PyPDFLoader(file_path=file_path).load()
         else:
-            collection_name = self.compute_collection_name(file_name)
+            raise ValueError(f'unknown document type [{doc_type}]')
 
-            # {'space': 'l2', 'construction_ef': 100, 'search_ef': 10, 'num_threads': 22, 'M': 16, 'resize_factor': 1.2, 'batch_size': 100, 'sync_threshold': 1000, '_type': 'HNSWConfigurationInternal'}
+        if chunker_type == 'rcts':
+            # split into chunks, also LC Document's
+            chunks = RecursiveCharacterTextSplitter(**chunker_args).split_documents(docs)
 
-            # create the collection
-            # todo: configure all this
-            # todo: recommended hnsw config from:
-            # metadata={
-            #     "hnsw:space": "cosine",
-            #     "hnsw:construction_ef": 600,
-            #     "hnsw:search_ef": 1000,
-            #     "hnsw:M": 60
-            # },
-            # todo: CollectionConfiguration will eventually be implemented: https://github.com/chroma-core/chroma/pull/2495
-            embedding_function = SentenceTransformerEmbeddingFunction  # default: 'all-MiniLM-L6-v2'
-            #  x: CollectionConfiguration = CollectionConfiguration(hnsw_configuration=HNSWConfiguration(space='cosine'))
-            collection: Collection = self._client.create_collection(
-                name=collection_name,
-                metadata={
-                    'chunk_method': f'{VSChroma.__name__}.{self.ingest_pdf_text_splitter.__name__}',
-                    'original_filename:': f'{file_name}',
-                    'path': file_path,
-                    'chunk_size': chunk_size,
-                    'chunk_overlap': chunk_overlap,
+            # remove complex metadata not supported by ChromaDB, pull out the the content as a str
+            chunks = [c.page_content for c in filter_complex_metadata(chunks)]
+        else:
+            raise ValueError(f'unknown chunker type [{chunker_type}]')
 
-                    'embedding_function_name': embedding_function.__name__,
-                    'embedding_function_parms': json.dumps({'model_name': self.embedding_model_name}, ensure_ascii=False),
-
-                    'hnsw:space': 'l2',  # default l2
-                    'hnsw:construction_ef': 500,  # default 100
-                    'hnsw:search_ef': 500,  # default 10
-                    'hnsw:M': 40,  # default 16
-
-                    'chroma_version': self._client.get_version(),
-                },
-                embedding_function=embedding_function(model_name=self.embedding_model_name),
-                data_loader=None,
-                get_or_create=False
-            )
-            # create Chroma vectorstore from the chunks
-            log.debug(f'adding {len(chunks)} chunks to {collection.name}')
-            #  collection.add(documents=chunks, ids=[str(uuid.uuid4()) for _ in range(0, len(chunks))])  # use random uuids for chunk-ids
-            collection.add(documents=chunks,
-                           ids=[f'{file_name}-{i}' for i in range(0, len(chunks))],  # use name:count for chunk-ids
-                           )
+        log.debug(f'adding {len(chunks)} chunks to {collection.name}')
+        #  collection.add(documents=chunks, ids=[str(uuid.uuid4()) for _ in range(0, len(chunks))])  # use random uuids for chunk-ids
+        collection.add(documents=chunks,
+                       ids=[f'{file_name}-{i}' for i in range(0, len(chunks))],  # use name:count for chunk-ids
+                       )
 
         return collection
 
