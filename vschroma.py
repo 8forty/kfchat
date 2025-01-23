@@ -250,27 +250,46 @@ class VSChroma(VSAPI):
 
         return collection
 
-    def ingest(self, collection: Collection, file_path: str, file_name: str, doc_type: str, chunker_type: str, chunker_args: dict[str, any]) -> Collection:
-        docs: list[Document]
+    def fix_metadata_for_modify(self, md: dict[str, any]) -> dict[str, any]:
+        """
+        this is necessary b/c the hnsw parameters are passed as metadata currently and some (e.g. "hnsw:space") CAN'T BE CHANGED
+        see: https://github.com/chroma-core/chroma/issues/2515
+        (the suggestion to use client.get_or_create_collection instead of collection.modify didn't work!
+        :param md:
+        :return:
+        """
+        retval: dict[str, any] = {}
+        for k, v in md.items():
+            retval[k if not k.startswith('hnsw') else f'org-{k}'] = v
+        return retval
+
+    def ingest(self, collection: Collection, server_file_path: str, org_filename: str, doc_type: str, chunker_type: str, chunker_args: dict[str, any]) -> Collection:
         if doc_type == 'pypdf':
             # load the PDF into LC Document's
-            docs = PyPDFLoader(file_path=file_path).load()
+            docs: list[Document] = PyPDFLoader(file_path=server_file_path).load()
         else:
             raise ValueError(f'unknown document type [{doc_type}]')
 
         if chunker_type == 'rcts':
-            # split into chunks, also LC Document's
+            # split into chunks
             chunks = RecursiveCharacterTextSplitter(**chunker_args).split_documents(docs)
 
             # remove complex metadata not supported by ChromaDB, pull out the the content as a str
             chunks = [c.page_content for c in filter_complex_metadata(chunks)]
+
         else:
             raise ValueError(f'unknown chunker type [{chunker_type}]')
 
         log.debug(f'adding {len(chunks)} chunks to {collection.name}')
+        now = config.now_datetime()
+        collection.metadata[f'file:{org_filename}'] = now
+        collection.metadata[f'file:{org_filename}.doc_type'] = doc_type
+        collection.metadata[f'file:{org_filename}.chunker_type'] = chunker_type
+        collection.modify(metadata=self.fix_metadata_for_modify(collection.metadata))
+
         #  collection.add(documents=chunks, ids=[str(uuid.uuid4()) for _ in range(0, len(chunks))])  # use random uuids for chunk-ids
         collection.add(documents=chunks,
-                       ids=[f'{file_name}-{i}' for i in range(0, len(chunks))],  # use name:count for chunk-ids
+                       ids=[f'{org_filename}-{i}' for i in range(0, len(chunks))],  # use name:count for chunk-ids
                        )
 
         return collection

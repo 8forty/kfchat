@@ -41,7 +41,8 @@ class UploadFileDialog(Dialog):
 
         try:
             log.debug(f'chunking ({self.chunker_type}) server file {tmpfile.name}...')
-            await run.io_bound(vectorstore.ingest, self.collection, tmpfile.name, local_file_name, self.doc_type, self.chunker_type, self.chunker_args)
+            #  await run.io_bound(vectorstore.ingest, self.collection, tmpfile.name, local_file_name, self.doc_type, self.chunker_type, self.chunker_args)
+            await run.io_bound(lambda: vectorstore.ingest(self.collection, tmpfile.name, local_file_name, self.doc_type, self.chunker_type, self.chunker_args))
         except (Exception,) as e:
             errmsg = f'Error ingesting {local_file_name}: {e}'
             traceback.print_exc(file=sys.stdout)
@@ -95,14 +96,23 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
             ui.upload(auto_upload=True, on_upload=lambda ulargs: upload_file_dialog.handle_upload(ulargs, vectorstore)).classes(add=upload_file_dialog.upload_id_class)
         await upload_file_dialog.set_filetype_props()
         await upload_file_dialog
+        print(f'~~~ upload closing...')
         upload_file_dialog.close()
         upload_file_dialog.clear()
+        chroma_ui.refresh()
 
     @ui.refreshable
     async def chroma_ui() -> None:
         with rbui.table():
             for collection_name in await run.io_bound(vectorstore.list_index_names):
-                collection = vectorstore.get_collection(collection_name)
+                try:
+                    collection = vectorstore.get_collection(collection_name)
+                except (Exception,) as e:
+                    errmsg = f'Error loading collection {collection_name}: {e} (skipping)'
+                    log.warning(errmsg)
+                    ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
+                    continue
+
                 with rbui.tr():
                     with rbui.td(label=f'{collection_name}', td_style='width: 250px'):
                         rcts_args = {'chunk_size': 1000, 'chunk_overlap': 200}  # todo configure this
@@ -187,18 +197,11 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         log.debug(f'chromadbpage route triggered')
 
         with frame.frame(f'{config.name} {pagename}', 'bg-white'):
-            with ui.column().classes('w-full flex-grow'):  # .classes('w-full max-w-2xl mx-auto items-stretch'):
+            with ui.column().classes('w-full'):  # .classes('w-full max-w-2xl mx-auto items-stretch'):
                 with ui.row().classes('w-full border-solid border border-black items-center'):
-                    with ui.column().classes('gap-y-2'):
-                        ui.button('Refresh', on_click=lambda: chroma_ui.refresh()).props('no-caps')
-                        ui.button('Create...', on_click=lambda: do_create_dialog()).props('no-caps')
-                    with ui.column().classes('gap-y-2'):
-                        ui.button('Add: RCTS Chunker...', on_click=lambda: upload_file_dialog.do_upload_file('pypdf', 'text')).props('no-caps')
-                        ui.button('Add: Semantic Chunker...', on_click=lambda: upload_file_dialog.do_upload_file('pypdf', 'semantic')).props('no-caps')
-                        # ui.button('Create: ST/all-MiniLM-L6-v2 Embedding...', on_click=lambda: upload_file_dialog.do_upload_file('pypdf', 'text')).props('no-caps')
-                        # ui.button('Create: ST/all-mpnet-base-v2 Embedding...', on_click=lambda: upload_file_dialog.do_upload_file('pypdf', 'text')).props('no-caps')
-                        # ui.button('Create: ST/OpenAI Embedding...', on_click=lambda: upload_file_dialog.do_upload_file('pypdf', 'semantic')).props('no-caps')
-                    # with ui.column().classes('gap-y-2'):
-                    #     ui.button('Upload File + Text Chunker...', on_click=lambda: upload_file_dialog.do_upload_file('pydoc', 'text')).props('no-caps')
-                    #     ui.button('Upload File + Semantic Chunker...', on_click=lambda: upload_file_dialog.do_upload_file('pydoc', 'semantic')).props('no-caps')
-                await chroma_ui()
+                    ui.button('Refresh', on_click=lambda: chroma_ui.refresh()).props('no-caps')
+                    ui.button('Create...', on_click=lambda: do_create_dialog()).props('no-caps')
+
+            with ui.scroll_area().classes('w-full flex-grow'):
+                with ui.column().classes('w-full flex-grow'):  # .classes('w-full max-w-2xl mx-auto items-stretch'):
+                    await chroma_ui()
