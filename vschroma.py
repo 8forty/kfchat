@@ -10,7 +10,7 @@ from chromadb.utils.embedding_functions.ollama_embedding_function import OllamaE
 from chromadb.utils.embedding_functions.openai_embedding_function import OpenAIEmbeddingFunction
 from chromadb.utils.embedding_functions.sentence_transformer_embedding_function import SentenceTransformerEmbeddingFunction
 from langchain_community.document_loaders import PyPDFLoader
-from langchain_community.vectorstores.utils import filter_complex_metadata
+from langchain_experimental.text_splitter import SemanticChunker
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 import config
@@ -250,7 +250,8 @@ class VSChroma(VSAPI):
 
         return collection
 
-    def fix_metadata_for_modify(self, md: dict[str, any]) -> dict[str, any]:
+    @staticmethod
+    def fix_metadata_for_modify(md: dict[str, any]) -> dict[str, any]:
         """
         this is necessary b/c the hnsw parameters are passed as metadata currently and some (e.g. "hnsw:space") CAN'T BE CHANGED
         see: https://github.com/chroma-core/chroma/issues/2515
@@ -263,6 +264,26 @@ class VSChroma(VSAPI):
             retval[k if not k.startswith('hnsw') else f'org-{k}'] = v
         return retval
 
+    # borrowed from langchain_community.vectorstores.utils.filter_complex_metadata
+    stringify_allowed_types: tuple[type, ...] = (str, bool, int, float)
+
+    def filter_metadata_docs(self, documents: list[Document]) -> list[Document]:
+        retval: list[Document] = []
+        for doc in documents:
+            for key, value in doc.metadata.items():
+                if not isinstance(value, self.stringify_allowed_types):
+                    continue
+            retval.append(doc)
+        return retval
+
+    def filter_metadata(self, metadata: dict[str, any]) -> dict[str, any]:
+        retval: dict[str, any] = {}
+        for key, value in metadata.items():
+            if not isinstance(value, self.stringify_allowed_types):
+                continue
+            retval[key] = value
+        return retval
+
     def ingest(self, collection: Collection, server_file_path: str, org_filename: str, doc_type: str, chunker_type: str, chunker_args: dict[str, any]) -> Collection:
         if doc_type == 'pypdf':
             # load the PDF into LC Document's
@@ -271,25 +292,30 @@ class VSChroma(VSAPI):
             raise ValueError(f'unknown document type [{doc_type}]')
 
         if chunker_type == 'rcts':
-            # split into chunks
-            chunks = RecursiveCharacterTextSplitter(**chunker_args).split_documents(docs)
+            # chunks = [chunk.page_content for chunk in RecursiveCharacterTextSplitter(**chunker_args).split_documents(docs)]
+            chunks = self.filter_metadata_docs(RecursiveCharacterTextSplitter(**chunker_args).split_documents(docs))
 
-            # remove complex metadata not supported by ChromaDB, pull out the the content as a str
-            chunks = [c.page_content for c in filter_complex_metadata(chunks)]
-
+            # todo: is this necessary?
+        elif chunker_type == 'semantic':
+            chunks = self.filter_metadata_docs(SemanticChunker(**chunker_args).split_documents(docs))
         else:
             raise ValueError(f'unknown chunker type [{chunker_type}]')
 
-        log.debug(f'adding embeddings for {len(chunks)} chunks to {collection.name}')
+        log.debug(f'adding embeddings for {len(chunks)} [{chunker_type}] chunks to {collection.name}')
+
+        # update collection metadata
         now = config.now_datetime()
         collection.metadata[f'file:{org_filename}'] = now
         collection.metadata[f'file:{org_filename}.doc_type'] = doc_type
         collection.metadata[f'file:{org_filename}.chunker_type'] = chunker_type
-        collection.modify(metadata=self.fix_metadata_for_modify(collection.metadata))
+        for k, v in chunker_args.items():
+            collection.metadata[f'file:{org_filename}.chunker.{k}'] = v
+        collection.modify(metadata=self.fix_metadata_for_modify(self.filter_metadata(collection.metadata)))
 
-        #  collection.add(documents=chunks, ids=[str(uuid.uuid4()) for _ in range(0, len(chunks))])  # use random uuids for chunk-ids
-        collection.add(documents=chunks,
+        #  add documents + ids + metadata to the collection
+        collection.add(documents=[c.page_content for c in chunks],
                        ids=[f'{org_filename}-{i}' for i in range(0, len(chunks))],  # use name:count for chunk-ids
+                       metadatas=[c.metadata for c in chunks],
                        )
 
         return collection

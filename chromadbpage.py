@@ -7,6 +7,7 @@ from typing import AnyStr
 
 from chromadb.types import Collection
 from fastapi import Request
+from langchain_openai import OpenAIEmbeddings
 from nicegui import ui, run, events
 from nicegui.elements.dialog import Dialog
 
@@ -73,18 +74,16 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         peeks = collection.peek(limit=peek_n)
         with ui.dialog() as peek_dialog, ui.card().classes('min-w-full'):
             with ui.column().classes('gap-y-0'):
-                with ui.row():
-                    ui.input(placeholder='id').props('outlined').props('color=primary').props('bg-color=white')
-                    ui.button(text='id')
-                ui.separator()
                 with rbui.table():
                     for i in range(0, peek_n):
                         with rbui.tr():
                             if 'documents' in peeks and len(peeks['documents']) > i:
-                                doc = peeks['documents'][i][0:100] + '[...]'
                                 doc_id = peeks['ids'][i]
+                                doc = peeks['documents'][i][0:100] + '[...]'
+                                md = '\n'.join(f'{k}:{v}' for k, v in peeks['metadatas'][i].items())
                                 rbui.td(label=f'{doc_id}')
                                 rbui.td(label=f'{doc}')
+                                rbui.td(label=f'{md}')
 
         await peek_dialog
         peek_dialog.close()
@@ -116,15 +115,51 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
 
                 with rbui.tr():
                     with rbui.td(label=f'{collection_name}', td_style='width: 250px'):
+                        sep_props = 'size=4px'
                         rcts_args = {'chunk_size': 1000, 'chunk_overlap': 200}  # todo configure this
-                        ui.button(text='add pypdf+rcts-1000-200', on_click=lambda c=collection: upload(c, 'pypdf', 'rcts', rcts_args)).props('no-caps')
-                        ui.separator()
-                        sem_args = {}
-                        ui.button(text='add pypdf+semantic', on_click=lambda c=collection: upload(c, 'pypdf', 'semantic', sem_args)).props('no-caps')
-                        ui.separator()
+                        ui.button(text=f'add pypdf+rcts:{rcts_args['chunk_size']},{rcts_args['chunk_overlap']}',
+                                  on_click=lambda c=collection: upload(c, 'pypdf', 'rcts', rcts_args)).props('no-caps')
+
+                        ui.separator().props(sep_props)
+                        sem_defaults_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-ada-002')}
+                        ui.button(text='add pypdf+sem(ada002):defaults',
+                                  on_click=lambda c=collection: upload(c, 'pypdf', 'semantic', sem_defaults_args)).props('no-caps')
+
+                        ui.separator().props(sep_props)
+                        sem_defaults_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small')}
+                        ui.button(text='add pypdf+sem(3-small):defaults',
+                                  on_click=lambda c=collection: upload(c, 'pypdf', 'semantic', sem_defaults_args)).props('no-caps')
+
+                        ui.separator().props(sep_props)
+                        sem_p95_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small'),
+                                        'breakpoint_threshold_type': 'percentile', 'breakpoint_threshold_amount': 95.0}
+                        ui.button(text='add pypdf+sem(3-small):pct,95.0',
+                                  on_click=lambda c=collection: upload(c, 'pypdf', 'semantic', sem_p95_args)).props('no-caps')
+
+                        ui.separator().props(sep_props)
+                        sem_sd3_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small'),
+                                        'breakpoint_threshold_type': 'standard_deviation', 'breakpoint_threshold_amount': 3.0}
+                        ui.button(text='add pypdf+sem(3-small):stdev,3.0',
+                                  on_click=lambda c=collection: upload(c, 'pypdf', 'semantic', sem_sd3_args)).props('no-caps')
+
+                        ui.separator().props(sep_props)
+                        sem_iq15_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small'),
+                                         'breakpoint_threshold_type': 'interquartile', 'breakpoint_threshold_amount': 1.5}
+                        ui.button(text='add pypdf+sem(3-small):iq,1.5',
+                                  on_click=lambda c=collection: upload(c, 'pypdf', 'semantic', sem_iq15_args)).props('no-caps')
+
+                        ui.separator().props(sep_props)
+                        sem_grad95_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small'),
+                                           'breakpoint_threshold_type': 'gradient', 'breakpoint_threshold_amount': 95.0}
+                        ui.button(text='add pypdf+sem(3-small):grad,95.0',
+                                  on_click=lambda c=collection: upload(c, 'pypdf', 'semantic', sem_grad95_args)).props('no-caps')
+
+                        ui.separator().props(sep_props)
                         ui.button(text='delete', on_click=lambda c=collection_name: delete_coll(c)).props('no-caps')
-                        ui.separator()
+                        ui.separator().props(sep_props)
                         ui.button(text='peek', on_click=lambda c=collection_name: peek(c)).props('no-caps')
+                        ui.separator().props(sep_props)
+                        ui.button(text='dump', on_click=lambda c=collection_name: peek(c)).props('no-caps')
 
                     # details table
                     with rbui.table():
