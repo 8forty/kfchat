@@ -1,3 +1,4 @@
+import builtins
 import logging
 import os
 import sys
@@ -10,6 +11,7 @@ from fastapi import Request
 from langchain_openai import OpenAIEmbeddings
 from nicegui import ui, run, events
 from nicegui.elements.dialog import Dialog
+from nicegui.elements.select import Select
 
 import config
 import frame
@@ -22,7 +24,7 @@ log.setLevel(logstuff.logging_level)
 
 
 class UploadFileDialog(Dialog):
-    upload_id_class = 'chroma-upload'
+    upload_id_class = 'chroma-upload'  # used to find the input in descendants
 
     def __init__(self, collection: Collection, doc_type: str, chunker_type: str, chunker_args: dict[str, any]):
         Dialog.__init__(self)
@@ -62,10 +64,50 @@ class UploadFileDialog(Dialog):
                     d.props(add='accept=".doc,.docx,.txt"')
 
 
+class CreateDialog(Dialog):
+    def __init__(self):
+        Dialog.__init__(self)
+
+        with self, ui.card():
+            with ui.column().classes('w-full'):
+                ui.label('Create A Collection').classes('text-xl self-center')
+                self.cinput = ui.input(label='Collection Name',
+                                       placeholder='3-63 chars, no spaces, unders or hyphens',
+                                       validation={'Too short!': lambda value: len(value) >= 3,
+                                                   'Too long!': lambda value: len(value) <= 63,
+                                                   'No Spaces!': lambda value: str(value).find(' ') == -1},
+                                       ).classes('flex-grow min-w-80').props('outlined').props('color=primary').props('bg-color=white')
+                etypes = list(VSChroma.embedding_types_data.keys())
+                et_start_value = etypes[0]
+                etype = ui.select(label='Embedding Type:', options=etypes, value=et_start_value).props('square outlined label-color=green').classes('w-full')
+                etype.on_value_change(lambda vc: self.select_embedding_type(vc.value, subtype_select))
+                subtype_select = ui.select(label='Subtype:', options=[]).props('square outlined label-color=green').classes('w-full')
+                self.select_embedding_type(et_start_value, subtype_select)
+                ui.separator()
+                ui.button('Create', on_click=lambda: self.create_collection_submit(self.cinput.value, etype.value, subtype_select.value)).props('no-caps').classes('self-center')
+
+    async def create_collection_submit(self, collection_name: str, embedding_type: str, subtype: str):
+        if len(collection_name.strip()) < 3 or len(collection_name.strip()) > 63 or len(collection_name.strip()) != len(collection_name):
+            ui.notify(message='Invalid collection name', position='top', type='negative', close_button='Dismiss')
+        else:
+            self.submit((collection_name, embedding_type, subtype))
+
+    @staticmethod
+    def select_embedding_type(value: str, subtype_select: Select):
+        opts = list(VSChroma.embedding_types_data[value].keys())
+        subtype_select.set_options(opts)
+        subtype_select.set_value(opts[0])
+
+    async def reset_inputs(self):
+        # todo: setting to None is an error and '' is immediate validation error
+        self.cinput.set_value('')
+
+
 def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]):
     async def delete_coll(coll_name: str) -> None:
         log.info(f'deleting collection {coll_name}')
-        vectorstore.delete_index(coll_name)
+        # todo: spinner
+        await run.io_bound(lambda: vectorstore.delete_index(coll_name))
         chroma_ui.refresh()
 
     async def peek(coll_name: str) -> None:
@@ -194,37 +236,15 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                             rbui.td('database')
                             rbui.td(f'{collection.database}')
 
-                        # _client, _model, _embedding_function, _data_loader, ?
-                        # for key in collection.__dict__['_model'].__dict__.keys():
-                        #     val = collection.__dict__['_model'].__dict__[key]
-                        #     with rbui.tr():
-                        #         rbui.td(f'_model.{key}')
-                        #         rbui.td(str(val))
+    async def do_create_dialog(create_dialog: CreateDialog):
+        await create_dialog.reset_inputs()
+        result = await create_dialog
+        if result is not None:
+            (collection_name, embedding_type, subtype) = result
+            # todo: page spinner
+            await run.io_bound(lambda: vectorstore.create_collection(collection_name, embedding_type, subtype))
 
-    async def do_create_dialog():
-        def do_create(collection_name: str, embedding_type: str):
-            if len(collection_name.strip()) < 3 or len(collection_name.strip()) > 63 or len(collection_name.strip()) != len(collection_name):
-                ui.notify(message='Invalid collection name', position='top', type='negative', close_button='Dismiss')
-            else:
-                vectorstore.create_collection(collection_name, embedding_type)
-                create_dialog.submit(collection_name)
-
-        with ui.dialog() as create_dialog, ui.card():
-            ui.label('Create A Collection')
-            cinput = ui.input(label='Collection Name',
-                              placeholder='3-63 chars, no spaces, unders or hyphens',
-                              validation={'Too short!': lambda value: len(value) >= 3,
-                                          'Too long!': lambda value: len(value) <= 63,
-                                          'No Spaces!': lambda value: str(value).find(' ') == -1},
-                              ).classes('flex-grow').props('outlined').props('color=primary').props('bg-color=white')
-            ui.button('Create: ST/all-MiniLM-L6-v2 Embedding', on_click=lambda: do_create(cinput.value, 'ST/all-MiniLM-L6-v2')).props('no-caps')
-            ui.button('Create: ST/all-mpnet-base-v2 Embedding...', on_click=lambda: do_create(cinput.value, 'ST/all-mpnet-base-v2')).props('no-caps')
-            ui.button('Create: OpenAI/text-embedding-3-large Embedding...', on_click=lambda: do_create(cinput.value, 'OpenAI/text-embedding-3-large')).props('no-caps')
-
-        await cinput.run_method('focus')
-        _ = await create_dialog
-        create_dialog.close()
-        create_dialog.clear()
+        # todo: page spinner
         chroma_ui.refresh()
 
     @ui.page(path)
@@ -232,11 +252,13 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         logstuff.update_from_request(request)
         log.debug(f'chromadbpage route triggered')
 
+        create_dialog = CreateDialog()
+
         with frame.frame(f'{config.name} {pagename}', 'bg-white'):
             with ui.column().classes('w-full'):  # .classes('w-full max-w-2xl mx-auto items-stretch'):
                 with ui.row().classes('w-full border-solid border border-black items-center'):
                     ui.button('Refresh', on_click=lambda: chroma_ui.refresh()).props('no-caps')
-                    ui.button('Create...', on_click=lambda: do_create_dialog()).props('no-caps')
+                    ui.button('Create...', on_click=lambda: do_create_dialog(create_dialog)).props('no-caps')
 
             with ui.scroll_area().classes('w-full flex-grow'):
                 with ui.column().classes('w-full flex-grow'):  # .classes('w-full max-w-2xl mx-auto items-stretch'):

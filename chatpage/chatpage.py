@@ -203,5 +203,5 @@ class ChatPage:
             try:
                 await ui.context.client.connected()
             except builtins.TimeoutError:
-                log.warning(f'TimeoutError waiting for client connection, connection ignored')
+                log.warning(f'TimeoutError waiting for client connection, ignored')
             await pinput.run_method('focus')

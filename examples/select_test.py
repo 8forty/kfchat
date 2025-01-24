@@ -13,7 +13,8 @@ def setup(path: str):
                     'foo',
                     'bar',
                     'baz',
-                ]).props('input-class="w-[500px]"')
+                ]).props('outlined').classes('w-full')
+            # ]).props('input-class="w-[500px]" outlined w-full')
             # ]).props('popup-content-class="max-w-[100px]"')
 
 
