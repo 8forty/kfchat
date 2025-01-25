@@ -104,6 +104,7 @@ class CreateDialog(Dialog):
         self.cinput.set_value('')
 
 
+# noinspection PyUnusedLocal
 def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]):
     async def delete_coll(coll_name: str) -> None:
         log.info(f'deleting collection {coll_name}')
@@ -226,9 +227,11 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                             rbui.td(f'{config_string}')
                         with rbui.tr():
                             rbui.td('model dimensions')
+                            # noinspection PyProtectedMember
                             rbui.td(f'{collection._model.dimension}')
                         with rbui.tr():
                             rbui.td('embedding func')
+                            # noinspection PyProtectedMember
                             rbui.td(f'{collection._embedding_function.__class__.__name__}\n{collection._embedding_function.__dict__}')
                         with rbui.tr():
                             rbui.td('tenant')
