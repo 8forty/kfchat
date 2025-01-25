@@ -16,7 +16,7 @@ def chat(sysmsg: str, prompt: str, cfg: LLMOaiConfig) -> LLMOaiExchange:
 
 def run(api_type_name: str, model_name: str):
     start = timeit.default_timer()
-    cfg = LLMOaiConfig(model_name, api_type_name, env_values,
+    cfg = LLMOaiConfig(model_name, api_type_name,
                        LLMOaiSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=80, init_system_message_name="carl-sagan"))
 
     print(f'---- generating response from {cfg.api_type()}:{model_name}')

@@ -35,7 +35,7 @@ def run(api_type_name: str, model_set_name: str, settings_set_name: str, message
     for model in data.model_sets[api_type_name][model_set_name]:
         print(f'    {api_type_name}:{model}')
         model_start = timeit.default_timer()
-        cfg = LLMOaiConfig(model, api_type_name, data.model_sets[api_type_name]['parms'],
+        cfg = LLMOaiConfig(model, api_type_name, 
                            LLMOaiSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=80, init_system_message_name="carl-sagan"))
 
         # warmup the model
