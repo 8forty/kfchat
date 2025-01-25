@@ -52,13 +52,13 @@ model_sets = {
         '4omini': ['gpt-4o-mini'],
         'std3': ['gpt-3.5-turbo', 'gpt-4o', 'gpt-4o-mini'],
         'parms': {
-            'OPENAI_API_KEY': os.getenv('OPENAI_API_KEY'),
+            'key': os.getenv('kfOPENAI_API_KEY'),
         }
     },
     'azure': {
         '4omini': ['RFI-Automate-GPT-4o-mini-2000k'],
         'parms': {
-            'AZURE_OPENAI_API_KEY': os.getenv('AZURE_OPENAI_API_KEY'),
+            'key': os.getenv('kfAZURE_OPENAI_API_KEY'),
             'AZURE_OPENAI_API_VERSION': os.getenv('AZURE_OPENAI_API_VERSION'),
             'AZURE_OPENAI_ENDPOINT': os.getenv('AZURE_OPENAI_ENDPOINT'),
         }
@@ -69,7 +69,7 @@ model_sets = {
         'mistral7b': ['mixtral-8x7b-32768'],
         'gemma29b': ['gemma2-9b-it'],
         'parms': {
-            'GROQ_API_KEY': os.getenv('GROQ_API_KEY'),
+            'key': os.getenv('kfGROQ_API_KEY'),
             'GROQ_ENDPOINT': os.getenv('GROQ_OPENAI_ENDPOINT'),
         }
     },
@@ -80,7 +80,7 @@ model_sets = {
         'g15flash8b001': ['gemini-1.5-flash-8b-001'],
         'g15pro': ['gemini-1.5-pro'],
         'parms': {
-            'GEMINI_API_KEY': os.getenv('GEMINI_API_KEY'),
+            'key': os.getenv('kfGEMINI_API_KEY'),
             'GEMINI_ENDPOINT': os.getenv('GEMINI_OPENAI_ENDPOINT'),
         }
     },

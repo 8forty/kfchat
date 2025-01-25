@@ -6,6 +6,7 @@ from typing import Iterable
 import openai
 from openai.types.chat import ChatCompletion
 
+import config
 import data
 import logstuff
 from config import redact
@@ -41,15 +42,15 @@ class LLMOaiSettings:
 
 
 class LLMOaiConfig(LLMConfig):
-    def __init__(self, model_name: str, api_type_name: str, parms: dict[str, str], settings: LLMOaiSettings):
+    def __init__(self, model_name: str, api_type_name: str, settings: LLMOaiSettings):
         """
 
-        :param api_type_name
-        :param parms
         :param model_name:
+        :param api_type_name
+        :param settings:
 
         """
-        super().__init__(model_name, api_type_name, parms)
+        super().__init__(model_name, api_type_name)
 
         self.settings = settings
 
@@ -87,29 +88,25 @@ class LLMOaiConfig(LLMConfig):
             return self._api_client
 
         if self.api_type_name == 'ollama':
-            log.info(f'building LLM API for [{self.api_type_name}]: {self.parms.get('OLLAMA_ENDPOINT')=}')
-            self._api_client = openai.OpenAI(base_url=self.parms.get('OLLAMA_ENDPOINT'),
-                                             api_key='nokeyneeded')
+            endpoint = config.llm_api_types_config[self.api_type_name]['OLLAMA_ENDPOINT']
+            key = config.llm_api_types_config[self.api_type_name]['key']
+            log.info(f'building LLM API for [{self.api_type_name}]: {endpoint=} key={redact(key)}')
+            self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         elif self.api_type_name == 'openai':
-            log.info(f'building LLM API for [{self.api_type_name}]: {self.parms.get('OPENAI_ENDPOINT')=}, '
-                     f'OPENAI_API_KEY={redact(self.parms.get('OPENAI_API_KEY'))}')
-            self._api_client = openai.OpenAI(base_url=self.parms.get('OPENAI_ENDPOINT'),
-                                             api_key=self.parms.get('OPENAI_API_KEY'))
+            endpoint = config.llm_api_types_config[self.api_type_name]['OPENAI_ENDPOINT']
+            key = config.llm_api_types_config[self.api_type_name]['key']
+            log.info(f'building LLM API for [{self.api_type_name}]: {endpoint=} key={redact(key)}')
+            self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         elif self.api_type_name == 'groq':
-            log.info(f'building LLM API for [{self.api_type_name}]: {self.parms.get('GROQ_ENDPOINT')=}, '
-                     f'GROQ_API_KEY={redact(self.parms.get('GROQ_API_KEY'))}')
-            self._api_client = openai.OpenAI(base_url=self.parms.get('GROQ_OPENAI_ENDPOINT'),
-                                             api_key=self.parms.get('GROQ_API_KEY'))
+            endpoint = config.llm_api_types_config[self.api_type_name]['GROQ_OPENAI_ENDPOINT']
+            key = config.llm_api_types_config[self.api_type_name]['key']
+            log.info(f'building LLM API for [{self.api_type_name}]: {endpoint=} key={redact(key)}')
+            self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         elif self.api_type_name == 'gemini':
-            log.info(f'building LLM API for [{self.api_type_name}]: {self.parms.get('GEMINI_ENDPOINT')=}, '
-                     f'GEMINI_API_KEY={redact(self.parms.get('GEMINI_API_KEY'))}')
-            self._api_client = openai.OpenAI(base_url=self.parms.get('GEMINI_OPENAI_ENDPOINT'),
-                                             api_key=self.parms.get('GEMINI_API_KEY'))
-        elif self.api_type_name == 'github':
-            base_url = 'https://models.inference.ai.azure.com'
-            log.info(f'building LLM API for [{self.api_type_name}]: {base_url=}, {redact(self.parms.get('GITHUB_TOKEN'))}')
-            self._api_client = openai.OpenAI(base_url=base_url,
-                                             api_key=self.parms.get('GITHUB_TOKEN'))
+            endpoint = config.llm_api_types_config[self.api_type_name]['GEMINI_OPENAI_ENDPOINT']
+            key = config.llm_api_types_config[self.api_type_name]['key']
+            log.info(f'building LLM API for [{self.api_type_name}]: {endpoint=} key={redact(key)}')
+            self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         elif self.api_type_name == 'azure':
             # token_provider = azure.identity.get_bearer_token_provider(
             #     azure.identity.DefaultAzureCredential(), 'https://cognitiveservices.azure.com/.default'
@@ -119,12 +116,11 @@ class LLMOaiConfig(LLMConfig):
             #     azure_endpoint=self.parms.get('AZURE_OPENAI_ENDPOINT'),
             #     azure_ad_token_provider=token_provider,
             # )
-            log.info(f'building LLM API for [{self.api_type_name}]: {self.parms.get('AZURE_OPENAI_ENDPOINT')=}, '
-                     f'AZURE_OPENAI_API_KEY={redact(self.parms.get('AZURE_OPENAI_API_KEY'))}, '
-                     f'{self.parms.get('AZURE_OPENAI_API_VERSION')=}')
-            self._api_client = openai.AzureOpenAI(azure_endpoint=self.parms.get('AZURE_OPENAI_ENDPOINT'),
-                                                  api_key=self.parms.get('AZURE_OPENAI_API_KEY'),
-                                                  api_version=self.parms.get('AZURE_OPENAI_API_VERSION'))
+            endpoint = config.llm_api_types_config[self.api_type_name]['AZURE_OPENAI_ENDPOINT']
+            key = config.llm_api_types_config[self.api_type_name]['key']
+            api_version = config.llm_api_types_config[self.api_type_name]['AZURE_OPENAI_API_VERSION']
+            log.info(f'building LLM API for [{self.api_type_name}]: {endpoint=} key={redact(key)} {api_version=}')
+            self._api_client = openai.AzureOpenAI(azure_endpoint=endpoint, api_key=key, api_version=api_version)
         else:
             raise ValueError(f'invalid api type! {self.api_type_name}')
 

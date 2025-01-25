@@ -8,7 +8,7 @@ from typing import AnyStr
 from chromadb.types import Collection
 from fastapi import Request
 from langchain_openai import OpenAIEmbeddings
-from nicegui import ui, run, events
+from nicegui import ui, run, events, Client
 from nicegui.elements.dialog import Dialog
 from nicegui.elements.select import Select
 from nicegui.elements.spinner import Spinner
@@ -150,13 +150,16 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         with rbui.table():
             for collection_name in await run.io_bound(vectorstore.list_index_names):
                 try:
+                    # this can be very slow when there are several collections
                     collection = await run.io_bound(lambda: vectorstore.get_collection(collection_name))
                 except (Exception,) as e:
                     errmsg = f'Error loading collection {collection_name}: {e} (skipping)'
                     log.warning(errmsg)
                     ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
+                    traceback.print_exc(file=sys.stdout)
                     continue
 
+                openai_key = config.llm_api_types_config['openai']['key']
                 with rbui.tr():
                     with rbui.td(label=f'{collection_name}', td_style='width: 250px'):
                         sep_props = 'size=4px'
@@ -165,35 +168,35 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                                   on_click=lambda c=collection: upload(c, 'pypdf', 'rcts', rcts_args)).props('no-caps')
 
                         ui.separator().props(sep_props)
-                        sem_defaults_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-ada-002')}
+                        sem_defaults_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-ada-002', openai_api_key=openai_key)}
                         ui.button(text='add pypdf+sem(ada002):defaults',
                                   on_click=lambda c=collection: upload(c, 'pypdf', 'semantic', sem_defaults_args)).props('no-caps')
 
                         ui.separator().props(sep_props)
-                        sem_defaults_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small')}
+                        sem_defaults_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small', openai_api_key=openai_key)}
                         ui.button(text='add pypdf+sem(3-small):defaults',
                                   on_click=lambda c=collection: upload(c, 'pypdf', 'semantic', sem_defaults_args)).props('no-caps')
 
                         ui.separator().props(sep_props)
-                        sem_p95_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small'),
+                        sem_p95_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small', openai_api_key=openai_key),
                                         'breakpoint_threshold_type': 'percentile', 'breakpoint_threshold_amount': 95.0}
                         ui.button(text='add pypdf+sem(3-small):pct,95.0',
                                   on_click=lambda c=collection: upload(c, 'pypdf', 'semantic', sem_p95_args)).props('no-caps')
 
                         ui.separator().props(sep_props)
-                        sem_sd3_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small'),
+                        sem_sd3_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small', openai_api_key=openai_key),
                                         'breakpoint_threshold_type': 'standard_deviation', 'breakpoint_threshold_amount': 3.0}
                         ui.button(text='add pypdf+sem(3-small):stdev,3.0',
                                   on_click=lambda c=collection: upload(c, 'pypdf', 'semantic', sem_sd3_args)).props('no-caps')
 
                         ui.separator().props(sep_props)
-                        sem_iq15_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small'),
+                        sem_iq15_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small', openai_api_key=openai_key),
                                          'breakpoint_threshold_type': 'interquartile', 'breakpoint_threshold_amount': 1.5}
                         ui.button(text='add pypdf+sem(3-small):iq,1.5',
                                   on_click=lambda c=collection: upload(c, 'pypdf', 'semantic', sem_iq15_args)).props('no-caps')
 
                         ui.separator().props(sep_props)
-                        sem_grad95_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small'),
+                        sem_grad95_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small', openai_api_key=openai_key),
                                            'breakpoint_threshold_type': 'gradient', 'breakpoint_threshold_amount': 95.0}
                         ui.button(text='add pypdf+sem(3-small):grad,95.0',
                                   on_click=lambda c=collection: upload(c, 'pypdf', 'semantic', sem_grad95_args)).props('no-caps')
@@ -205,7 +208,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                         ui.separator().props(sep_props)
                         ui.button(text='dump', on_click=lambda c=collection_name: peek(c)).props('no-caps')
 
-                    # details table
+                    # details table (embedded)
                     with rbui.table():
                         with rbui.tr():
                             rbui.td('id')
@@ -221,7 +224,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                             rbui.td(f'{metadata_string}')
                         with rbui.tr():
                             rbui.td('configuration')
-                            config_string: str = '[NOTE: these hnsw values overridden by metadata v.6+]\n'
+                            config_string: str = '[NOTE: THESE HNSW VALUES OVERRIDDEN BY METADATA V.6+]\n'
                             for key in sorted(collection.configuration_json.keys()):
                                 config_string += f'{key}: {collection.configuration_json[key]}\n'
                             rbui.td(f'{config_string}')
@@ -232,7 +235,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                         with rbui.tr():
                             rbui.td('embedding func')
                             # noinspection PyProtectedMember
-                            rbui.td(f'{collection._embedding_function.__class__.__name__}\n{collection._embedding_function.__dict__}')
+                            rbui.td(f'{collection._embedding_function.__class__.__name__}\n{vectorstore.filter_metadata(collection._embedding_function.__dict__)}')
                         with rbui.tr():
                             rbui.td('tenant')
                             rbui.td(f'{collection.tenant}')
@@ -254,12 +257,16 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         chroma_ui.refresh()
 
     @ui.page(path)
-    async def index(request: Request) -> None:
+    async def index(request: Request, client: Client) -> None:
         logstuff.update_from_request(request)
         log.debug(f'chromadbpage route triggered')
 
         page_spinner = ui.spinner(size='8em', type='gears').classes('absolute-center')
-        page_spinner.visible = False
+
+        # this page takes a LONG time to load sometimes, so show the spinner and "...await connection and then do the heavy computation async"
+        # (per: https://github.com/zauberzeug/nicegui/discussions/2429)
+        # page_spinner.visible = False
+        await client.connected(timeout=3.0)
 
         create_dialog = CreateDialog()
 

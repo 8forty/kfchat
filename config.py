@@ -18,6 +18,33 @@ env = dotenv.dotenv_values()
 
 name = 'kfchat'
 
+llm_api_types_config = {
+    'azure': {
+        'key': env.get('kfAZURE_OPENAI_API_KEY'),
+        'AZURE_OPENAI_API_VERSION': env.get('AZURE_OPENAI_API_VERSION'),
+        'AZURE_OPENAI_ENDPOINT': env.get('AZURE_OPENAI_ENDPOINT'),
+        'AZURE_AI_SEARCH_ENDPOINT': env.get('AZURE_AI_SEARCH_ENDPOINT'),
+        'ai-search-api-key': env.get('AZURE_AI_SEARCH_API_KEY'),
+    },
+    'ollama': {
+        'key': 'nokeyneeded',
+        'OLLAMA_ENDPOINT': 'http://localhost:11434/v1/',
+    },
+    'openai': {
+        'key': env.get('kfOPENAI_API_KEY'),
+        'OPENAI_CHAT_COMPLETIONS_ENDPOINT': env.get('OPENAI_CHAT_COMPLETIONS_ENDPOINT'),
+        'OPENAI_ENDPOINT': env.get('OPENAI_ENDPOINT'),
+    },
+    'groq': {
+        'key': env.get('kfGROQ_API_KEY'),
+        'GROQ_OPENAI_ENDPOINT': env.get('GROQ_OPENAI_ENDPOINT'),
+    },
+    'gemini': {
+        'key': env.get('kfGEMINI_API_KEY'),
+        'GEMINI_OPENAI_ENDPOINT': env.get('GEMINI_OPENAI_ENDPOINT'),
+    },
+}
+
 chat_exchanges_circular_list_count = 10
 
 

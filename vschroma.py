@@ -1,15 +1,17 @@
 import json
 import logging
+import timeit
 
 import chromadb
 from chromadb.api.models.Collection import Collection
-from chromadb.api.types import IncludeEnum, EmbeddingFunction, Documents, Document
+from chromadb.api.types import IncludeEnum, Documents, EmbeddingFunction
 from chromadb.errors import InvalidCollectionException
 from chromadb.utils.embedding_functions.google_embedding_function import GoogleGenerativeAiEmbeddingFunction
 from chromadb.utils.embedding_functions.ollama_embedding_function import OllamaEmbeddingFunction
 from chromadb.utils.embedding_functions.openai_embedding_function import OpenAIEmbeddingFunction
 from chromadb.utils.embedding_functions.sentence_transformer_embedding_function import SentenceTransformerEmbeddingFunction
 from langchain_community.document_loaders import PyPDFLoader
+from langchain_core.documents import Document
 from langchain_experimental.text_splitter import SemanticChunker
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -30,11 +32,23 @@ class VSChroma(VSAPI):
         self.collection_name: str | None = None  # todo: get rid of this
         self._collection: chromadb.Collection | None = None  # todo: and this
 
-    embedding_functions: dict[str, EmbeddingFunction[Documents]] = {
-        SentenceTransformerEmbeddingFunction.__name__: SentenceTransformerEmbeddingFunction,
-        OpenAIEmbeddingFunction.__name__: OpenAIEmbeddingFunction,
-        GoogleGenerativeAiEmbeddingFunction.__name__: GoogleGenerativeAiEmbeddingFunction,
-        OllamaEmbeddingFunction.__name__: OllamaEmbeddingFunction
+    embedding_functions: dict[str, dict[str, any]] = {
+        SentenceTransformerEmbeddingFunction.__name__: {
+            'function': SentenceTransformerEmbeddingFunction,
+            'parms': {}
+        },
+        OpenAIEmbeddingFunction.__name__: {
+            'function': OpenAIEmbeddingFunction,
+            'parms': {'api_key': config.env.get('kfOPENAI_API_KEY')}  # todo: fix this!
+        },
+        GoogleGenerativeAiEmbeddingFunction.__name__: {
+            'function': GoogleGenerativeAiEmbeddingFunction,
+            'parms': {}
+        },
+        OllamaEmbeddingFunction.__name__: {
+            'function': OllamaEmbeddingFunction,
+            'parms': {}
+        }
     }
 
     embedding_types_data: dict[str, dict[str, dict[str, any]]] = {
@@ -46,13 +60,13 @@ class VSChroma(VSAPI):
         },
         'OpenAI': {
             'text-embedding-3-large': {'function': OpenAIEmbeddingFunction, 'parms': {'model_name': 'text-embedding-3-large',
-                                                                                      'api_key': config.env.get('OPENAI_API_KEY'),  # todo: fix this!
+                                                                                      'api_key': config.env.get('kfOPENAI_API_KEY'),  # todo: fix this!
                                                                                       }},
             'text-embedding-ada-002': {'function': OpenAIEmbeddingFunction, 'parms': {'model_name': 'text-embedding-ada-002',
-                                                                                      'api_key': config.env.get('OPENAI_API_KEY'),  # todo: fix this!
+                                                                                      'api_key': config.env.get('kfOPENAI_API_KEY'),  # todo: fix this!
                                                                                       }},
             'text-embedding-3-small': {'function': OpenAIEmbeddingFunction, 'parms': {'model_name': 'text-embedding-3-small',
-                                                                                      'api_key': config.env.get('OPENAI_API_KEY'),  # todo: fix this!
+                                                                                      'api_key': config.env.get('kfOPENAI_API_KEY'),  # todo: fix this!
                                                                                       }},
         },
     }
@@ -66,17 +80,23 @@ class VSChroma(VSAPI):
 
     def get_collection(self, collection_name: str) -> Collection:
         try:
-            # first figure out the embedding function
+            # first figure out the embedding function safely in case e.g. we need a key for it
+            start = timeit.default_timer()
             metadata = self._client.get_collection(name=collection_name).metadata
+            log.debug(f'{collection_name} metadata load {timeit.default_timer() - start: .0f}s')
             if 'embedding_function_name' in metadata:
                 embedding_function_name = metadata['embedding_function_name']
-                ef: EmbeddingFunction[Documents] = self.embedding_functions[embedding_function_name]
+                ef: EmbeddingFunction[Documents] = self.embedding_functions[embedding_function_name]['function']
                 embedding_function_parms: dict[str, str] = json.loads(metadata['embedding_function_parms'])
+                embedding_function_parms.update(self.embedding_functions[embedding_function_name]['parms'])
 
-                return self._client.get_collection(
+                start = timeit.default_timer()
+                full_collection = self._client.get_collection(
                     name=collection_name,
                     embedding_function=ef(**embedding_function_parms)
                 )
+                log.debug(f'{collection_name} full load {timeit.default_timer() - start: .0f}s')
+                return full_collection
             else:
                 raise ValueError(f'collection {collection_name} has no embedding_function_name in metadata!')
         except InvalidCollectionException:
@@ -236,7 +256,7 @@ class VSChroma(VSAPI):
             metadata={
                 'embedding_function_name': embedding_function_info['function'].__name__,
                 # todo: the key!?!? 'embedding_function_parms': json.dumps(config.redact_parms(embedding_function_info['parms']), ensure_ascii=False),
-                'embedding_function_parms': json.dumps(embedding_function_info['parms'], ensure_ascii=False),
+                'embedding_function_parms': json.dumps(self.filter_metadata(embedding_function_info['parms']), ensure_ascii=False),
 
                 'hnsw:space': 'l2',  # default l2
                 'hnsw:construction_ef': 500,  # default 100
@@ -267,22 +287,35 @@ class VSChroma(VSAPI):
         return retval
 
     # borrowed from langchain_community.vectorstores.utils.filter_complex_metadata
-    stringify_allowed_types: tuple[type, ...] = (str, bool, int, float)
+    md_allowed_types: tuple[type, ...] = (str, bool, int, float)
+    md_redacted_keys: list[str] = ['api_key', '_api_key']
 
     def filter_metadata_docs(self, documents: list[Document]) -> list[Document]:
         retval: list[Document] = []
         for doc in documents:
+            doc_md = {}
             for key, value in doc.metadata.items():
-                if not isinstance(value, self.stringify_allowed_types):
+                if not isinstance(value, self.md_allowed_types):
                     continue
+                if key in self.md_redacted_keys:
+                    value = config.redact(value)
+                doc_md[key] = value
+            doc.metadata = doc_md
             retval.append(doc)
         return retval
 
     def filter_metadata(self, metadata: dict[str, any]) -> dict[str, any]:
+        """
+        removes values that aren't in allowed_types and
+        :param metadata:
+        :return:
+        """
         retval: dict[str, any] = {}
         for key, value in metadata.items():
-            if not isinstance(value, self.stringify_allowed_types):
+            if not isinstance(value, self.md_allowed_types):
                 continue
+            if key in self.md_redacted_keys:
+                value = config.redact(value)
             retval[key] = value
         return retval
 
