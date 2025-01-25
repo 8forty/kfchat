@@ -72,7 +72,7 @@ class InstanceData:
             else:
                 self.source_name = selected_name.removeprefix(self.vs_name_prefix)
                 self.current_source_type = self.vs_source_type
-                await run.io_bound(self.vectorstore.switch_index, self.source_name)
+                await run.io_bound(lambda: self.vectorstore.switch_index(self.source_name))
                 log.debug(f'new vs name: {self.source_name}')
 
             self.source_select_name = selected_name

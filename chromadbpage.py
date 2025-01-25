@@ -39,12 +39,12 @@ class UploadFileDialog(Dialog):
         with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
             contents: AnyStr = await run.io_bound(ulargs.content.read)
             log.debug(f'loaded {local_file_name}...')
-            await run.io_bound(tmpfile.write, contents)
+            await run.io_bound(lambda: tmpfile.write(contents))
             log.debug(f'saved file {local_file_name} to server file {tmpfile.name}...')
 
         try:
             log.debug(f'chunking ({self.chunker_type}) server file {tmpfile.name}...')
-            #  await run.io_bound(vectorstore.ingest, self.collection, tmpfile.name, local_file_name, self.doc_type, self.chunker_type, self.chunker_args)
+            #  await run.io_bound(lambda: vectorstore.ingest(self.collection, tmpfile.name, local_file_name, self.doc_type, self.chunker_type, self.chunker_args))
             await run.io_bound(lambda: vectorstore.ingest(self.collection, tmpfile.name, local_file_name, self.doc_type, self.chunker_type, self.chunker_args))
         except (Exception,) as e:
             errmsg = f'Error ingesting {local_file_name}: {e}'
@@ -90,6 +90,7 @@ class CreateDialog(Dialog):
         if len(collection_name.strip()) < 3 or len(collection_name.strip()) > 63 or len(collection_name.strip()) != len(collection_name):
             ui.notify(message='Invalid collection name', position='top', type='negative', close_button='Dismiss')
         else:
+            log.info(f'creating collection {collection_name}: {embedding_type=} {subtype=}')
             self.submit((collection_name, embedding_type, subtype))
 
     @staticmethod

@@ -85,7 +85,7 @@ class ChatPage:
 
             exchange: LLMOaiExchange | None = None
             try:
-                exchange = await run.io_bound(do_llm, prompt, idata)
+                exchange = await run.io_bound(lambda: do_llm(prompt, idata))
             except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)
                 log.warning(f'llm error! {e}')
@@ -117,8 +117,8 @@ class ChatPage:
 
             vsresponse: VectorStoreResponse | None = None
             try:
-                # vsresponse = await run.io_bound(do_vector_search, prompt, idata)
-                vsresponse = await run.io_bound(idata.vectorstore.search, prompt, howmany=idata.llm_config.settings.n)
+                # vsresponse = await run.io_bound(lambda: do_vector_search(prompt, idata))
+                vsresponse = await run.io_bound(lambda: idata.vectorstore.search(prompt, howmany=idata.llm_config.settings.n))
                 log.debug(f'vector-search response: {vsresponse}')
             except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)
