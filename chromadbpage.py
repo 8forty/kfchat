@@ -1,4 +1,3 @@
-import builtins
 import logging
 import os
 import sys
@@ -12,6 +11,7 @@ from langchain_openai import OpenAIEmbeddings
 from nicegui import ui, run, events
 from nicegui.elements.dialog import Dialog
 from nicegui.elements.select import Select
+from nicegui.elements.spinner import Spinner
 
 import config
 import frame
@@ -107,7 +107,6 @@ class CreateDialog(Dialog):
 def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]):
     async def delete_coll(coll_name: str) -> None:
         log.info(f'deleting collection {coll_name}')
-        # todo: spinner
         await run.io_bound(lambda: vectorstore.delete_index(coll_name))
         chroma_ui.refresh()
 
@@ -145,11 +144,12 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         chroma_ui.refresh()
 
     @ui.refreshable
-    async def chroma_ui() -> None:
+    async def chroma_ui(page_spinner: Spinner) -> None:
+        page_spinner.set_visibility(True)
         with rbui.table():
             for collection_name in await run.io_bound(vectorstore.list_index_names):
                 try:
-                    collection = vectorstore.get_collection(collection_name)
+                    collection = await run.io_bound(lambda: vectorstore.get_collection(collection_name))
                 except (Exception,) as e:
                     errmsg = f'Error loading collection {collection_name}: {e} (skipping)'
                     log.warning(errmsg)
@@ -236,13 +236,15 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                         with rbui.tr():
                             rbui.td('database')
                             rbui.td(f'{collection.database}')
+        page_spinner.set_visibility(False)
 
-    async def do_create_dialog(create_dialog: CreateDialog):
+    async def do_create_dialog(create_dialog: CreateDialog, page_spinner: Spinner):
         await create_dialog.reset_inputs()
         result = await create_dialog
+
+        page_spinner.set_visibility(True)
         if result is not None:
             (collection_name, embedding_type, subtype) = result
-            # todo: page spinner
             await run.io_bound(lambda: vectorstore.create_collection(collection_name, embedding_type, subtype))
 
         # todo: page spinner
@@ -253,14 +255,17 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         logstuff.update_from_request(request)
         log.debug(f'chromadbpage route triggered')
 
+        page_spinner = ui.spinner(size='8em', type='gears').classes('absolute-center')
+        page_spinner.visible = False
+
         create_dialog = CreateDialog()
 
         with frame.frame(f'{config.name} {pagename}', 'bg-white'):
             with ui.column().classes('w-full'):  # .classes('w-full max-w-2xl mx-auto items-stretch'):
                 with ui.row().classes('w-full border-solid border border-black items-center'):
                     ui.button('Refresh', on_click=lambda: chroma_ui.refresh()).props('no-caps')
-                    ui.button('Create...', on_click=lambda: do_create_dialog(create_dialog)).props('no-caps')
+                    ui.button('Create...', on_click=lambda: do_create_dialog(create_dialog, page_spinner)).props('no-caps')
 
             with ui.scroll_area().classes('w-full flex-grow'):
                 with ui.column().classes('w-full flex-grow'):  # .classes('w-full max-w-2xl mx-auto items-stretch'):
-                    await chroma_ui()
+                    await chroma_ui(page_spinner)
