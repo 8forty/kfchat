@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 import tempfile
+import timeit
 import traceback
 from typing import AnyStr
 
@@ -78,12 +79,12 @@ class CreateDialog(Dialog):
                                                    'Too long!': lambda value: len(value) <= 63,
                                                    'No Spaces!': lambda value: str(value).find(' ') == -1},
                                        ).classes('flex-grow min-w-80').props('outlined').props('color=primary').props('bg-color=white')
-                etypes = list(VSChroma.embedding_types_data.keys())
-                et_start_value = etypes[0]
-                etype = ui.select(label='Embedding Type:', options=etypes, value=et_start_value).props('square outlined label-color=green').classes('w-full')
-                etype.on_value_change(lambda vc: self.select_embedding_type(vc.value, subtype_select))
+                embedding_types = list(VSChroma.embedding_types.keys())
+                et_start_value = embedding_types[0]
+                etype = ui.select(label='Embedding Type:', options=embedding_types, value=et_start_value).props('square outlined label-color=green').classes('w-full')
+                etype.on_value_change(lambda vc: self.select_embedding_subtype(vc.value, subtype_select))
                 subtype_select = ui.select(label='Subtype:', options=[]).props('square outlined label-color=green').classes('w-full')
-                self.select_embedding_type(et_start_value, subtype_select)
+                self.select_embedding_subtype(et_start_value, subtype_select)
                 ui.separator()
                 ui.button('Create', on_click=lambda: self.create_collection_submit(self.cinput.value, etype.value, subtype_select.value)).props('no-caps').classes('self-center')
 
@@ -95,8 +96,8 @@ class CreateDialog(Dialog):
             self.submit((collection_name, embedding_type, subtype))
 
     @staticmethod
-    def select_embedding_type(value: str, subtype_select: Select):
-        opts = list(VSChroma.embedding_types_data[value].keys())
+    def select_embedding_subtype(value: str, subtype_select: Select):
+        opts = list(VSChroma.embedding_types[value].keys())
         subtype_select.set_options(opts)
         subtype_select.set_value(opts[0])
 
@@ -133,7 +134,15 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         peek_dialog.close()
         peek_dialog.clear()
 
-    async def upload(collection: Collection, doc_type: str, chunker_type: str, chunker_args: dict[str, any]) -> None:
+    async def upload(collection_name: str, doc_type: str, chunker_type: str, chunker_args: dict[str, any], page_spinner: Spinner) -> None:
+        try:
+            page_spinner.set_visibility(True)
+            start = timeit.default_timer()
+            collection = await run.io_bound(lambda: vectorstore.get_collection(collection_name))
+            log.debug(f'loaded {collection_name} in {timeit.default_timer() - start:.1f}s')
+        finally:
+            page_spinner.set_visibility(False)
+
         with (UploadFileDialog(collection, doc_type, chunker_type, chunker_args) as upload_file_dialog, ui.card()):
             ui.label('Upload a File')
             ui.upload(auto_upload=True, on_upload=lambda ulargs: upload_file_dialog.handle_upload(ulargs, vectorstore)).classes(add=upload_file_dialog.upload_id_class)
@@ -145,6 +154,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         upload_file_dialog.clear()
         chroma_ui.refresh()
 
+    # noinspection PyProtectedMember
     @ui.refreshable
     async def chroma_ui(page_spinner: Spinner) -> None:
         page_spinner.set_visibility(True)
@@ -152,7 +162,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
             for collection_name in await run.io_bound(vectorstore.list_index_names):
                 try:
                     # this can be very slow when there are several collections
-                    collection = await run.io_bound(lambda: vectorstore.get_collection(collection_name))
+                    collection_md = await run.io_bound(lambda: vectorstore.get_collection_metadata(collection_name))
                 except (Exception,) as e:
                     errmsg = f'Error loading collection {collection_name}: {e} (skipping)'
                     log.warning(errmsg)
@@ -166,41 +176,41 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                         sep_props = 'size=4px'
                         rcts_args = {'chunk_size': 1000, 'chunk_overlap': 200}  # todo configure this
                         ui.button(text=f'add pypdf+rcts:{rcts_args['chunk_size']},{rcts_args['chunk_overlap']}',
-                                  on_click=lambda c=collection: upload(c, 'pypdf', 'rcts', rcts_args)).props('no-caps')
+                                  on_click=lambda c=collection_name: upload(c, 'pypdf', 'rcts', rcts_args, page_spinner)).props('no-caps')
 
                         ui.separator().props(sep_props)
                         sem_defaults_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-ada-002', openai_api_key=openai_key)}
                         ui.button(text='add pypdf+sem(ada002):defaults',
-                                  on_click=lambda c=collection: upload(c, 'pypdf', 'semantic', sem_defaults_args)).props('no-caps')
+                                  on_click=lambda c=collection_name: upload(c, 'pypdf', 'semantic', sem_defaults_args, page_spinner)).props('no-caps')
 
                         ui.separator().props(sep_props)
                         sem_defaults_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small', openai_api_key=openai_key)}
                         ui.button(text='add pypdf+sem(3-small):defaults',
-                                  on_click=lambda c=collection: upload(c, 'pypdf', 'semantic', sem_defaults_args)).props('no-caps')
+                                  on_click=lambda c=collection_name: upload(c, 'pypdf', 'semantic', sem_defaults_args, page_spinner)).props('no-caps')
 
                         ui.separator().props(sep_props)
                         sem_p95_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small', openai_api_key=openai_key),
                                         'breakpoint_threshold_type': 'percentile', 'breakpoint_threshold_amount': 95.0}
                         ui.button(text='add pypdf+sem(3-small):pct,95.0',
-                                  on_click=lambda c=collection: upload(c, 'pypdf', 'semantic', sem_p95_args)).props('no-caps')
+                                  on_click=lambda c=collection_name: upload(c, 'pypdf', 'semantic', sem_p95_args, page_spinner)).props('no-caps')
 
                         ui.separator().props(sep_props)
                         sem_sd3_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small', openai_api_key=openai_key),
                                         'breakpoint_threshold_type': 'standard_deviation', 'breakpoint_threshold_amount': 3.0}
                         ui.button(text='add pypdf+sem(3-small):stdev,3.0',
-                                  on_click=lambda c=collection: upload(c, 'pypdf', 'semantic', sem_sd3_args)).props('no-caps')
+                                  on_click=lambda c=collection_name: upload(c, 'pypdf', 'semantic', sem_sd3_args, page_spinner)).props('no-caps')
 
                         ui.separator().props(sep_props)
                         sem_iq15_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small', openai_api_key=openai_key),
                                          'breakpoint_threshold_type': 'interquartile', 'breakpoint_threshold_amount': 1.5}
                         ui.button(text='add pypdf+sem(3-small):iq,1.5',
-                                  on_click=lambda c=collection: upload(c, 'pypdf', 'semantic', sem_iq15_args)).props('no-caps')
+                                  on_click=lambda c=collection_name: upload(c, 'pypdf', 'semantic', sem_iq15_args, page_spinner)).props('no-caps')
 
                         ui.separator().props(sep_props)
                         sem_grad95_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small', openai_api_key=openai_key),
                                            'breakpoint_threshold_type': 'gradient', 'breakpoint_threshold_amount': 95.0}
                         ui.button(text='add pypdf+sem(3-small):grad,95.0',
-                                  on_click=lambda c=collection: upload(c, 'pypdf', 'semantic', sem_grad95_args)).props('no-caps')
+                                  on_click=lambda c=collection_name: upload(c, 'pypdf', 'semantic', sem_grad95_args, page_spinner)).props('no-caps')
 
                         ui.separator().props(sep_props)
                         ui.button(text='delete', on_click=lambda c=collection_name: delete_coll(c)).props('no-caps')
@@ -213,36 +223,48 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                     with rbui.table():
                         with rbui.tr():
                             rbui.td('id')
-                            rbui.td(f'{collection.id}')
+                            rbui.td(f'{collection_md.id}')
                         with rbui.tr():
                             rbui.td('doc/chunk count')
-                            rbui.td(f'{collection.count()}')
+                            rbui.td(f'{collection_md.count()}')
                         with rbui.tr():
                             rbui.td('metadata')
                             metadata_string: str = ''
-                            for key in sorted(collection.metadata.keys()):
-                                metadata_string += f'{key}: {collection.metadata[key]}\n'
+                            for key in sorted(collection_md.metadata.keys()):
+                                metadata_string += f'{key}: {collection_md.metadata[key]}\n'
                             rbui.td(f'{metadata_string}')
                         with rbui.tr():
                             rbui.td('configuration')
                             config_string: str = '[NOTE: THESE HNSW VALUES OVERRIDDEN BY METADATA V.6+]\n'
-                            for key in sorted(collection.configuration_json.keys()):
-                                config_string += f'{key}: {collection.configuration_json[key]}\n'
+                            for key in sorted(collection_md.configuration_json.keys()):
+                                config_string += f'{key}: {collection_md.configuration_json[key]}\n'
                             rbui.td(f'{config_string}')
                         with rbui.tr():
                             rbui.td('model dimensions')
                             # noinspection PyProtectedMember
-                            rbui.td(f'{collection._model.dimension}')
+                            rbui.td(f'{collection_md._model.dimension}')
                         with rbui.tr():
                             rbui.td('embedding func')
                             # noinspection PyProtectedMember
-                            rbui.td(f'{collection._embedding_function.__class__.__name__}\n{vectorstore.filter_metadata(collection._embedding_function.__dict__)}')
+                            name = ''
+                            extra = ''
+                            # _model.base_model comes from e.g. SentenceTransformerEmbeddingFunction
+                            if '_model' in collection_md._embedding_function.__dict__:
+                                name = collection_md._embedding_function.__class__.__name__
+                                extra += f'base_model: {collection_md._embedding_function.__dict__['_model'].model_card_data.base_model}'
+                            # _model_name comes from e.g. OpenAIEmbeddingFunction
+                            if '_model_name' in collection_md._embedding_function.__dict__:
+                                name = collection_md._embedding_function.__class__.__name__
+                                extra += f'_model_name: {collection_md._embedding_function.__dict__['_model_name']}'
+                            if extra == '':
+                                extra = '[need full collection, see metadata]'
+                            rbui.td(f'{name}\n{extra}')
                         with rbui.tr():
                             rbui.td('tenant')
-                            rbui.td(f'{collection.tenant}')
+                            rbui.td(f'{collection_md.tenant}')
                         with rbui.tr():
                             rbui.td('database')
-                            rbui.td(f'{collection.database}')
+                            rbui.td(f'{collection_md.database}')
         page_spinner.set_visibility(False)
 
     async def do_create_dialog(create_dialog: CreateDialog, page_spinner: Spinner):

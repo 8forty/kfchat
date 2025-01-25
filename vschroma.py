@@ -35,39 +35,40 @@ class VSChroma(VSAPI):
     embedding_functions: dict[str, dict[str, any]] = {
         SentenceTransformerEmbeddingFunction.__name__: {
             'function': SentenceTransformerEmbeddingFunction,
-            'parms': {}
+            'read_parms': {}
         },
         OpenAIEmbeddingFunction.__name__: {
             'function': OpenAIEmbeddingFunction,
-            'parms': {'api_key': config.env.get('kfOPENAI_API_KEY')}  # todo: fix this!
+            'read_parms': {'api_key': config.env.get('kfOPENAI_API_KEY')}  # todo: fix this!
         },
         GoogleGenerativeAiEmbeddingFunction.__name__: {
             'function': GoogleGenerativeAiEmbeddingFunction,
-            'parms': {}
+            'read_parms': {}
         },
         OllamaEmbeddingFunction.__name__: {
             'function': OllamaEmbeddingFunction,
-            'parms': {}
+            'read_parms': {}
         }
     }
 
-    embedding_types_data: dict[str, dict[str, dict[str, any]]] = {
-        'ST': {
-            'all-MiniLM-L6-v2': {'function': SentenceTransformerEmbeddingFunction, 'parms': {'model_name': 'all-MiniLM-L6-v2'}},
-            'all-mpnet-base-v2': {'function': SentenceTransformerEmbeddingFunction, 'parms': {'model_name': 'all-mpnet-base-v2'}},
-            'Google': {'function': GoogleGenerativeAiEmbeddingFunction, 'parms': {}},
-            'Ollama': {'function': OllamaEmbeddingFunction, 'parms': {}},
+    # name-string:model-name:{function,parms}
+    embedding_types: dict[str, dict[str, dict[str, any]]] = {
+        SentenceTransformerEmbeddingFunction.__name__: {
+            'all-MiniLM-L6-v2': {'function': SentenceTransformerEmbeddingFunction, 'create_parms': {'model_name': 'all-MiniLM-L6-v2'}},
+            'all-mpnet-base-v2': {'function': SentenceTransformerEmbeddingFunction, 'create_parms': {'model_name': 'all-mpnet-base-v2'}},
+            'Google': {'function': GoogleGenerativeAiEmbeddingFunction, 'create_parms': {}},
+            'Ollama': {'function': OllamaEmbeddingFunction, 'create_parms': {}},
         },
-        'OpenAI': {
-            'text-embedding-3-large': {'function': OpenAIEmbeddingFunction, 'parms': {'model_name': 'text-embedding-3-large',
-                                                                                      'api_key': config.env.get('kfOPENAI_API_KEY'),  # todo: fix this!
-                                                                                      }},
-            'text-embedding-ada-002': {'function': OpenAIEmbeddingFunction, 'parms': {'model_name': 'text-embedding-ada-002',
-                                                                                      'api_key': config.env.get('kfOPENAI_API_KEY'),  # todo: fix this!
-                                                                                      }},
-            'text-embedding-3-small': {'function': OpenAIEmbeddingFunction, 'parms': {'model_name': 'text-embedding-3-small',
-                                                                                      'api_key': config.env.get('kfOPENAI_API_KEY'),  # todo: fix this!
-                                                                                      }},
+        OpenAIEmbeddingFunction.__name__: {
+            'text-embedding-3-large': {'function': OpenAIEmbeddingFunction, 'create_parms': {'model_name': 'text-embedding-3-large',
+                                                                                             'api_key': config.env.get('kfOPENAI_API_KEY'),  # todo: fix this!
+                                                                                             }},
+            'text-embedding-ada-002': {'function': OpenAIEmbeddingFunction, 'create_parms': {'model_name': 'text-embedding-ada-002',
+                                                                                             'api_key': config.env.get('kfOPENAI_API_KEY'),  # todo: fix this!
+                                                                                             }},
+            'text-embedding-3-small': {'function': OpenAIEmbeddingFunction, 'create_parms': {'model_name': 'text-embedding-3-small',
+                                                                                             'api_key': config.env.get('kfOPENAI_API_KEY'),  # todo: fix this!
+                                                                                             }},
         },
     }
 
@@ -78,7 +79,28 @@ class VSChroma(VSAPI):
     def create(api_type_name: str, parms: dict[str, str]):
         return VSChroma(api_type_name, parms)
 
+    def get_collection_metadata(self, collection_name: str) -> Collection:
+        """
+        gets a PARTIALLY complete collection, has all metadata BUT can't be used to add data!
+        :param collection_name:
+        :return:
+        """
+        try:
+            start = timeit.default_timer()
+            collection = self._client.get_collection(name=collection_name)
+            log.debug(f'{collection_name} metadata load {timeit.default_timer() - start: .1f}s')
+            return collection
+        except InvalidCollectionException:
+            errmsg = f'bad collection name: {self.collection_name}'
+            log.warning(errmsg)
+            raise ValueError(errmsg)
+
     def get_collection(self, collection_name: str) -> Collection:
+        """
+        gets a COMPLETE collection, metadata + can be used to add data
+        :param collection_name:
+        :return:
+        """
         try:
             # first figure out the embedding function safely in case e.g. we need a key for it
             start = timeit.default_timer()
@@ -88,7 +110,7 @@ class VSChroma(VSAPI):
                 embedding_function_name = metadata['embedding_function_name']
                 ef: EmbeddingFunction[Documents] = self.embedding_functions[embedding_function_name]['function']
                 embedding_function_parms: dict[str, str] = json.loads(metadata['embedding_function_parms'])
-                embedding_function_parms.update(self.embedding_functions[embedding_function_name]['parms'])
+                embedding_function_parms.update(self.embedding_functions[embedding_function_name]['read_parms'])
 
                 start = timeit.default_timer()
                 full_collection = self._client.get_collection(
@@ -249,14 +271,13 @@ class VSChroma(VSAPI):
         # },
         # default hnsw: {'space': 'l2', 'construction_ef': 100, 'search_ef': 10, 'num_threads': 22, 'M': 16, 'resize_factor': 1.2, 'batch_size': 100, 'sync_threshold': 1000, '_type': 'HNSWConfigurationInternal'}
         # todo: CollectionConfiguration will eventually be implemented: https://github.com/chroma-core/chroma/pull/2495
-        embedding_function_info = self.embedding_types_data[embedding_type][subtype]  # default: 'all-MiniLM-L6-v2'
+        embedding_function_info = self.embedding_types[embedding_type][subtype]  # default: 'all-MiniLM-L6-v2'
         #  x: CollectionConfiguration = CollectionConfiguration(hnsw_configuration=HNSWConfiguration(space='cosine'))
         collection: Collection = self._client.create_collection(
             name=name,
             metadata={
                 'embedding_function_name': embedding_function_info['function'].__name__,
-                # todo: the key!?!? 'embedding_function_parms': json.dumps(config.redact_parms(embedding_function_info['parms']), ensure_ascii=False),
-                'embedding_function_parms': json.dumps(self.filter_metadata(embedding_function_info['parms']), ensure_ascii=False),
+                'embedding_function_parms': json.dumps(self.filter_metadata(embedding_function_info['create_parms']), ensure_ascii=False),
 
                 'hnsw:space': 'l2',  # default l2
                 'hnsw:construction_ef': 500,  # default 100
@@ -265,7 +286,7 @@ class VSChroma(VSAPI):
 
                 'chroma_version': self._client.get_version(),
             },
-            embedding_function=embedding_function_info['function'](**embedding_function_info['parms']),
+            embedding_function=embedding_function_info['function'](**embedding_function_info['create_parms']),
             data_loader=None,
             get_or_create=False
         )
