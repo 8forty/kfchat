@@ -3,10 +3,10 @@ import time
 from dataclasses import dataclass
 from typing import Iterable
 
+import dotenv
 import openai
 from openai.types.chat import ChatCompletion
 
-import config
 import data
 import logstuff
 from config import redact
@@ -14,6 +14,36 @@ from llmconfig import LLMConfig
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
+
+dotenv.load_dotenv(override=True)
+env = dotenv.dotenv_values()
+
+llm_api_types_config = {
+    'azure': {
+        'key': env.get('kfAZURE_OPENAI_API_KEY'),
+        'AZURE_OPENAI_API_VERSION': env.get('AZURE_OPENAI_API_VERSION'),
+        'AZURE_OPENAI_ENDPOINT': env.get('AZURE_OPENAI_ENDPOINT'),
+        'AZURE_AI_SEARCH_ENDPOINT': env.get('AZURE_AI_SEARCH_ENDPOINT'),
+        'ai-search-api-key': env.get('AZURE_AI_SEARCH_API_KEY'),
+    },
+    'ollama': {
+        'key': 'nokeyneeded',
+        'OLLAMA_ENDPOINT': 'http://localhost:11434/v1/',
+    },
+    'openai': {
+        'key': env.get('kfOPENAI_API_KEY'),
+        'OPENAI_CHAT_COMPLETIONS_ENDPOINT': env.get('OPENAI_CHAT_COMPLETIONS_ENDPOINT'),
+        'OPENAI_ENDPOINT': env.get('OPENAI_ENDPOINT'),
+    },
+    'groq': {
+        'key': env.get('kfGROQ_API_KEY'),
+        'GROQ_OPENAI_ENDPOINT': env.get('GROQ_OPENAI_ENDPOINT'),
+    },
+    'gemini': {
+        'key': env.get('kfGEMINI_API_KEY'),
+        'GEMINI_OPENAI_ENDPOINT': env.get('GEMINI_OPENAI_ENDPOINT'),
+    },
+}
 
 
 @dataclass
@@ -88,23 +118,23 @@ class LLMOaiConfig(LLMConfig):
             return self._api_client
 
         if self.api_type_name == 'ollama':
-            endpoint = config.llm_api_types_config[self.api_type_name]['OLLAMA_ENDPOINT']
-            key = config.llm_api_types_config[self.api_type_name]['key']
+            endpoint = llm_api_types_config[self.api_type_name]['OLLAMA_ENDPOINT']
+            key = llm_api_types_config[self.api_type_name]['key']
             log.info(f'building LLM API for [{self.api_type_name}]: {endpoint=} key={redact(key)}')
             self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         elif self.api_type_name == 'openai':
-            endpoint = config.llm_api_types_config[self.api_type_name]['OPENAI_ENDPOINT']
-            key = config.llm_api_types_config[self.api_type_name]['key']
+            endpoint = llm_api_types_config[self.api_type_name]['OPENAI_ENDPOINT']
+            key = llm_api_types_config[self.api_type_name]['key']
             log.info(f'building LLM API for [{self.api_type_name}]: {endpoint=} key={redact(key)}')
             self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         elif self.api_type_name == 'groq':
-            endpoint = config.llm_api_types_config[self.api_type_name]['GROQ_OPENAI_ENDPOINT']
-            key = config.llm_api_types_config[self.api_type_name]['key']
+            endpoint = llm_api_types_config[self.api_type_name]['GROQ_OPENAI_ENDPOINT']
+            key = llm_api_types_config[self.api_type_name]['key']
             log.info(f'building LLM API for [{self.api_type_name}]: {endpoint=} key={redact(key)}')
             self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         elif self.api_type_name == 'gemini':
-            endpoint = config.llm_api_types_config[self.api_type_name]['GEMINI_OPENAI_ENDPOINT']
-            key = config.llm_api_types_config[self.api_type_name]['key']
+            endpoint = llm_api_types_config[self.api_type_name]['GEMINI_OPENAI_ENDPOINT']
+            key = llm_api_types_config[self.api_type_name]['key']
             log.info(f'building LLM API for [{self.api_type_name}]: {endpoint=} key={redact(key)}')
             self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         elif self.api_type_name == 'azure':
@@ -116,9 +146,9 @@ class LLMOaiConfig(LLMConfig):
             #     azure_endpoint=self.parms.get('AZURE_OPENAI_ENDPOINT'),
             #     azure_ad_token_provider=token_provider,
             # )
-            endpoint = config.llm_api_types_config[self.api_type_name]['AZURE_OPENAI_ENDPOINT']
-            key = config.llm_api_types_config[self.api_type_name]['key']
-            api_version = config.llm_api_types_config[self.api_type_name]['AZURE_OPENAI_API_VERSION']
+            endpoint = llm_api_types_config[self.api_type_name]['AZURE_OPENAI_ENDPOINT']
+            key = llm_api_types_config[self.api_type_name]['key']
+            api_version = llm_api_types_config[self.api_type_name]['AZURE_OPENAI_API_VERSION']
             log.info(f'building LLM API for [{self.api_type_name}]: {endpoint=} key={redact(key)} {api_version=}')
             self._api_client = openai.AzureOpenAI(azure_endpoint=endpoint, api_key=key, api_version=api_version)
         else:

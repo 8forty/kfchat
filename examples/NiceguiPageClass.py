@@ -21,7 +21,7 @@ class NiceguiPageClass:
         async def handle_button(npc: NiceguiPageClass.PageInstanceData):
             await refresh_npc(npc)
 
-        @ui.page('/')
+        @ui.page(path='/')
         async def index(_: Request) -> None:
 
             # unique instance data for each incoming top-level connection

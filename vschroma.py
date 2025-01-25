@@ -83,7 +83,7 @@ class VSChroma(VSAPI):
             # first figure out the embedding function safely in case e.g. we need a key for it
             start = timeit.default_timer()
             metadata = self._client.get_collection(name=collection_name).metadata
-            log.debug(f'{collection_name} metadata load {timeit.default_timer() - start: .0f}s')
+            log.debug(f'{collection_name} metadata load {timeit.default_timer() - start: .1f}s')
             if 'embedding_function_name' in metadata:
                 embedding_function_name = metadata['embedding_function_name']
                 ef: EmbeddingFunction[Documents] = self.embedding_functions[embedding_function_name]['function']
@@ -95,7 +95,7 @@ class VSChroma(VSAPI):
                     name=collection_name,
                     embedding_function=ef(**embedding_function_parms)
                 )
-                log.debug(f'{collection_name} full load {timeit.default_timer() - start: .0f}s')
+                log.debug(f'{collection_name} full load {timeit.default_timer() - start: .1f}s')
                 return full_collection
             else:
                 raise ValueError(f'collection {collection_name} has no embedding_function_name in metadata!')

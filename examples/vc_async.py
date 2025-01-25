@@ -8,7 +8,7 @@ def setup(path: str):
         await asyncio.sleep(2)
         print(f'selected: {selected}')
 
-    @ui.page(path)
+    @ui.page(path=path)
     async def index():
         with ui.row().classes('w-full'):
             ui.select(label='LL:',

@@ -2,7 +2,7 @@ from nicegui import ui
 
 
 def setup(path: str):
-    @ui.page(path)
+    @ui.page(path=path)
     async def index():
         with ui.row().classes('w-full'):
             ui.select(

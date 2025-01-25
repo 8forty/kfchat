@@ -21,7 +21,7 @@ def chat_messages(own_id: str) -> None:
     ui.run_javascript('window.scrollTo(0, document.body.scrollHeight)')
 
 
-@ui.page('/')
+@ui.page(path='/')
 async def setup():
     def handle_enter() -> None:
         stamp = datetime.now(UTC).strftime('%X')

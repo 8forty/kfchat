@@ -5,7 +5,7 @@ import timeit
 import traceback
 
 from fastapi import Request
-from nicegui import ui, run
+from nicegui import ui, run, Client
 from nicegui.element import Element
 from nicegui.elements.input import Input
 from nicegui.elements.scroll_area import ScrollArea
@@ -148,10 +148,13 @@ class ChatPage:
             await callback()
             await focus_element.run_method('focus')
 
-        @ui.page(path)
-        async def index(request: Request) -> None:
+        @ui.page(path=path)
+        async def index(request: Request, client: Client) -> None:
             logstuff.update_from_request(request)
             log.info(f'route triggered')
+
+            # this page sometimes take a bit of time to load (per: https://github.com/zauberzeug/nicegui/discussions/2429)
+            await client.connected(timeout=3.0)
 
             idata = InstanceData(self.llm_configs, self.llm_config, self.vectorstore, self.parms)
 

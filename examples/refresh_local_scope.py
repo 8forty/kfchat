@@ -22,7 +22,7 @@ class TestPage1:
             idata.texts.append(f'{prompt_input.value.strip()}')
             idata.refresh_instance.refresh()  # NOTE: refreshes call the refresh() function on the original refresh_instance function!!!
 
-        @ui.page(path)
+        @ui.page(path=path)
         async def index() -> None:
             idata = PageInstanceData()  # this creates a "local scope" object for data and refreshes
             prompt_input = ui.input().on('keydown.enter', lambda: handle_enter(prompt_input, idata))
@@ -39,7 +39,7 @@ class TestPage1:
 #         async def handle_button(idata: PageInstanceData):
 #             await refresh_cp(idata)
 #
-#         @ui.page(path)
+#         @ui.page(path=path)
 #         async def index() -> None:
 #             idata = PageInstanceData()
 #             ui.label(f'{idata.id}')

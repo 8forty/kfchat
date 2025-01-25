@@ -15,6 +15,7 @@ from nicegui.elements.spinner import Spinner
 
 import config
 import frame
+import llmoaiconfig
 import logstuff
 import rbui
 from vschroma import VSChroma
@@ -159,7 +160,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                     traceback.print_exc(file=sys.stdout)
                     continue
 
-                openai_key = config.llm_api_types_config['openai']['key']
+                openai_key = llmoaiconfig.llm_api_types_config['openai']['key']
                 with rbui.tr():
                     with rbui.td(label=f'{collection_name}', td_style='width: 250px'):
                         sep_props = 'size=4px'
@@ -256,7 +257,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         # todo: page spinner
         chroma_ui.refresh()
 
-    @ui.page(path)
+    @ui.page(path=path)
     async def index(request: Request, client: Client) -> None:
         logstuff.update_from_request(request)
         log.debug(f'chromadbpage route triggered')

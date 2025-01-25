@@ -18,7 +18,7 @@ def setup_manual(path: str):
             show_numbers()
         scroller.scroll_to(percent=1e6)
 
-    @ui.page(path)
+    @ui.page(path=path)
     def index():
         ui.button(text='add', on_click=lambda: add(scroller))
 
@@ -48,7 +48,7 @@ def setup_refreshable_async(path: str):
         numbers.append(len(numbers))
         show_numbers.refresh()
 
-    @ui.page(path)
+    @ui.page(path=path)
     async def index():
         ui.button(text='add', on_click=lambda: add())
 
@@ -76,7 +76,7 @@ def setup_refreshable_async2(path: str):
         numbers.append(len(numbers))
         show_numbers.refresh()
 
-    @ui.page(path)
+    @ui.page(path=path)
     async def index():
         ui.button(text='add', on_click=lambda: add())
 
@@ -105,7 +105,7 @@ def setup_refreshable_sync(path: str):
         numbers.append(len(numbers))
         show_numbers.refresh()
 
-    @ui.page(path)
+    @ui.page(path=path)
     def index():
         ui.button(text='add', on_click=lambda: add())
 

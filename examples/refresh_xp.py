@@ -13,7 +13,7 @@ def setup(path: str):
         numbers.append(random.randint(0, 100))
         number_ui.refresh()
 
-    @ui.page(path)
+    @ui.page(path=path)
     def index():
         number_ui()
         ui.button('Add random number', on_click=add_number)

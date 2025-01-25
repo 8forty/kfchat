@@ -16,7 +16,7 @@ def setup(path: str):
         with scroller:
             await show_numbers(scroller)
 
-    @ui.page(path)
+    @ui.page(path=path)
     async def index():
         ui.button(text='add', on_click=lambda: add(scroller))
 
