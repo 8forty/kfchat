@@ -169,7 +169,7 @@ class ChatPage:
                                   options=source_names,
                                   value=idata.source_select_name,
                                   ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_source(vc.value, spinner, pinput), pinput)
-                                                    ).tooltip('vs=index search, llm=lang model chat').props('square outlined label-color=green').classes('min-w-30')
+                                                    ).tooltip('vs=vector search, llm=lang model chat').props('square outlined label-color=green').classes('min-w-30')
                         ui.select(label='n:',
                                   options=[i for i in range(1, 10)],
                                   value=settings.n,

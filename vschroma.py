@@ -19,6 +19,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 import config
 import logstuff
 from chatexchanges import VectorStoreResponse, VectorStoreResult
+from lc_chunkers import chunkers
 from vsapi import VSAPI
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -367,14 +368,13 @@ class VSChroma(VSAPI):
         else:
             raise ValueError(f'unknown document type [{doc_type}]')
 
-        if chunker_type == 'rcts':
-            chunks = self.filter_metadata_docs(RecursiveCharacterTextSplitter(**chunker_args).split_documents(docs), org_filename)
-        elif chunker_type == 'semantic':
-            chunks = self.filter_metadata_docs(SemanticChunker(**chunker_args).split_documents(docs), org_filename)
+        # chunking
+        log.debug(f'chunking {len(docs)} documents for {collection.name} with {chunker_type} args: {chunker_args}')
+        if chunker_type in chunkers:
+            chunker_func = chunkers[chunker_type]['function']
+            chunks = self.filter_metadata_docs(chunker_func(**chunker_args).split_documents(docs), org_filename)
         else:
             raise ValueError(f'unknown chunker type [{chunker_type}]')
-
-        log.debug(f'adding embeddings for {len(chunks)} [{chunker_type}] chunks to collection {collection.name}')
 
         # update collection metadata
         now = config.now_datetime()
@@ -386,15 +386,13 @@ class VSChroma(VSAPI):
                 oaie: OpenAIEmbeddings = v
                 collection.metadata[f'file:{org_filename}.chunker.model.embeddings'] = OpenAIEmbeddings.__name__
                 collection.metadata[f'file:{org_filename}.chunker.model'] = oaie.model
-                if oaie.dimensions is not None:
-                    collection.metadata[f'file:{org_filename}.chunker.dimensions'] = oaie.dimensions
-                else:
-                    log.debug(f'{collection.name} {OpenAIEmbeddings.__name__} dimensions is None!?')
+                #  collection.metadata[f'file:{org_filename}.chunker.dimensions'] = oaie.dimensions # always None!?
             else:
                 collection.metadata[f'file:{org_filename}.chunker.{k}'] = v
         collection.modify(metadata=self.fix_metadata_for_modify(self.filter_metadata(collection.metadata)))
 
         #  add documents + ids + metadata to the collection
+        log.debug(f'adding embeddings for {len(chunks)} [{chunker_type}] chunks to collection {collection.name}')
         collection.add(documents=[c.page_content for c in chunks],
                        ids=[f'{org_filename}-{i}' for i in range(0, len(chunks))],  # use name:count for chunk-ids
                        metadatas=[c.metadata for c in chunks],
