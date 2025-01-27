@@ -4,7 +4,7 @@ import timeit
 
 import chromadb
 from chromadb.api.models.Collection import Collection
-from chromadb.api.types import IncludeEnum, Documents, EmbeddingFunction
+import chromadb.api.types as chroma_api_types
 from chromadb.errors import InvalidCollectionException
 from chromadb.utils.embedding_functions.google_embedding_function import GoogleGenerativeAiEmbeddingFunction
 from chromadb.utils.embedding_functions.ollama_embedding_function import OllamaEmbeddingFunction
@@ -13,6 +13,7 @@ from chromadb.utils.embedding_functions.sentence_transformer_embedding_function 
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_core.documents import Document
 from langchain_experimental.text_splitter import SemanticChunker
+from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 import config
@@ -32,43 +33,50 @@ class VSChroma(VSAPI):
         self.collection_name: str | None = None  # todo: get rid of this
         self._collection: chromadb.Collection | None = None  # todo: and this
 
-    embedding_functions: dict[str, dict[str, any]] = {
-        SentenceTransformerEmbeddingFunction.__name__: {
-            'function': SentenceTransformerEmbeddingFunction,
-            'read_parms': {}
-        },
-        OpenAIEmbeddingFunction.__name__: {
-            'function': OpenAIEmbeddingFunction,
-            'read_parms': {'api_key': config.env.get('kfOPENAI_API_KEY')}  # todo: fix this!
-        },
-        GoogleGenerativeAiEmbeddingFunction.__name__: {
-            'function': GoogleGenerativeAiEmbeddingFunction,
-            'read_parms': {}
-        },
-        OllamaEmbeddingFunction.__name__: {
-            'function': OllamaEmbeddingFunction,
-            'read_parms': {}
-        }
-    }
-
-    # name-string:model-name:{function,parms}
+    # function-name-string : {model-name : {function, create_parms: {model_name}, read_parms: {}}}
     embedding_types: dict[str, dict[str, dict[str, any]]] = {
         SentenceTransformerEmbeddingFunction.__name__: {
-            'all-MiniLM-L6-v2': {'function': SentenceTransformerEmbeddingFunction, 'create_parms': {'model_name': 'all-MiniLM-L6-v2'}},
-            'all-mpnet-base-v2': {'function': SentenceTransformerEmbeddingFunction, 'create_parms': {'model_name': 'all-mpnet-base-v2'}},
-            'Google': {'function': GoogleGenerativeAiEmbeddingFunction, 'create_parms': {}},
-            'Ollama': {'function': OllamaEmbeddingFunction, 'create_parms': {}},
+            'all-MiniLM-L6-v2': {
+                'function': SentenceTransformerEmbeddingFunction,
+                'create_parms': {'model_name': 'all-MiniLM-L6-v2'},
+                'read_parms': {},
+            },
+            'all-mpnet-base-v2': {
+                'function': SentenceTransformerEmbeddingFunction,
+                'create_parms': {'model_name': 'all-mpnet-base-v2'},
+                'read_parms': {},
+            },
         },
         OpenAIEmbeddingFunction.__name__: {
-            'text-embedding-3-large': {'function': OpenAIEmbeddingFunction, 'create_parms': {'model_name': 'text-embedding-3-large',
-                                                                                             'api_key': config.env.get('kfOPENAI_API_KEY'),  # todo: fix this!
-                                                                                             }},
-            'text-embedding-ada-002': {'function': OpenAIEmbeddingFunction, 'create_parms': {'model_name': 'text-embedding-ada-002',
-                                                                                             'api_key': config.env.get('kfOPENAI_API_KEY'),  # todo: fix this!
-                                                                                             }},
-            'text-embedding-3-small': {'function': OpenAIEmbeddingFunction, 'create_parms': {'model_name': 'text-embedding-3-small',
-                                                                                             'api_key': config.env.get('kfOPENAI_API_KEY'),  # todo: fix this!
-                                                                                             }},
+            'text-embedding-3-large': {
+                'function': OpenAIEmbeddingFunction,
+                'create_parms': {'model_name': 'text-embedding-3-large', 'api_key': config.env.get('kfOPENAI_API_KEY')},
+                'read_parms': {'api_key': config.env.get('kfOPENAI_API_KEY')},
+            },
+            'text-embedding-ada-002': {
+                'function': OpenAIEmbeddingFunction,
+                'create_parms': {'model_name': 'text-embedding-ada-002', 'api_key': config.env.get('kfOPENAI_API_KEY')},
+                'read_parms': {'api_key': config.env.get('kfOPENAI_API_KEY')},
+            },
+            'text-embedding-3-small': {
+                'function': OpenAIEmbeddingFunction,
+                'create_parms': {'model_name': 'text-embedding-3-small', 'api_key': config.env.get('kfOPENAI_API_KEY')},
+                'read_parms': {'api_key': config.env.get('kfOPENAI_API_KEY')},
+            },
+        },
+        GoogleGenerativeAiEmbeddingFunction.__name__: {
+            'abc': {
+                'function': GoogleGenerativeAiEmbeddingFunction,
+                'create_parms': {},
+                'read_parms': {},
+            }
+        },
+        OllamaEmbeddingFunction.__name__: {
+            'abc': {
+                'function': OllamaEmbeddingFunction,
+                'create_parms': {},
+                'read_parms': {},
+            }
         },
     }
 
@@ -107,15 +115,18 @@ class VSChroma(VSAPI):
             metadata = self._client.get_collection(name=collection_name).metadata
             log.debug(f'{collection_name} metadata load {timeit.default_timer() - start: .1f}s')
             if 'embedding_function_name' in metadata:
-                embedding_function_name = metadata['embedding_function_name']
-                ef: EmbeddingFunction[Documents] = self.embedding_functions[embedding_function_name]['function']
-                embedding_function_parms: dict[str, str] = json.loads(metadata['embedding_function_parms'])
-                embedding_function_parms.update(self.embedding_functions[embedding_function_name]['read_parms'])
+                ef_name: str = metadata['embedding_function_name']
+                ef_parms: str = metadata['embedding_function_parms']
+                model_name = json.loads(ef_parms)['model_name']
+                ef: chroma_api_types.EmbeddingFunction[chroma_api_types.Documents] = self.embedding_types[ef_name][model_name]['function']
+                ef_parms: dict[str, str] = json.loads(metadata['embedding_function_parms'])
+                ef_parms.update(self.embedding_types[ef_name][model_name]['read_parms'])  # adds e.g. a key
 
                 start = timeit.default_timer()
+                # noinspection PyTypeChecker
                 full_collection = self._client.get_collection(
                     name=collection_name,
-                    embedding_function=ef(**embedding_function_parms)
+                    embedding_function=ef(**ef_parms)
                 )
                 log.debug(f'{collection_name} full load {timeit.default_timer() - start: .1f}s')
                 return full_collection
@@ -146,7 +157,8 @@ class VSChroma(VSAPI):
         results: dict = self._collection.query(
             query_texts=[prompt],  # chroma will automatically creates embedding(s) for these
             n_results=howmany,
-            include=[IncludeEnum('documents'), IncludeEnum('metadatas'), IncludeEnum('distances'), IncludeEnum('uris'), IncludeEnum('data')],
+            include=[chroma_api_types.IncludeEnum('documents'), chroma_api_types.IncludeEnum('metadatas'), chroma_api_types.IncludeEnum('distances'),
+                     chroma_api_types.IncludeEnum('uris'), chroma_api_types.IncludeEnum('data')],
         )
 
         # chroma results are lists with one element per prompt, since we only have 1 prompt we only use element 0 from each list
@@ -211,6 +223,7 @@ class VSChroma(VSAPI):
             for k in results.keys():
                 # noinspection PyTypedDict
                 if k != 'included':  # the 'included' key is diff from the rest
+                    # noinspection PyTypedDict
                     rdict[k] = results[k][i] if results[k] is not None else None
             lod.append(rdict)
 
@@ -311,7 +324,7 @@ class VSChroma(VSAPI):
     md_allowed_types: tuple[type, ...] = (str, bool, int, float)
     md_redacted_keys: list[str] = ['api_key', '_api_key']
 
-    def filter_metadata_docs(self, documents: list[Document]) -> list[Document]:
+    def filter_metadata_docs(self, documents: list[Document], org_filename: str) -> list[Document]:
         retval: list[Document] = []
         for doc in documents:
             doc_md = {}
@@ -320,9 +333,16 @@ class VSChroma(VSAPI):
                     continue
                 if key in self.md_redacted_keys:
                     value = config.redact(value)
+
+                # fix 'source' in chunks metadata since it references a tmp file which is pointless
+                if key == 'source':
+                    value = org_filename
+
                 doc_md[key] = value
+
             doc.metadata = doc_md
             retval.append(doc)
+
         return retval
 
     def filter_metadata(self, metadata: dict[str, any]) -> dict[str, any]:
@@ -348,16 +368,13 @@ class VSChroma(VSAPI):
             raise ValueError(f'unknown document type [{doc_type}]')
 
         if chunker_type == 'rcts':
-            # chunks = [chunk.page_content for chunk in RecursiveCharacterTextSplitter(**chunker_args).split_documents(docs)]
-            chunks = self.filter_metadata_docs(RecursiveCharacterTextSplitter(**chunker_args).split_documents(docs))
-
-            # todo: is this necessary?
+            chunks = self.filter_metadata_docs(RecursiveCharacterTextSplitter(**chunker_args).split_documents(docs), org_filename)
         elif chunker_type == 'semantic':
-            chunks = self.filter_metadata_docs(SemanticChunker(**chunker_args).split_documents(docs))
+            chunks = self.filter_metadata_docs(SemanticChunker(**chunker_args).split_documents(docs), org_filename)
         else:
             raise ValueError(f'unknown chunker type [{chunker_type}]')
 
-        log.debug(f'adding embeddings for {len(chunks)} [{chunker_type}] chunks to {collection.name}')
+        log.debug(f'adding embeddings for {len(chunks)} [{chunker_type}] chunks to collection {collection.name}')
 
         # update collection metadata
         now = config.now_datetime()
@@ -365,7 +382,16 @@ class VSChroma(VSAPI):
         collection.metadata[f'file:{org_filename}.doc_type'] = doc_type
         collection.metadata[f'file:{org_filename}.chunker_type'] = chunker_type
         for k, v in chunker_args.items():
-            collection.metadata[f'file:{org_filename}.chunker.{k}'] = v
+            if isinstance(v, OpenAIEmbeddings):  # if it's an oai function, pull out known fields for metadata
+                oaie: OpenAIEmbeddings = v
+                collection.metadata[f'file:{org_filename}.chunker.model.embeddings'] = OpenAIEmbeddings.__name__
+                collection.metadata[f'file:{org_filename}.chunker.model'] = oaie.model
+                if oaie.dimensions is not None:
+                    collection.metadata[f'file:{org_filename}.chunker.dimensions'] = oaie.dimensions
+                else:
+                    log.debug(f'{collection.name} {OpenAIEmbeddings.__name__} dimensions is None!?')
+            else:
+                collection.metadata[f'file:{org_filename}.chunker.{k}'] = v
         collection.modify(metadata=self.fix_metadata_for_modify(self.filter_metadata(collection.metadata)))
 
         #  add documents + ids + metadata to the collection

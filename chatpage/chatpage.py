@@ -165,31 +165,37 @@ class ChatPage:
                     with (ui.row().classes('w-full border-solid border border-black')):  # place-content-center')):
                         source_names = idata.source_names_list()
                         settings = self.llm_config.settings
-                        ui.select(label='Source:',
+                        ui.select(label='Model:',
                                   options=source_names,
                                   value=idata.source_select_name,
-                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_source(vc.value, spinner, pinput), pinput)).props('square outlined label-color=green')
+                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_source(vc.value, spinner, pinput), pinput)
+                                                    ).tooltip('vs=index search, llm=lang model chat').props('square outlined label-color=green').classes('min-w-30')
                         ui.select(label='n:',
                                   options=[i for i in range(1, 10)],
                                   value=settings.n,
-                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_n(vc.value), pinput)).props('square outlined label-color=green')
+                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_n(vc.value), pinput)
+                                                    ).tooltip('number of results per query').props('square outlined label-color=green').classes('min-w-20')
                         ui.select(label='Temp:',
                                   options=[float(t) / 10.0 for t in range(0, 21)],
                                   value=settings.temp,
-                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_temp(vc.value), pinput)).props('square outlined label-color=green')
+                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_temp(vc.value), pinput)
+                                                    ).tooltip('responses: 0=very predictable, 2=very random/creative').props('square outlined label-color=green').classes('min-w-40')
                         ui.select(label='Top_p:',
                                   options=[float(t) / 10.0 for t in range(0, 11)],
                                   value=settings.top_p,
-                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_top_p(vc.value), pinput)).props('square outlined label-color=green')
+                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_top_p(vc.value), pinput)
+                                                    ).tooltip('responses: 0=less random, 1 more random').props('square outlined label-color=green').classes('min-w-40')
                         ui.select(label='Max Tokens:',
                                   options=[80, 200, 400, 800, 1000, 1500, 2000],
                                   value=settings.max_tokens,
-                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_max_tokens(vc.value), pinput)).props('square outlined label-color=green')
+                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_max_tokens(vc.value), pinput)
+                                                    ).tooltip('max tokens in response').props('square outlined label-color=green').classes('min-w-40')
                         sysmsg_names = [key for key in data.sysmsg_all]
                         ui.select(label='Sys Msg:',
                                   options=sysmsg_names,
                                   value=settings.system_message_name
-                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_sysmsg(vc.value), pinput)).props('square outlined label-color=green')
+                                  ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_sysmsg(vc.value), pinput)
+                                                    ).tooltip('system/setup text sent with each prompt').props('square outlined label-color=green').classes('min-w-50')
 
                     # with ui.scroll_area(on_scroll=lambda e: print(f'~~~~ e: {e}')).classes('w-full flex-grow border border-solid border-black') as scroller:
                     with ui.scroll_area().classes('w-full flex-grow border border-solid border-black') as scroller:

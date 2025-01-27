@@ -10,6 +10,7 @@ from chromadb.types import Collection
 from fastapi import Request
 from langchain_openai import OpenAIEmbeddings
 from nicegui import ui, run, events, Client
+from nicegui.elements.button import Button
 from nicegui.elements.dialog import Dialog
 from nicegui.elements.select import Select
 from nicegui.elements.spinner import Spinner
@@ -35,27 +36,34 @@ class UploadFileDialog(Dialog):
         self.chunker_type = chunker_type
         self.chunker_args = chunker_args
 
-    async def handle_upload(self, ulargs: events.UploadEventArguments, vectorstore: VSChroma):
-        local_file_name = ulargs.name
-        log.info(f'uploading local file {local_file_name} for {self.collection.name}...')
-        with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
-            contents: AnyStr = await run.io_bound(ulargs.content.read)
-            log.debug(f'loaded {local_file_name}...')
-            await run.io_bound(lambda: tmpfile.write(contents))
-            log.debug(f'saved file {local_file_name} to server file {tmpfile.name}...')
-
+    async def handle_upload(self, ulargs: events.UploadEventArguments, vectorstore: VSChroma, done_button: Button, upld_spinner: Spinner):
+        done_button.set_visibility(False)
+        done_button.disable()
+        upld_spinner.set_visibility(True)
         try:
-            log.debug(f'chunking ({self.chunker_type}) server file {tmpfile.name}...')
-            #  await run.io_bound(lambda: vectorstore.ingest(self.collection, tmpfile.name, local_file_name, self.doc_type, self.chunker_type, self.chunker_args))
-            await run.io_bound(lambda: vectorstore.ingest(self.collection, tmpfile.name, local_file_name, self.doc_type, self.chunker_type, self.chunker_args))
-        except (Exception,) as e:
-            errmsg = f'Error ingesting {local_file_name}: {e}'
-            traceback.print_exc(file=sys.stdout)
-            log.error(errmsg)
-            ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
+            local_file_name = ulargs.name
+            log.info(f'uploading local file {local_file_name} for {self.collection.name}...')
+            with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
+                contents: AnyStr = await run.io_bound(ulargs.content.read)
+                log.debug(f'loaded {local_file_name}...')
+                await run.io_bound(lambda: tmpfile.write(contents))
+                log.debug(f'saved file {local_file_name} to server file {tmpfile.name}...')
 
-        os.remove(tmpfile.name)
-        log.info(f'ingested {local_file_name} via {tmpfile.name}')
+            try:
+                log.debug(f'chunking ({self.chunker_type}) server file {tmpfile.name}...')
+                await run.io_bound(lambda: vectorstore.ingest(self.collection, tmpfile.name, local_file_name, self.doc_type, self.chunker_type, self.chunker_args))
+            except (Exception,) as e:
+                errmsg = f'Error ingesting {local_file_name}: {e}'
+                traceback.print_exc(file=sys.stdout)
+                log.error(errmsg)
+                ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
+
+            os.remove(tmpfile.name)
+            log.info(f'ingested {local_file_name} via {tmpfile.name} to collection {self.collection.name}')
+        finally:
+            upld_spinner.set_visibility(False)
+            done_button.set_visibility(True)
+            done_button.enable()
 
     async def set_filetype_props(self):
         for d in self.descendants(include_self=False):
@@ -96,14 +104,32 @@ class CreateDialog(Dialog):
             self.submit((collection_name, embedding_type, subtype))
 
     @staticmethod
-    def select_embedding_subtype(value: str, subtype_select: Select):
-        opts = list(VSChroma.embedding_types[value].keys())
+    def select_embedding_subtype(embedding_type: str, subtype_select: Select):
+        opts = list(VSChroma.embedding_types[embedding_type].keys())
         subtype_select.set_options(opts)
         subtype_select.set_value(opts[0])
 
     async def reset_inputs(self):
         # todo: setting to None is an error and '' is immediate validation error
         self.cinput.set_value('')
+
+
+class AddDialog(Dialog):
+    def __init__(self, collection_name: str):
+        Dialog.__init__(self)
+        self.collection_name = collection_name
+
+        with self, ui.card():
+            with ui.column().classes('w-full'):
+                ui.label(f'Add a doc to {self.collection_name}').classes('text-xl self-center')
+                reader_types = list(VSChroma.embedding_types.keys())
+                # et_start_value = embedding_types[0]
+                # etype = ui.select(label='Embedding Type:', options=embedding_types, value=et_start_value).props('square outlined label-color=green').classes('w-full')
+                # etype.on_value_change(lambda vc: self.select_embedding_subtype(vc.value, subtype_select))
+                # subtype_select = ui.select(label='Subtype:', options=[]).props('square outlined label-color=green').classes('w-full')
+                # self.select_embedding_subtype(et_start_value, subtype_select)
+                # ui.separator()
+                # ui.button('Create', on_click=lambda: self.create_collection_submit(self.cinput.value, etype.value, subtype_select.value)).props('no-caps').classes('self-center')
 
 
 # noinspection PyUnusedLocal
@@ -145,9 +171,12 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
 
         with (UploadFileDialog(collection, doc_type, chunker_type, chunker_args) as upload_file_dialog, ui.card()):
             ui.label('Upload a File')
-            ui.upload(auto_upload=True, on_upload=lambda ulargs: upload_file_dialog.handle_upload(ulargs, vectorstore)).classes(add=upload_file_dialog.upload_id_class)
+            upld = ui.upload(auto_upload=True).classes(add=upload_file_dialog.upload_id_class)
             with ui.row().classes('w-full place-content-center'):
-                ui.button(text='Done', on_click=lambda: upload_file_dialog.submit(None)).props('no-caps')
+                done_button = ui.button(text='Done', on_click=lambda: upload_file_dialog.submit(None)).props('no-caps')
+                upld_spinner = ui.spinner(size='3em', type='default')
+                upld_spinner.set_visibility(False)
+                upld.on_upload(lambda ulargs, db=done_button: upload_file_dialog.handle_upload(ulargs, vectorstore, done_button, upld_spinner))
         await upload_file_dialog.set_filetype_props()
         await upload_file_dialog
         upload_file_dialog.close()
@@ -174,41 +203,52 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                 with rbui.tr():
                     with rbui.td(label=f'{collection_name}', td_style='width: 250px'):
                         sep_props = 'size=4px'
+
                         rcts_args = {'chunk_size': 1000, 'chunk_overlap': 200}  # todo configure this
                         ui.button(text=f'add pypdf+rcts:{rcts_args['chunk_size']},{rcts_args['chunk_overlap']}',
                                   on_click=lambda c=collection_name: upload(c, 'pypdf', 'rcts', rcts_args, page_spinner)).props('no-caps')
 
                         ui.separator().props(sep_props)
-                        sem_defaults_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-ada-002', openai_api_key=openai_key)}
+                        model_name = 'text-embedding-ada-002'
+                        sem_defaults_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key), }
                         ui.button(text='add pypdf+sem(ada002):defaults',
                                   on_click=lambda c=collection_name: upload(c, 'pypdf', 'semantic', sem_defaults_args, page_spinner)).props('no-caps')
 
                         ui.separator().props(sep_props)
-                        sem_defaults_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small', openai_api_key=openai_key)}
+                        model_name = 'text-embedding-3-small'
+                        sem_defaults_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key), }
                         ui.button(text='add pypdf+sem(3-small):defaults',
                                   on_click=lambda c=collection_name: upload(c, 'pypdf', 'semantic', sem_defaults_args, page_spinner)).props('no-caps')
 
                         ui.separator().props(sep_props)
-                        sem_p95_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small', openai_api_key=openai_key),
-                                        'breakpoint_threshold_type': 'percentile', 'breakpoint_threshold_amount': 95.0}
+                        model_name = 'text-embedding-3-small'
+                        sem_p95_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key),
+                                        'breakpoint_threshold_type': 'percentile',
+                                        'breakpoint_threshold_amount': 95.0, }
                         ui.button(text='add pypdf+sem(3-small):pct,95.0',
                                   on_click=lambda c=collection_name: upload(c, 'pypdf', 'semantic', sem_p95_args, page_spinner)).props('no-caps')
 
                         ui.separator().props(sep_props)
-                        sem_sd3_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small', openai_api_key=openai_key),
-                                        'breakpoint_threshold_type': 'standard_deviation', 'breakpoint_threshold_amount': 3.0}
+                        model_name = 'text-embedding-3-small'
+                        sem_sd3_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key),
+                                        'breakpoint_threshold_type': 'standard_deviation',
+                                        'breakpoint_threshold_amount': 3.0, }
                         ui.button(text='add pypdf+sem(3-small):stdev,3.0',
                                   on_click=lambda c=collection_name: upload(c, 'pypdf', 'semantic', sem_sd3_args, page_spinner)).props('no-caps')
 
                         ui.separator().props(sep_props)
-                        sem_iq15_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small', openai_api_key=openai_key),
-                                         'breakpoint_threshold_type': 'interquartile', 'breakpoint_threshold_amount': 1.5}
+                        model_name = 'text-embedding-3-small'
+                        sem_iq15_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key),
+                                         'breakpoint_threshold_type': 'interquartile',
+                                         'breakpoint_threshold_amount': 1.5, }
                         ui.button(text='add pypdf+sem(3-small):iq,1.5',
                                   on_click=lambda c=collection_name: upload(c, 'pypdf', 'semantic', sem_iq15_args, page_spinner)).props('no-caps')
 
                         ui.separator().props(sep_props)
-                        sem_grad95_args = {'embeddings': OpenAIEmbeddings(model='text-embedding-3-small', openai_api_key=openai_key),
-                                           'breakpoint_threshold_type': 'gradient', 'breakpoint_threshold_amount': 95.0}
+                        model_name = 'text-embedding-3-small'
+                        sem_grad95_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key),
+                                           'breakpoint_threshold_type': 'gradient',
+                                           'breakpoint_threshold_amount': 95.0, }
                         ui.button(text='add pypdf+sem(3-small):grad,95.0',
                                   on_click=lambda c=collection_name: upload(c, 'pypdf', 'semantic', sem_grad95_args, page_spinner)).props('no-caps')
 
@@ -289,7 +329,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         # this page takes a LONG time to load sometimes, so show the spinner and "...await connection and then do the heavy computation async"
         # (per: https://github.com/zauberzeug/nicegui/discussions/2429)
         # page_spinner.visible = False
-        await client.connected(timeout=3.0)
+        await client.connected(timeout=10.0)
 
         create_dialog = CreateDialog()
 
