@@ -55,7 +55,7 @@ class VSAPI(ABC):
         pass
 
     @abstractmethod
-    def search(self, prompt: str, howmany: int) -> VectorStoreResponse:
+    def search(self, prompt: str, howmany: int, source_name: str, source_type: str) -> VectorStoreResponse:
         pass
 
     @abstractmethod

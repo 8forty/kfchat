@@ -110,10 +110,6 @@ class InstanceData:
         source_names.sort(key=lambda k: 'zzz' + k if k.startswith(self.vs_name_prefix) else k)  # sort with the vs sources after the llm sources
         return source_names
 
-    @staticmethod
-    def pp(resp: str) -> str:
-        return f'{resp}'
-
     async def refresh_instance(self, scroller: ScrollArea) -> None:
         # todo: local-storage-session to separate messages
         scroller.clear()
@@ -146,15 +142,16 @@ class InstanceData:
                             for choice in ex_resp.chat_completion.choices:
                                 results.append(f'{choice.message.content}')  # .classes(response_text_classes)
                                 subscript_results_info.append([f'logprobs: {choice.logprobs}'])
-                            subscript_context_info += f'{self.llm_source_type},{ex_resp.api_type}:{ex_resp.model_name},n:{ex_resp.n},temp:{ex_resp.temp},top_p:{ex_resp.top_p},max_tokens:{ex_resp.max_tokens}'
+                            subscript_context_info += f'{ex_resp.source_type},{ex_resp.api_type}:{ex_resp.model_name},n:{ex_resp.n},temp:{ex_resp.temp},top_p:{ex_resp.top_p},max_tokens:{ex_resp.max_tokens}'
                             subscript_extra_info.append(f'tokens:{ex_resp.chat_completion.usage.prompt_tokens}->{ex_resp.chat_completion.usage.completion_tokens}')
-                            subscript_extra_info.append(f'{self.llm_config.settings.system_message}')
+                            subscript_extra_info.append(f'{ex_resp.system_message}')
 
                         # vector store response
                         if exchange.vector_store_response is not None:
-                            subscript_context_info += f'{self.vs_source_type},{self.source_name}'
+                            vs_resp = exchange.vector_store_response
+                            subscript_context_info += f'{vs_resp.source_type},{vs_resp.source_name}'
                             for result in exchange.vector_store_response.results:
-                                results.append(f'[{self.vs_source_type}]: {result.content}')  # .classes(response_text_classes)
+                                results.append(f'[{vs_resp.source_type}]: {result.content}')  # .classes(response_text_classes)
 
                                 metric_list = []
                                 for metric in result.metrics:
@@ -168,7 +165,7 @@ class InstanceData:
 
                         # results
                         for ri in range(0, len(results)):
-                            for line in self.pp(results[ri]).split('\n'):
+                            for line in results[ri].split('\n'):
                                 ui.label(line).classes(response_text_classes)
                             for rinfo in subscript_results_info[ri]:
                                 ui.label(rinfo).classes(response_subscript_classes)

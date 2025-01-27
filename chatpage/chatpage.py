@@ -96,7 +96,7 @@ class ChatPage:
             if exchange is not None:
                 log.debug(f'chat completion: {exchange.completion}')
                 ce = ChatExchange(exchange.prompt, response_duration_secs=timeit.default_timer() - start,
-                                  llm_response=LLMOaiResponse(exchange.completion, idata.llm_config), vector_store_response=None)
+                                  llm_response=LLMOaiResponse(exchange.completion, idata.llm_config, idata.source_name, idata.current_source_type), vector_store_response=None)
                 for choice_idx, sp_text in ce.stop_problems().items():
                     log.warning(f'stop problem from prompt {prompt} choice[{choice_idx}]: {sp_text}')
                 idata.exchanges.append(ce)
@@ -117,8 +117,8 @@ class ChatPage:
 
             vsresponse: VectorStoreResponse | None = None
             try:
-                # vsresponse = await run.io_bound(lambda: do_vector_search(prompt, idata))
-                vsresponse = await run.io_bound(lambda: idata.vectorstore.search(prompt, howmany=idata.llm_config.settings.n))
+                vsresponse = await run.io_bound(lambda: idata.vectorstore.search(prompt, howmany=idata.llm_config.settings.n,
+                                                                                 source_name=idata.source_name, source_type=idata.current_source_type))
                 log.debug(f'vector-search response: {vsresponse}')
             except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)
