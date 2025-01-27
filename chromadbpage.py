@@ -8,6 +8,7 @@ from typing import AnyStr
 
 from chromadb.types import Collection
 from fastapi import Request
+from langchain_community.document_loaders import PyPDFLoader, PyMuPDFLoader, PDFMinerLoader
 from langchain_experimental.text_splitter import SemanticChunker
 from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -22,6 +23,7 @@ import frame
 import llmoaiconfig
 import logstuff
 import rbui
+from lc_docloaders import docloaders
 from vschroma import VSChroma
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -70,7 +72,7 @@ class UploadFileDialog(Dialog):
     async def set_filetype_props(self):
         for d in self.descendants(include_self=False):
             if self.upload_id_class in d.classes:
-                if self.doc_type in ['pypdf', 'pymupdf']:
+                if docloaders[self.doc_type]['filetype'] == 'pdf':
                     d.props(add='accept=".pdf"')
                 else:
                     d.props(add='accept=".doc,.docx,.txt"')
@@ -208,19 +210,23 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
 
                         rcts_args = {'chunk_size': 1000, 'chunk_overlap': 200}  # todo configure this
                         ui.button(text=f'add pypdf+rcts:{rcts_args['chunk_size']},{rcts_args['chunk_overlap']}',
-                                  on_click=lambda c=collection_name: upload(c, 'pypdf', RecursiveCharacterTextSplitter.__name__, rcts_args, page_spinner)).props('no-caps')
+                                  on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, RecursiveCharacterTextSplitter.__name__, rcts_args, page_spinner)).props('no-caps')
+                        ui.button(text=f'add pymupdf+rcts:{rcts_args['chunk_size']},{rcts_args['chunk_overlap']}',
+                                  on_click=lambda c=collection_name: upload(c, PyMuPDFLoader.__name__, RecursiveCharacterTextSplitter.__name__, rcts_args, page_spinner)).props('no-caps')
+                        ui.button(text=f'add pdfminer+rcts:{rcts_args['chunk_size']},{rcts_args['chunk_overlap']}',
+                                  on_click=lambda c=collection_name: upload(c, PDFMinerLoader.__name__, RecursiveCharacterTextSplitter.__name__, rcts_args, page_spinner)).props('no-caps')
 
                         ui.separator().props(sep_props)
                         model_name = 'text-embedding-ada-002'
                         sem_defaults_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key), }
                         ui.button(text='add pypdf+sem(ada002):defaults',
-                                  on_click=lambda c=collection_name: upload(c, 'pypdf', SemanticChunker.__name__, sem_defaults_args, page_spinner)).props('no-caps')
+                                  on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_defaults_args, page_spinner)).props('no-caps')
 
                         ui.separator().props(sep_props)
                         model_name = 'text-embedding-3-small'
                         sem_defaults_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key), }
                         ui.button(text='add pypdf+sem(3-small):defaults',
-                                  on_click=lambda c=collection_name: upload(c, 'pypdf', SemanticChunker.__name__, sem_defaults_args, page_spinner)).props('no-caps')
+                                  on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_defaults_args, page_spinner)).props('no-caps')
 
                         ui.separator().props(sep_props)
                         model_name = 'text-embedding-3-small'
@@ -228,7 +234,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                                         'breakpoint_threshold_type': 'percentile',
                                         'breakpoint_threshold_amount': 95.0, }
                         ui.button(text='add pypdf+sem(3-small):pct,95.0',
-                                  on_click=lambda c=collection_name: upload(c, 'pypdf', SemanticChunker.__name__, sem_p95_args, page_spinner)).props('no-caps')
+                                  on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_p95_args, page_spinner)).props('no-caps')
 
                         ui.separator().props(sep_props)
                         model_name = 'text-embedding-3-small'
@@ -236,7 +242,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                                         'breakpoint_threshold_type': 'standard_deviation',
                                         'breakpoint_threshold_amount': 3.0, }
                         ui.button(text='add pypdf+sem(3-small):stdev,3.0',
-                                  on_click=lambda c=collection_name: upload(c, 'pypdf', SemanticChunker.__name__, sem_sd3_args, page_spinner)).props('no-caps')
+                                  on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_sd3_args, page_spinner)).props('no-caps')
 
                         ui.separator().props(sep_props)
                         model_name = 'text-embedding-3-small'
@@ -244,7 +250,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                                          'breakpoint_threshold_type': 'interquartile',
                                          'breakpoint_threshold_amount': 1.5, }
                         ui.button(text='add pypdf+sem(3-small):iq,1.5',
-                                  on_click=lambda c=collection_name: upload(c, 'pypdf', SemanticChunker.__name__, sem_iq15_args, page_spinner)).props('no-caps')
+                                  on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_iq15_args, page_spinner)).props('no-caps')
 
                         ui.separator().props(sep_props)
                         model_name = 'text-embedding-3-small'
@@ -252,7 +258,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                                            'breakpoint_threshold_type': 'gradient',
                                            'breakpoint_threshold_amount': 95.0, }
                         ui.button(text='add pypdf+sem(3-small):grad,95.0',
-                                  on_click=lambda c=collection_name: upload(c, 'pypdf', SemanticChunker.__name__, sem_grad95_args, page_spinner)).props('no-caps')
+                                  on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_grad95_args, page_spinner)).props('no-caps')
 
                         ui.separator().props(sep_props)
                         ui.button(text='delete', on_click=lambda c=collection_name: delete_coll(c)).props('no-caps')

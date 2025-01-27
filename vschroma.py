@@ -20,6 +20,7 @@ import config
 import logstuff
 from chatexchanges import VectorStoreResponse, VectorStoreResult
 from lc_chunkers import chunkers
+from lc_docloaders import docloaders
 from vsapi import VSAPI
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -187,7 +188,7 @@ class VSChroma(VSAPI):
         for result_idx in range(0, len(sresp.results_raw)):
             metrics = {
                 'distance': sresp.results_raw[result_idx]['distances'],
-                'metadata': sresp.results_raw[result_idx]['metadatas'],
+                'chunk metadata': sresp.results_raw[result_idx]['metadatas'],
                 'uris': sresp.results_raw[result_idx]['uris'],
                 'data': sresp.results_raw[result_idx]['data'],
                 'id': sresp.results_raw[result_idx]['ids'],
@@ -362,15 +363,15 @@ class VSChroma(VSAPI):
         return retval
 
     def ingest(self, collection: Collection, server_file_path: str, org_filename: str, doc_type: str, chunker_type: str, chunker_args: dict[str, any]) -> Collection:
-        if doc_type == 'pypdf':
-            # load the PDF into LC Document's
-            docs: list[Document] = PyPDFLoader(file_path=server_file_path).load()
+        if doc_type in docloaders:
+            log.debug(f'loading {org_filename} for {collection.name} with {doc_type}')
+            docs: list[Document] = docloaders[doc_type]['function'](file_path=server_file_path).load()
         else:
-            raise ValueError(f'unknown document type [{doc_type}]')
+            raise ValueError(f'unknown doc loader/type [{doc_type}]')
 
         # chunking
-        log.debug(f'chunking {len(docs)} documents for {collection.name} with {chunker_type} args: {chunker_args}')
         if chunker_type in chunkers:
+            log.debug(f'chunking {len(docs)} documents for {collection.name} with {chunker_type} args: {chunker_args}')
             chunker_func = chunkers[chunker_type]['function']
             chunks = self.filter_metadata_docs(chunker_func(**chunker_args).split_documents(docs), org_filename)
         else:
@@ -381,14 +382,14 @@ class VSChroma(VSAPI):
         collection.metadata[f'file:{org_filename}'] = now
         collection.metadata[f'file:{org_filename}.doc_type'] = doc_type
         collection.metadata[f'file:{org_filename}.chunker_type'] = chunker_type
-        for k, v in chunker_args.items():
-            if isinstance(v, OpenAIEmbeddings):  # if it's an oai function, pull out known fields for metadata
-                oaie: OpenAIEmbeddings = v
+        for key, value in chunker_args.items():
+            if isinstance(value, OpenAIEmbeddings):  # if it's an oai function, pull out known fields for metadata
+                oaie: OpenAIEmbeddings = value
                 collection.metadata[f'file:{org_filename}.chunker.model.embeddings'] = OpenAIEmbeddings.__name__
                 collection.metadata[f'file:{org_filename}.chunker.model'] = oaie.model
                 #  collection.metadata[f'file:{org_filename}.chunker.dimensions'] = oaie.dimensions # always None!?
             else:
-                collection.metadata[f'file:{org_filename}.chunker.{k}'] = v
+                collection.metadata[f'file:{org_filename}.chunker.{key}'] = value
         collection.modify(metadata=self.fix_metadata_for_modify(self.filter_metadata(collection.metadata)))
 
         #  add documents + ids + metadata to the collection
