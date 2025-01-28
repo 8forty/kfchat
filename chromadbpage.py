@@ -337,7 +337,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         # this page takes a LONG time to load sometimes, so show the spinner and "...await connection and then do the heavy computation async"
         # (per: https://github.com/zauberzeug/nicegui/discussions/2429)
         # page_spinner.visible = False
-        await client.connected(timeout=10.0)
+        await client.connected(timeout=30.0)
 
         create_dialog = CreateDialog()
 

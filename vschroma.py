@@ -3,18 +3,16 @@ import logging
 import timeit
 
 import chromadb
-from chromadb.api.models.Collection import Collection
 import chromadb.api.types as chroma_api_types
+from chromadb.api.models.Collection import Collection
 from chromadb.errors import InvalidCollectionException
+from chromadb.utils.embedding_functions.
 from chromadb.utils.embedding_functions.google_embedding_function import GoogleGenerativeAiEmbeddingFunction
 from chromadb.utils.embedding_functions.ollama_embedding_function import OllamaEmbeddingFunction
 from chromadb.utils.embedding_functions.openai_embedding_function import OpenAIEmbeddingFunction
 from chromadb.utils.embedding_functions.sentence_transformer_embedding_function import SentenceTransformerEmbeddingFunction
-from langchain_community.document_loaders import PyPDFLoader
 from langchain_core.documents import Document
-from langchain_experimental.text_splitter import SemanticChunker
 from langchain_openai import OpenAIEmbeddings
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 import config
 import logstuff
@@ -67,11 +65,31 @@ class VSChroma(VSAPI):
             },
         },
         GoogleGenerativeAiEmbeddingFunction.__name__: {
-            'abc': {
+            # English models	        Multilingual models
+            # textembedding-gecko@001	textembedding-gecko-multilingual@001
+            # textembedding-gecko@003	text-multilingual-embedding-002
+            # text-embedding-004
+            # text-embedding-005
+            'models/text-embedding-004': {
                 'function': GoogleGenerativeAiEmbeddingFunction,
-                'create_parms': {},
-                'read_parms': {},
-            }
+                'create_parms': {'model_name': 'models/text-embedding-004', 'api_key': config.env.get('kfGEMINI_API_KEY')},
+                'read_parms': {'api_key': config.env.get('kfGEMINI_API_KEY')},
+            },
+            'models/embedding-001': {
+                'function': GoogleGenerativeAiEmbeddingFunction,
+                'create_parms': {'model_name': 'models/embedding-001', 'api_key': config.env.get('kfGEMINI_API_KEY')},
+                'read_parms': {'api_key': config.env.get('kfGEMINI_API_KEY')},
+            },
+            'models/text-embedding-005': {
+                'function': GoogleGenerativeAiEmbeddingFunction,
+                'create_parms': {'model_name': 'models/text-embedding-005', 'api_key': config.env.get('kfGEMINI_API_KEY')},
+                'read_parms': {'api_key': config.env.get('kfGEMINI_API_KEY')},
+            },
+            'models/text-multilingual-embedding-002': {
+                'function': GoogleGenerativeAiEmbeddingFunction,
+                'create_parms': {'model_name': 'models/text-multilingual-embedding-002', 'api_key': config.env.get('kfGEMINI_API_KEY')},
+                'read_parms': {'api_key': config.env.get('kfGEMINI_API_KEY')},
+            },
         },
         OllamaEmbeddingFunction.__name__: {
             'abc': {
