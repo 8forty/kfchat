@@ -65,11 +65,6 @@ class VSChroma(VSAPI):
             },
         },
         GoogleGenerativeAiEmbeddingFunction.__name__: {
-            # English models	        Multilingual models
-            # textembedding-gecko@001	textembedding-gecko-multilingual@001
-            # textembedding-gecko@003	text-multilingual-embedding-002
-            # text-embedding-004
-            # text-embedding-005
             'models/text-embedding-004': {
                 'function': GoogleGenerativeAiEmbeddingFunction,
                 'create_parms': {'model_name': 'models/text-embedding-004', 'api_key': config.env.get('kfGEMINI_API_KEY')},
@@ -78,16 +73,6 @@ class VSChroma(VSAPI):
             'models/embedding-001': {
                 'function': GoogleGenerativeAiEmbeddingFunction,
                 'create_parms': {'model_name': 'models/embedding-001', 'api_key': config.env.get('kfGEMINI_API_KEY')},
-                'read_parms': {'api_key': config.env.get('kfGEMINI_API_KEY')},
-            },
-            'models/text-embedding-005': {
-                'function': GoogleGenerativeAiEmbeddingFunction,
-                'create_parms': {'model_name': 'models/text-embedding-005', 'api_key': config.env.get('kfGEMINI_API_KEY')},
-                'read_parms': {'api_key': config.env.get('kfGEMINI_API_KEY')},
-            },
-            'models/text-multilingual-embedding-002': {
-                'function': GoogleGenerativeAiEmbeddingFunction,
-                'create_parms': {'model_name': 'models/text-multilingual-embedding-002', 'api_key': config.env.get('kfGEMINI_API_KEY')},
                 'read_parms': {'api_key': config.env.get('kfGEMINI_API_KEY')},
             },
         },
