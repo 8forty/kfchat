@@ -6,7 +6,6 @@ import chromadb
 import chromadb.api.types as chroma_api_types
 from chromadb.api.models.Collection import Collection
 from chromadb.errors import InvalidCollectionException
-from chromadb.utils.embedding_functions.
 from chromadb.utils.embedding_functions.google_embedding_function import GoogleGenerativeAiEmbeddingFunction
 from chromadb.utils.embedding_functions.ollama_embedding_function import OllamaEmbeddingFunction
 from chromadb.utils.embedding_functions.openai_embedding_function import OpenAIEmbeddingFunction
