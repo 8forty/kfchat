@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import sys
@@ -192,128 +193,132 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
     async def chroma_ui(page_spinner: Spinner) -> None:
         start = timeit.default_timer()
         page_spinner.set_visibility(True)
-        with rbui.table():
-            for collection_name in await run.io_bound(vectorstore.list_index_names):
-                try:
-                    # this can be very slow when there are several collections
-                    collection_md = await run.io_bound(lambda: vectorstore.get_collection_metadata(collection_name))
-                except (Exception,) as e:
-                    errmsg = f'Error loading collection {collection_name}: {e} (skipping)'
-                    log.warning(errmsg)
-                    ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
-                    traceback.print_exc(file=sys.stdout)
-                    continue
 
-                openai_key = llmoaiconfig.llm_api_types_config['openai']['key']
-                with rbui.tr():
-                    with rbui.td(label=f'{collection_name}', td_style='width: 250px'):
-                        sep_props = 'size=4px'
+        for collection_name in await run.io_bound(vectorstore.list_index_names):
+            try:
+                collection_md = await run.io_bound(lambda: vectorstore.get_collection_metadata(collection_name))
+            except (Exception,) as e:
+                errmsg = f'Error loading metadata for collection {collection_name}: {e} (skipping)'
+                log.warning(errmsg)
+                ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
+                traceback.print_exc(file=sys.stdout)
+                continue
 
-                        rcts_args = {'chunk_size': 1000, 'chunk_overlap': 200}  # todo configure this
-                        ui.button(text=f'add pypdf+rcts:{rcts_args['chunk_size']},{rcts_args['chunk_overlap']}',
-                                  on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, RecursiveCharacterTextSplitter.__name__, rcts_args, page_spinner)).props('no-caps')
-                        # ui.button(text=f'add pymupdf+rcts:{rcts_args['chunk_size']},{rcts_args['chunk_overlap']}',
-                        #           on_click=lambda c=collection_name: upload(c, PyMuPDFLoader.__name__, RecursiveCharacterTextSplitter.__name__, rcts_args, page_spinner)).props('no-caps')
-                        # ui.button(text=f'add pdfminer+rcts:{rcts_args['chunk_size']},{rcts_args['chunk_overlap']}',
-                        #           on_click=lambda c=collection_name: upload(c, PDFMinerLoader.__name__, RecursiveCharacterTextSplitter.__name__, rcts_args, page_spinner)).props('no-caps')
-                        #
-                        # ui.separator().props(sep_props)
-                        # model_name = 'text-embedding-ada-002'
-                        # sem_defaults_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key), }
-                        # ui.button(text='add pypdf+sem(ada002):defaults',
-                        #           on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_defaults_args, page_spinner)).props('no-caps')
-                        #
-                        # ui.separator().props(sep_props)
-                        # model_name = 'text-embedding-3-small'
-                        # sem_defaults_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key), }
-                        # ui.button(text='add pypdf+sem(3-small):defaults',
-                        #           on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_defaults_args, page_spinner)).props('no-caps')
-                        #
-                        # ui.separator().props(sep_props)
-                        # model_name = 'text-embedding-3-small'
-                        # sem_p95_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key),
-                        #                 'breakpoint_threshold_type': 'percentile',
-                        #                 'breakpoint_threshold_amount': 95.0, }
-                        # ui.button(text='add pypdf+sem(3-small):pct,95.0',
-                        #           on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_p95_args, page_spinner)).props('no-caps')
-                        #
-                        # ui.separator().props(sep_props)
-                        # model_name = 'text-embedding-3-small'
-                        # sem_sd3_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key),
-                        #                 'breakpoint_threshold_type': 'standard_deviation',
-                        #                 'breakpoint_threshold_amount': 3.0, }
-                        # ui.button(text='add pypdf+sem(3-small):stdev,3.0',
-                        #           on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_sd3_args, page_spinner)).props('no-caps')
-                        #
-                        # ui.separator().props(sep_props)
-                        # model_name = 'text-embedding-3-small'
-                        # sem_iq15_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key),
-                        #                  'breakpoint_threshold_type': 'interquartile',
-                        #                  'breakpoint_threshold_amount': 1.5, }
-                        # ui.button(text='add pypdf+sem(3-small):iq,1.5',
-                        #           on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_iq15_args, page_spinner)).props('no-caps')
-                        #
-                        # ui.separator().props(sep_props)
-                        # model_name = 'text-embedding-3-small'
-                        # sem_grad95_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key),
-                        #                    'breakpoint_threshold_type': 'gradient',
-                        #                    'breakpoint_threshold_amount': 95.0, }
-                        # ui.button(text='add pypdf+sem(3-small):grad,95.0',
-                        #           on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_grad95_args, page_spinner)).props('no-caps')
+            openai_key = llmoaiconfig.llm_api_types_config['openai']['key']
+            with ui.expansion().classes('w-full border-solid border border-black') as expansion:
+                with expansion.add_slot('header'):
+                    with ui.column().classes('w-full gap-y-0'):
+                        with ui.row().classes('w-full'):
+                            ui.label(collection_name).classes('min-w-32')
+                            ui.label(f'{collection_md.count()}').classes('min-w-12')
+                            model_name = '[unknown]'
+                            efp = json.loads(collection_md.metadata['embedding_function_parms'])
+                            if 'model_name' in efp:
+                                model_name = efp['model_name']
+                            ui.label(f'{collection_md.metadata['embedding_function_name']}')
+                            ui.label(f'{model_name}')
+                        with ui.row().classes('w-full gap-x-2 pt-2'):
+                            ui.button(text='delete').on('click.stop', lambda c=collection_name: delete_coll(c)).props('no-caps')
+                            ui.button(text='peek').on('click.stop', lambda c=collection_name: peek(c)).props('no-caps')
+                            ui.button(text='add').on('click.stop', lambda c=collection_name: peek(c)).props('no-caps')
+                            ui.button(text='dump').on('click.stop', lambda c=collection_name: peek(c)).props('no-caps')
 
-                        ui.separator().props(sep_props)
-                        ui.button(text='delete', on_click=lambda c=collection_name: delete_coll(c)).props('no-caps')
-                        ui.separator().props(sep_props)
-                        ui.button(text='peek', on_click=lambda c=collection_name: peek(c)).props('no-caps')
-                        ui.separator().props(sep_props)
-                        ui.button(text='dump', on_click=lambda c=collection_name: peek(c)).props('no-caps')
+                # details table (embedded)
+                with rbui.table():
+                    with rbui.tr():
+                        rbui.td(label='id', td_style='width:150px')
+                        rbui.td(f'{collection_md.id}')
+                    with rbui.tr():
+                        rbui.td('metadata')
+                        metadata_string: str = ''
+                        for key in sorted(collection_md.metadata.keys()):
+                            metadata_string += f'{key}: {collection_md.metadata[key]}\n'
+                        rbui.td(f'{metadata_string}')
+                    with rbui.tr():
+                        rbui.td('configuration')
+                        config_string: str = '[NOTE: THESE HNSW VALUES OVERRIDDEN BY METADATA V.6+]\n'
+                        for key in sorted(collection_md.configuration_json.keys()):
+                            config_string += f'{key}: {collection_md.configuration_json[key]}\n'
+                        rbui.td(f'{config_string}')
+                    with rbui.tr():
+                        rbui.td('model dimensions')
+                        # noinspection PyProtectedMember
+                        rbui.td(f'{collection_md._model.dimension}')
+                    with rbui.tr():
+                        rbui.td('embedding func')
+                        # noinspection PyProtectedMember
+                        name = ''
+                        extra = ''
+                        # _model.base_model comes from e.g. SentenceTransformerEmbeddingFunction
+                        if '_model' in collection_md._embedding_function.__dict__:
+                            name = collection_md._embedding_function.__class__.__name__
+                            extra += f'base_model: {collection_md._embedding_function.__dict__['_model'].model_card_data.base_model}'
+                        # _model_name comes from e.g. OpenAIEmbeddingFunction
+                        if '_model_name' in collection_md._embedding_function.__dict__:
+                            name = collection_md._embedding_function.__class__.__name__
+                            extra += f'_model_name: {collection_md._embedding_function.__dict__['_model_name']}'
+                        if extra == '':
+                            extra = '[need full collection, see metadata]'
+                        rbui.td(f'{name}\n{extra}')
+                    with rbui.tr():
+                        rbui.td('tenant')
+                        rbui.td(f'{collection_md.tenant}')
+                    with rbui.tr():
+                        rbui.td('database')
+                        rbui.td(f'{collection_md.database}')
 
-                    # details table (embedded)
-                    with rbui.table():
-                        with rbui.tr():
-                            rbui.td('id')
-                            rbui.td(f'{collection_md.id}')
-                        with rbui.tr():
-                            rbui.td('doc/chunk count')
-                            rbui.td(f'{collection_md.count()}')
-                        with rbui.tr():
-                            rbui.td('metadata')
-                            metadata_string: str = ''
-                            for key in sorted(collection_md.metadata.keys()):
-                                metadata_string += f'{key}: {collection_md.metadata[key]}\n'
-                            rbui.td(f'{metadata_string}')
-                        with rbui.tr():
-                            rbui.td('configuration')
-                            config_string: str = '[NOTE: THESE HNSW VALUES OVERRIDDEN BY METADATA V.6+]\n'
-                            for key in sorted(collection_md.configuration_json.keys()):
-                                config_string += f'{key}: {collection_md.configuration_json[key]}\n'
-                            rbui.td(f'{config_string}')
-                        with rbui.tr():
-                            rbui.td('model dimensions')
-                            # noinspection PyProtectedMember
-                            rbui.td(f'{collection_md._model.dimension}')
-                        with rbui.tr():
-                            rbui.td('embedding func')
-                            # noinspection PyProtectedMember
-                            name = ''
-                            extra = ''
-                            # _model.base_model comes from e.g. SentenceTransformerEmbeddingFunction
-                            if '_model' in collection_md._embedding_function.__dict__:
-                                name = collection_md._embedding_function.__class__.__name__
-                                extra += f'base_model: {collection_md._embedding_function.__dict__['_model'].model_card_data.base_model}'
-                            # _model_name comes from e.g. OpenAIEmbeddingFunction
-                            if '_model_name' in collection_md._embedding_function.__dict__:
-                                name = collection_md._embedding_function.__class__.__name__
-                                extra += f'_model_name: {collection_md._embedding_function.__dict__['_model_name']}'
-                            if extra == '':
-                                extra = '[need full collection, see metadata]'
-                            rbui.td(f'{name}\n{extra}')
-                        with rbui.tr():
-                            rbui.td('tenant')
-                            rbui.td(f'{collection_md.tenant}')
-                        with rbui.tr():
-                            rbui.td('database')
-                            rbui.td(f'{collection_md.database}')
+                    # rcts_args = {'chunk_size': 1000, 'chunk_overlap': 200}  # todo configure this
+                    # ui.button(text=f'add pypdf+rcts:{rcts_args['chunk_size']},{rcts_args['chunk_overlap']}',
+                    #           on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, RecursiveCharacterTextSplitter.__name__, rcts_args, page_spinner)).props('no-caps')
+                    # ui.button(text=f'add pymupdf+rcts:{rcts_args['chunk_size']},{rcts_args['chunk_overlap']}',
+                    #           on_click=lambda c=collection_name: upload(c, PyMuPDFLoader.__name__, RecursiveCharacterTextSplitter.__name__, rcts_args, page_spinner)).props('no-caps')
+                    # ui.button(text=f'add pdfminer+rcts:{rcts_args['chunk_size']},{rcts_args['chunk_overlap']}',
+                    #           on_click=lambda c=collection_name: upload(c, PDFMinerLoader.__name__, RecursiveCharacterTextSplitter.__name__, rcts_args, page_spinner)).props('no-caps')
+                    #
+                    # ui.separator().props(sep_props)
+                    # model_name = 'text-embedding-ada-002'
+                    # sem_defaults_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key), }
+                    # ui.button(text='add pypdf+sem(ada002):defaults',
+                    #           on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_defaults_args, page_spinner)).props('no-caps')
+                    #
+                    # ui.separator().props(sep_props)
+                    # model_name = 'text-embedding-3-small'
+                    # sem_defaults_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key), }
+                    # ui.button(text='add pypdf+sem(3-small):defaults',
+                    #           on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_defaults_args, page_spinner)).props('no-caps')
+                    #
+                    # ui.separator().props(sep_props)
+                    # model_name = 'text-embedding-3-small'
+                    # sem_p95_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key),
+                    #                 'breakpoint_threshold_type': 'percentile',
+                    #                 'breakpoint_threshold_amount': 95.0, }
+                    # ui.button(text='add pypdf+sem(3-small):pct,95.0',
+                    #           on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_p95_args, page_spinner)).props('no-caps')
+                    #
+                    # ui.separator().props(sep_props)
+                    # model_name = 'text-embedding-3-small'
+                    # sem_sd3_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key),
+                    #                 'breakpoint_threshold_type': 'standard_deviation',
+                    #                 'breakpoint_threshold_amount': 3.0, }
+                    # ui.button(text='add pypdf+sem(3-small):stdev,3.0',
+                    #           on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_sd3_args, page_spinner)).props('no-caps')
+                    #
+                    # ui.separator().props(sep_props)
+                    # model_name = 'text-embedding-3-small'
+                    # sem_iq15_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key),
+                    #                  'breakpoint_threshold_type': 'interquartile',
+                    #                  'breakpoint_threshold_amount': 1.5, }
+                    # ui.button(text='add pypdf+sem(3-small):iq,1.5',
+                    #           on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_iq15_args, page_spinner)).props('no-caps')
+                    #
+                    # ui.separator().props(sep_props)
+                    # model_name = 'text-embedding-3-small'
+                    # sem_grad95_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key),
+                    #                    'breakpoint_threshold_type': 'gradient',
+                    #                    'breakpoint_threshold_amount': 95.0, }
+                    # ui.button(text='add pypdf+sem(3-small):grad,95.0',
+                    #           on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_grad95_args, page_spinner)).props('no-caps')
+
         page_spinner.set_visibility(False)
 
     async def do_create_dialog(create_dialog: CreateDialog, page_spinner: Spinner):
