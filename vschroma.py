@@ -14,6 +14,8 @@ from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 
 import config
+import lc_chunkers
+import lc_docloaders
 import logstuff
 from chatexchanges import VectorStoreResponse, VectorStoreResult
 from lc_chunkers import chunkers
@@ -25,6 +27,18 @@ log.setLevel(logstuff.logging_level)
 
 
 class VSChroma(VSAPI):
+
+    @staticmethod
+    def embedding_types_list() -> list[str]:
+        return list(VSChroma.embedding_types.keys())
+
+    @staticmethod
+    def doc_loaders_list() -> list[str]:
+        return list(lc_docloaders.docloaders.keys())
+
+    @staticmethod
+    def chunkers_list() -> list[str]:
+        return list(lc_chunkers.chunkers.keys())
 
     def __init__(self, api_type_name: str, parms: dict[str, str]):
         super().__init__(api_type_name, parms)
@@ -364,7 +378,7 @@ class VSChroma(VSAPI):
             retval[key] = value
         return retval
 
-    def ingest(self, collection: Collection, server_file_path: str, org_filename: str, doc_type: str, chunker_type: str, chunker_args: dict[str, any]) -> Collection:
+    def ingest(self, collection: Collection, server_file_path: str, org_filename: str, doc_type: str, chunker_type: str) -> Collection:
         if doc_type in docloaders:
             log.debug(f'loading {org_filename} for {collection.name} with {doc_type}')
             docs: list[Document] = docloaders[doc_type]['function'](file_path=server_file_path).load()
@@ -373,8 +387,9 @@ class VSChroma(VSAPI):
 
         # chunking
         if chunker_type in chunkers:
-            log.debug(f'chunking {len(docs)} documents for {collection.name} with {chunker_type} args: {chunker_args}')
+            log.debug(f'chunking {len(docs)} documents for {collection.name} with {chunker_type}')
             chunker_func = chunkers[chunker_type]['function']
+            chunker_args = chunkers[chunker_type]['args']
             chunks = self.filter_metadata_docs(chunker_func(**chunker_args).split_documents(docs), org_filename)
         else:
             raise ValueError(f'unknown chunker type [{chunker_type}]')

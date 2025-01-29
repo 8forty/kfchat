@@ -9,10 +9,6 @@ from typing import AnyStr
 
 from chromadb.types import Collection
 from fastapi import Request
-from langchain_community.document_loaders import PyPDFLoader, PyMuPDFLoader, PDFMinerLoader
-from langchain_experimental.text_splitter import SemanticChunker
-from langchain_openai import OpenAIEmbeddings
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from nicegui import ui, run, events, Client
 from nicegui.elements.button import Button
 from nicegui.elements.dialog import Dialog
@@ -21,7 +17,6 @@ from nicegui.elements.spinner import Spinner
 
 import config
 import frame
-import llmoaiconfig
 import logstuff
 import rbui
 from lc_docloaders import docloaders
@@ -34,12 +29,11 @@ log.setLevel(logstuff.logging_level)
 class UploadFileDialog(Dialog):
     upload_id_class = 'chroma-upload'  # used to find the input in descendants
 
-    def __init__(self, collection: Collection, doc_type: str, chunker_type: str, chunker_args: dict[str, any]):
+    def __init__(self, collection: Collection, doc_type: str, chunker_type: str):
         Dialog.__init__(self)
         self.collection = collection
         self.doc_type = doc_type
         self.chunker_type = chunker_type
-        self.chunker_args = chunker_args
 
     async def handle_upload(self, ulargs: events.UploadEventArguments, vectorstore: VSChroma, done_button: Button, upld_spinner: Spinner):
         done_button.set_visibility(False)
@@ -56,7 +50,7 @@ class UploadFileDialog(Dialog):
 
             try:
                 log.debug(f'chunking ({self.chunker_type}) server file {tmpfile.name}...')
-                await run.io_bound(lambda: vectorstore.ingest(self.collection, tmpfile.name, local_file_name, self.doc_type, self.chunker_type, self.chunker_args))
+                await run.io_bound(lambda: vectorstore.ingest(self.collection, tmpfile.name, local_file_name, self.doc_type, self.chunker_type))
             except (Exception,) as e:
                 errmsg = f'Error ingesting {local_file_name}: {e}'
                 traceback.print_exc(file=sys.stdout)
@@ -92,7 +86,7 @@ class CreateDialog(Dialog):
                                                    'Too long!': lambda value: len(value) <= 63,
                                                    'No Spaces!': lambda value: str(value).find(' ') == -1},
                                        ).classes('flex-grow min-w-80').props('outlined').props('color=primary').props('bg-color=white')
-                embedding_types = list(VSChroma.embedding_types.keys())
+                embedding_types = VSChroma.embedding_types_list()
                 et_start_value = embedding_types[0]
                 etype = ui.select(label='Embedding Type:', options=embedding_types, value=et_start_value).props('square outlined label-color=green').classes('w-full')
                 etype.on_value_change(lambda vc: self.select_embedding_subtype(vc.value, subtype_select))
@@ -119,22 +113,19 @@ class CreateDialog(Dialog):
         self.cinput.set_value('')
 
 
+#  upload(collection_name, doc_type, chunker_type, chunker_args, page_spinner)
 class AddDialog(Dialog):
-    def __init__(self, collection_name: str):
+    def __init__(self):
         Dialog.__init__(self)
-        self.collection_name = collection_name
 
         with self, ui.card():
             with ui.column().classes('w-full'):
-                ui.label(f'Add a doc to {self.collection_name}').classes('text-xl self-center')
-                reader_types = list(VSChroma.embedding_types.keys())
-                # et_start_value = embedding_types[0]
-                # etype = ui.select(label='Embedding Type:', options=embedding_types, value=et_start_value).props('square outlined label-color=green').classes('w-full')
-                # etype.on_value_change(lambda vc: self.select_embedding_subtype(vc.value, subtype_select))
-                # subtype_select = ui.select(label='Subtype:', options=[]).props('square outlined label-color=green').classes('w-full')
-                # self.select_embedding_subtype(et_start_value, subtype_select)
-                # ui.separator()
-                # ui.button('Create', on_click=lambda: self.create_collection_submit(self.cinput.value, etype.value, subtype_select.value)).props('no-caps').classes('self-center')
+                ui.label('Add File to Collection').classes('text-xl self-center')
+                doc_types = VSChroma.doc_loaders_list()
+                chunker_types = VSChroma.chunkers_list()
+                dtype = ui.select(label='Doc Reader:', options=doc_types, value=doc_types[0]).props('square outlined label-color=green')
+                ctype = ui.select(label='Chunker:', options=chunker_types, value=chunker_types[0]).props('square outlined label-color=green')
+                ui.button('Add', on_click=lambda: self.submit((dtype.value, ctype.value))).props('no-caps').classes('self-center')
 
 
 # noinspection PyUnusedLocal
@@ -165,7 +156,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         peek_dialog.close()
         peek_dialog.clear()
 
-    async def upload(collection_name: str, doc_type: str, chunker_type: str, chunker_args: dict[str, any], page_spinner: Spinner) -> None:
+    async def upload(collection_name: str, doc_type: str, chunker_type: str, page_spinner: Spinner) -> None:
         try:
             page_spinner.set_visibility(True)
             start = timeit.default_timer()
@@ -174,7 +165,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         finally:
             page_spinner.set_visibility(False)
 
-        with (UploadFileDialog(collection, doc_type, chunker_type, chunker_args) as upload_file_dialog, ui.card()):
+        with (UploadFileDialog(collection, doc_type, chunker_type) as upload_file_dialog, ui.card()):
             ui.label('Upload a File')
             upld = ui.upload(auto_upload=True).classes(add=upload_file_dialog.upload_id_class)
             with ui.row().classes('w-full place-content-center'):
@@ -191,7 +182,6 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
     # noinspection PyProtectedMember
     @ui.refreshable
     async def chroma_ui(page_spinner: Spinner) -> None:
-        start = timeit.default_timer()
         page_spinner.set_visibility(True)
 
         for collection_name in await run.io_bound(vectorstore.list_index_names):
@@ -204,7 +194,6 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                 traceback.print_exc(file=sys.stdout)
                 continue
 
-            openai_key = llmoaiconfig.llm_api_types_config['openai']['key']
             with ui.expansion().classes('w-full border-solid border border-black') as expansion:
                 with expansion.add_slot('header'):
                     with ui.column().classes('w-full gap-y-0'):
@@ -220,7 +209,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                         with ui.row().classes('w-full gap-x-2 pt-2'):
                             ui.button(text='delete').on('click.stop', lambda c=collection_name: delete_coll(c)).props('no-caps')
                             ui.button(text='peek').on('click.stop', lambda c=collection_name: peek(c)).props('no-caps')
-                            ui.button(text='add').on('click.stop', lambda c=collection_name: peek(c)).props('no-caps')
+                            ui.button(text='add').on('click.stop', lambda c=collection_name: do_add_dialog(c, page_spinner)).props('no-caps')
                             ui.button(text='dump').on('click.stop', lambda c=collection_name: peek(c)).props('no-caps')
 
                 # details table (embedded)
@@ -333,6 +322,15 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         # todo: page spinner
         chroma_ui.refresh()
 
+    async def do_add_dialog(collection_name: str, page_spinner: Spinner) -> None:
+        add_dialog = AddDialog()
+        doc_type, chunker_type = await add_dialog
+        print(f'~~~~ {doc_type=} {chunker_type=}')
+        add_dialog.close()
+        add_dialog.clear()
+        await upload(collection_name, doc_type, chunker_type, page_spinner)
+        chroma_ui.refresh()
+
     @ui.page(path=path)
     async def index(request: Request, client: Client) -> None:
         logstuff.update_from_request(request)
@@ -346,6 +344,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         await client.connected(timeout=30.0)
 
         create_dialog = CreateDialog()
+        add_dialog = AddDialog()
 
         with frame.frame(f'{config.name} {pagename}', 'bg-white'):
             with ui.column().classes('w-full'):  # .classes('w-full max-w-2xl mx-auto items-stretch'):
