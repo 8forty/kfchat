@@ -31,6 +31,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
     # todo: these should come from somewhere, e.g. pref screen
     settings = LLMOaiSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_system_message_name='technical800')
     llm_configs_list = [
+        LLMOaiConfig(model_name='deepseek-r1-distill-llama-70b', api_type_name='groq', settings=settings),
         LLMOaiConfig(model_name='llama-3.3-70b-versatile', api_type_name='groq', settings=settings),
         LLMOaiConfig(model_name='llama3.2:1b', api_type_name='ollama', settings=settings),
         LLMOaiConfig(model_name='llama3.2:3b', api_type_name='ollama', settings=settings),
