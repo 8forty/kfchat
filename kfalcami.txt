@@ -1,0 +1,10 @@
+conda install python-dotenv
+conda install openai
+conda install fastapi
+conda install -c conda-forge nicegui
+conda install multimethod
+conda install langchain langchain-community langchain-core langchain-text-splitters langchain-groq langchain-openai
+conda install chromadb
+conda install pypdf pymupdf asgiref
+conda install azure-core
+pip install langchain-ollama langchain_experimental sentence_transformers fastembed
