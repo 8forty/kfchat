@@ -43,6 +43,10 @@ llm_api_types_config = {
         'key': env.get('kfGEMINI_API_KEY'),
         'GEMINI_OPENAI_ENDPOINT': env.get('GEMINI_OPENAI_ENDPOINT'),
     },
+    'github': {
+        'key': env.get('kfGITHUB_TOKEN'),
+        'GITHUB_ENDPOINT': env.get('GITHUB_ENDPOINT'),
+    },
 }
 
 
@@ -84,7 +88,7 @@ class LLMOaiConfig(LLMConfig):
 
         self.settings = settings
 
-        if self.api_type_name not in ['azure', 'ollama', 'openai', 'groq', 'gemini']:
+        if self.api_type_name not in list(llm_api_types_config.keys()):
             raise ValueError(f'{__class__.__name__}: invalid api_type! {api_type_name}')
         self._api_client = None
 
@@ -117,6 +121,7 @@ class LLMOaiConfig(LLMConfig):
         if self._api_client is not None:
             return self._api_client
 
+        # todo: this is a 2nd place that lists api types :(
         if self.api_type_name == 'ollama':
             endpoint = llm_api_types_config[self.api_type_name]['OLLAMA_ENDPOINT']
             key = llm_api_types_config[self.api_type_name]['key']
@@ -134,6 +139,11 @@ class LLMOaiConfig(LLMConfig):
             self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         elif self.api_type_name == 'gemini':
             endpoint = llm_api_types_config[self.api_type_name]['GEMINI_OPENAI_ENDPOINT']
+            key = llm_api_types_config[self.api_type_name]['key']
+            log.info(f'building LLM API for [{self.api_type_name}]: {endpoint=} key={redact(key)}')
+            self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
+        elif self.api_type_name == 'github':
+            endpoint = llm_api_types_config[self.api_type_name]['GITHUB_ENDPOINT']
             key = llm_api_types_config[self.api_type_name]['key']
             log.info(f'building LLM API for [{self.api_type_name}]: {endpoint=} key={redact(key)}')
             self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)

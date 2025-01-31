@@ -49,6 +49,8 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         LLMOaiConfig(model_name='gemini-1.5-flash', api_type_name='gemini', settings=settings),
         LLMOaiConfig(model_name='gemini-1.5-flash-8b', api_type_name='gemini', settings=settings),
         LLMOaiConfig(model_name='gemini-1.5-pro', api_type_name='gemini', settings=settings),
+
+        LLMOaiConfig(model_name='gpt-4o', api_type_name='github', settings=settings),
     ]
     llm_configs = {lc.model_name: lc for lc in llm_configs_list}
 

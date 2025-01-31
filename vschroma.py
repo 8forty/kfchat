@@ -99,6 +99,23 @@ class VSChroma(VSAPI):
                 'read_parms': {},
             }
         },
+        'github-openai-embeddings': {
+            'text-embedding-3-large': {
+                'function': OpenAIEmbeddingFunction,
+                'create_parms': {'model_name': 'text-embedding-3-large', 'api_key': config.env.get('kfGITHUB_TOKEN')},
+                'read_parms': {'api_key': config.env.get('kfGITHUB_TOKEN')},
+            },
+            'text-embedding-ada-002': {
+                'function': OpenAIEmbeddingFunction,
+                'create_parms': {'model_name': 'text-embedding-ada-002', 'api_key': config.env.get('kfGITHUB_TOKEN')},
+                'read_parms': {'api_key': config.env.get('kfGITHUB_TOKEN')},
+            },
+            'text-embedding-3-small': {
+                'function': OpenAIEmbeddingFunction,
+                'create_parms': {'model_name': 'text-embedding-3-small', 'api_key': config.env.get('kfGITHUB_TOKEN')},
+                'read_parms': {'api_key': config.env.get('kfGITHUB_TOKEN')},
+            },
+        },
     }
 
     def warmup(self):
