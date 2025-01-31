@@ -33,13 +33,19 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
     llm_configs_list = [
         LLMOaiConfig(model_name='llama-3.3-70b-versatile', api_type_name='groq', settings=settings),
         LLMOaiConfig(model_name='deepseek-r1-distill-llama-70b', api_type_name='groq', settings=settings),
+
         # LLMOaiConfig(model_name='llama3.2:1b', api_type_name='ollama', settings=settings),
+        LLMOaiConfig(model_name='mistral-nemo:12b', api_type_name='ollama', settings=settings),
         LLMOaiConfig(model_name='llama3.2:3b', api_type_name='ollama', settings=settings),
         LLMOaiConfig(model_name='gemma2:9b', api_type_name='ollama', settings=settings),
+        LLMOaiConfig(model_name='llama3.3:70b-instruct-q2_K', api_type_name='ollama', settings=settings),
         # LLMOaiConfig(model_name='gemma2:27b', api_type_name='ollama', settings=settings),
+
         LLMOaiConfig(model_name='gpt-4o-mini', api_type_name='openai', settings=settings),
+
         LLMOaiConfig(model_name='RFI-Automate-GPT-4o-mini-2000k',  # really the deployment name for azure
                      api_type_name='azure', settings=settings),
+
         LLMOaiConfig(model_name='gemini-1.5-flash', api_type_name='gemini', settings=settings),
         LLMOaiConfig(model_name='gemini-1.5-flash-8b', api_type_name='gemini', settings=settings),
         LLMOaiConfig(model_name='gemini-1.5-pro', api_type_name='gemini', settings=settings),
