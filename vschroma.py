@@ -40,6 +40,9 @@ class VSChroma(VSAPI):
     def chunkers_list() -> list[str]:
         return list(lc_chunkers.chunkers.keys())
 
+    class EmptyIngestError(Exception):
+        pass
+
     def __init__(self, api_type_name: str, parms: dict[str, str]):
         super().__init__(api_type_name, parms)
         self._client: chromadb.ClientAPI | None = None
@@ -394,20 +397,23 @@ class VSChroma(VSAPI):
         else:
             raise ValueError(f'unknown chunker type [{chunker_type}]')
 
+        if len(chunks) == 0:
+            raise VSChroma.EmptyIngestError(f'no usable chunks (empty file?)')
+
         # update collection metadata
         now = config.now_datetime()
-        collection.metadata[f'file:{org_filename}'] = now
-        collection.metadata[f'file:{org_filename}.doc_type'] = f'{doc_type}: {docloaders[doc_type]['function'].__name__}/{docloaders[doc_type]['filetypes']}'
-        collection.metadata[f'file:doc/chunk counts'] = f'{len(docs)}/{len(chunks)}'
-        collection.metadata[f'file:{org_filename}.chunker_type'] = f'{chunker_type}: {chunkers[chunker_type]['function'].__name__}'
+        collection.metadata[f'file:{org_filename}:upload time'] = now
+        collection.metadata[f'file:{org_filename}:doc_type'] = f'{doc_type}: {docloaders[doc_type]['function'].__name__}/{docloaders[doc_type]['filetypes']}'
+        collection.metadata[f'file:{org_filename}:doc/chunk counts'] = f'{len(docs)}/{len(chunks)}'
+        collection.metadata[f'file:{org_filename}:chunker_type'] = f'{chunker_type}: {chunkers[chunker_type]['function'].__name__}'
         for key, value in chunker_args.items():
             if isinstance(value, OpenAIEmbeddings):  # if it's an oai function, pull out known fields for metadata
                 oaie: OpenAIEmbeddings = value
-                collection.metadata[f'file:{org_filename}.chunker.model.embeddings'] = OpenAIEmbeddings.__name__
-                collection.metadata[f'file:{org_filename}.chunker.model'] = oaie.model
-                #  collection.metadata[f'file:{org_filename}.chunker.dimensions'] = oaie.dimensions # always None!?
+                collection.metadata[f'file:{org_filename}:chunker.model.embeddings'] = OpenAIEmbeddings.__name__
+                collection.metadata[f'file:{org_filename}:chunker.model'] = oaie.model
+                #  collection.metadata[f'file:{org_filename}:chunker.dimensions'] = oaie.dimensions # always None!?
             else:
-                collection.metadata[f'file:{org_filename}.chunker.{key}'] = value
+                collection.metadata[f'file:{org_filename}:chunker.{key}'] = value
         collection.modify(metadata=self.fix_metadata_for_modify(self.filter_metadata(collection.metadata)))
 
         #  add documents + ids + metadata to the collection

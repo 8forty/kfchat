@@ -14,6 +14,7 @@ from nicegui.elements.button import Button
 from nicegui.elements.dialog import Dialog
 from nicegui.elements.select import Select
 from nicegui.elements.spinner import Spinner
+from openai.types import Upload
 
 import config
 import frame
@@ -27,7 +28,6 @@ log.setLevel(logstuff.logging_level)
 
 
 class UploadFileDialog(Dialog):
-    upload_id_class = 'chroma-upload'  # used to find the input in descendants
 
     def __init__(self, collection: Collection):
         Dialog.__init__(self)
@@ -46,28 +46,26 @@ class UploadFileDialog(Dialog):
                 await run.io_bound(lambda: tmpfile.write(contents))
                 log.debug(f'saved file {local_file_name} to server file {tmpfile.name}...')
 
+            errmsg = None
             try:
                 log.debug(f'chunking ({chunker_type}) server file {tmpfile.name}...')
                 await run.io_bound(lambda: vectorstore.ingest(self.collection, tmpfile.name, local_file_name, doc_type, chunker_type))
             except (Exception,) as e:
                 errmsg = f'Error ingesting {local_file_name}: {e}'
-                traceback.print_exc(file=sys.stdout)
+                if not isinstance(e, VSChroma.EmptyIngestError):
+                    traceback.print_exc(file=sys.stdout)
                 log.error(errmsg)
                 ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
 
-            os.remove(tmpfile.name)
-            log.info(f'ingested {local_file_name} via {tmpfile.name} to collection {self.collection.name}')
+            try:
+                os.remove(tmpfile.name)
+            finally:
+                if errmsg is None:
+                    log.info(f'ingested {local_file_name} via {tmpfile.name} to collection {self.collection.name}')
         finally:
             upld_spinner.set_visibility(False)
             done_button.set_visibility(True)
             done_button.enable()
-
-    async def set_filetype_props(self, doc_type: str):
-        for d in self.descendants(include_self=False):
-            if self.upload_id_class in d.classes:
-                types = ','.join(f'.{ft}' for ft in docloaders[doc_type]['filetypes'])
-                print(f'~~~~ types:{types}')
-                d.props(add=f'accept="{types}"')
 
 
 class CreateDialog(Dialog):
@@ -139,6 +137,12 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         peek_dialog.clear()
 
     async def upload(collection_name: str, page_spinner: Spinner) -> None:
+
+        def set_filetype_propsx(upload_element: Upload, doc_type: str):
+            types = ','.join(f'.{ft}' for ft in docloaders[doc_type]['filetypes'])
+            upload_element.props(remove='accept')
+            upload_element.props(add=f'accept="{types}"')
+
         try:
             page_spinner.set_visibility(True)
             start = timeit.default_timer()
@@ -152,29 +156,23 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                 ui.label(f'Add File to {collection_name}').classes('text-xl self-center')
                 doc_types = VSChroma.doc_loaders_list()
                 chunker_types = VSChroma.chunkers_list()
-                dtype = ui.select(label='Doc Reader:', options=doc_types, value=doc_types[0]).props('square outlined label-color=green')
+                dtype = ui.select(label='Doc Reader:', options=doc_types,
+                                  on_change=lambda vcargs: set_filetype_propsx(upld, vcargs.value), value=doc_types[0]).props('square outlined label-color=green')
                 ctype = ui.select(label='Chunker:', options=chunker_types, value=chunker_types[0]).props('square outlined label-color=green')
                 ui.separator()
                 ui.label('Choose a file:').classes('text-quasargreen')
-                upld = ui.upload(auto_upload=True).classes(f'{upload_file_dialog.upload_id_class}')
+                upld = ui.upload(auto_upload=True)
+                set_filetype_propsx(upld, dtype.value)
                 with ui.row().classes('w-full place-content-center'):
                     done_button = ui.button(text='Done', on_click=lambda: upload_file_dialog.submit(None)).props('no-caps')
                     upld_spinner = ui.spinner(size='3em', type='default')
                     upld_spinner.set_visibility(False)
                     upld.on_upload(lambda ulargs, db=done_button: upload_file_dialog.handle_upload(ulargs, dtype.value, ctype.value, vectorstore, done_button, upld_spinner))
 
-        await upload_file_dialog.set_filetype_props(doc_type=dtype.value)
         await upload_file_dialog
         upload_file_dialog.close()
         upload_file_dialog.clear()
         chroma_ui.refresh()
-
-    # async def set_filetype_props(self, doc_type: str):
-    #     for d in self.descendants(include_self=False):
-    #         if self.upload_id_class in d.classes:
-    #             types = ','.join(f'.{ft}' for ft in docloaders[doc_type]['filetypes'])
-    #             print(f'~~~~ types:{types}')
-    #             d.props(add=f'accept="{types}"')
 
     # noinspection PyProtectedMember
     @ui.refreshable
@@ -252,58 +250,6 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                     with rbui.tr():
                         rbui.td('database')
                         rbui.td(f'{collection_md.database}')
-
-                    # rcts_args = {'chunk_size': 1000, 'chunk_overlap': 200}  # todo configure this
-                    # ui.button(text=f'add pypdf+rcts:{rcts_args['chunk_size']},{rcts_args['chunk_overlap']}',
-                    #           on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, RecursiveCharacterTextSplitter.__name__, rcts_args, page_spinner)).props('no-caps')
-                    # ui.button(text=f'add pymupdf+rcts:{rcts_args['chunk_size']},{rcts_args['chunk_overlap']}',
-                    #           on_click=lambda c=collection_name: upload(c, PyMuPDFLoader.__name__, RecursiveCharacterTextSplitter.__name__, rcts_args, page_spinner)).props('no-caps')
-                    # ui.button(text=f'add pdfminer+rcts:{rcts_args['chunk_size']},{rcts_args['chunk_overlap']}',
-                    #           on_click=lambda c=collection_name: upload(c, PDFMinerLoader.__name__, RecursiveCharacterTextSplitter.__name__, rcts_args, page_spinner)).props('no-caps')
-                    #
-                    # ui.separator().props(sep_props)
-                    # model_name = 'text-embedding-ada-002'
-                    # sem_defaults_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key), }
-                    # ui.button(text='add pypdf+sem(ada002):defaults',
-                    #           on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_defaults_args, page_spinner)).props('no-caps')
-                    #
-                    # ui.separator().props(sep_props)
-                    # model_name = 'text-embedding-3-small'
-                    # sem_defaults_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key), }
-                    # ui.button(text='add pypdf+sem(3-small):defaults',
-                    #           on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_defaults_args, page_spinner)).props('no-caps')
-                    #
-                    # ui.separator().props(sep_props)
-                    # model_name = 'text-embedding-3-small'
-                    # sem_p95_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key),
-                    #                 'breakpoint_threshold_type': 'percentile',
-                    #                 'breakpoint_threshold_amount': 95.0, }
-                    # ui.button(text='add pypdf+sem(3-small):pct,95.0',
-                    #           on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_p95_args, page_spinner)).props('no-caps')
-                    #
-                    # ui.separator().props(sep_props)
-                    # model_name = 'text-embedding-3-small'
-                    # sem_sd3_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key),
-                    #                 'breakpoint_threshold_type': 'standard_deviation',
-                    #                 'breakpoint_threshold_amount': 3.0, }
-                    # ui.button(text='add pypdf+sem(3-small):stdev,3.0',
-                    #           on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_sd3_args, page_spinner)).props('no-caps')
-                    #
-                    # ui.separator().props(sep_props)
-                    # model_name = 'text-embedding-3-small'
-                    # sem_iq15_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key),
-                    #                  'breakpoint_threshold_type': 'interquartile',
-                    #                  'breakpoint_threshold_amount': 1.5, }
-                    # ui.button(text='add pypdf+sem(3-small):iq,1.5',
-                    #           on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_iq15_args, page_spinner)).props('no-caps')
-                    #
-                    # ui.separator().props(sep_props)
-                    # model_name = 'text-embedding-3-small'
-                    # sem_grad95_args = {'embeddings': OpenAIEmbeddings(model=model_name, openai_api_key=openai_key),
-                    #                    'breakpoint_threshold_type': 'gradient',
-                    #                    'breakpoint_threshold_amount': 95.0, }
-                    # ui.button(text='add pypdf+sem(3-small):grad,95.0',
-                    #           on_click=lambda c=collection_name: upload(c, PyPDFLoader.__name__, SemanticChunker.__name__, sem_grad95_args, page_spinner)).props('no-caps')
 
         page_spinner.set_visibility(False)
 
