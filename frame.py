@@ -28,6 +28,7 @@ def frame(header_title: str, bg_color: str = None):
     ui.add_css('#popup { z-index: 10000; }')
 
     #  ui.colors(primary='#6E93D6', secondary='#53B689', accent='#111B1E', positive='#53B689')
+    ui.colors(quasargreen='#66B969')
 
     bg_color = 'bg-white' if bg_color is None else bg_color
     with ui.header().classes(f'{bg_color} py-0 px-0'):
@@ -37,5 +38,5 @@ def frame(header_title: str, bg_color: str = None):
             ui.label(header_title).classes('text-blue text-3xl font-bold p-0 absolute-center')
             ui.space()
             ui.image('pluto.jpg').classes('w-12 place-self-end p-0 m-0').on('dblclick', lambda: ui.navigate.to('https://en.wikipedia.org/wiki/Pluto'))
-        ui.separator().classes('w-full h-1 text-blue bg-alcamiblue')
+        ui.separator().classes('h-1')  # .classes('w-full h-1 text-blue')
     yield

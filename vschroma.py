@@ -397,8 +397,9 @@ class VSChroma(VSAPI):
         # update collection metadata
         now = config.now_datetime()
         collection.metadata[f'file:{org_filename}'] = now
-        collection.metadata[f'file:{org_filename}.doc_type'] = doc_type
-        collection.metadata[f'file:{org_filename}.chunker_type'] = chunker_type
+        collection.metadata[f'file:{org_filename}.doc_type'] = f'{doc_type}: {docloaders[doc_type]['function'].__name__}/{docloaders[doc_type]['filetypes']}'
+        collection.metadata[f'file:doc/chunk counts'] = f'{len(docs)}/{len(chunks)}'
+        collection.metadata[f'file:{org_filename}.chunker_type'] = f'{chunker_type}: {chunkers[chunker_type]['function'].__name__}'
         for key, value in chunker_args.items():
             if isinstance(value, OpenAIEmbeddings):  # if it's an oai function, pull out known fields for metadata
                 oaie: OpenAIEmbeddings = value
