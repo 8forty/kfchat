@@ -8,3 +8,4 @@ conda install chromadb
 conda install pypdf pymupdf asgiref
 conda install azure-core
 pip install langchain-ollama langchain_experimental sentence_transformers fastembed
+pip install langchain-docling
