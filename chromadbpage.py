@@ -27,6 +27,46 @@ log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
 
+class CreateDialog(Dialog):
+    def __init__(self):
+        Dialog.__init__(self)
+
+        with self, ui.card():
+            with ui.column().classes('w-full'):
+                ui.label('Create A Collection').classes('text-xl self-center')
+                self.cinput = ui.input(label='Collection Name',
+                                       placeholder='3-63 chars, no spaces, unders or hyphens',
+                                       validation={'Too short!': lambda value: len(value) >= 3,
+                                                   'Too long!': lambda value: len(value) <= 63,
+                                                   'No Spaces!': lambda value: str(value).find(' ') == -1},
+                                       ).classes('flex-grow min-w-80').props('outlined').props('color=primary').props('bg-color=white')
+                embedding_types = VSChroma.embedding_types_list()
+                et_start_value = embedding_types[0]
+                etype = ui.select(label='Embedding Type:', options=embedding_types, value=et_start_value).props('square outlined label-color=green').classes('w-full')
+                etype.on_value_change(lambda vc: self.select_embedding_subtype(vc.value, subtype_select))
+                subtype_select = ui.select(label='Subtype:', options=[]).props('square outlined label-color=green').classes('w-full')
+                self.select_embedding_subtype(et_start_value, subtype_select)
+                ui.separator()
+                ui.button('Create', on_click=lambda: self.create_collection_submit(self.cinput.value, etype.value, subtype_select.value)).props('no-caps').classes('self-center')
+
+    async def create_collection_submit(self, collection_name: str, embedding_type: str, subtype: str):
+        if len(collection_name.strip()) < 3 or len(collection_name.strip()) > 63 or len(collection_name.strip()) != len(collection_name):
+            ui.notify(message='Invalid collection name', position='top', type='negative', close_button='Dismiss')
+        else:
+            log.info(f'creating collection {collection_name}: {embedding_type=} {subtype=}')
+            self.submit((collection_name, embedding_type, subtype))
+
+    @staticmethod
+    def select_embedding_subtype(embedding_type: str, subtype_select: Select):
+        opts = list(VSChroma.embedding_types[embedding_type].keys())
+        subtype_select.set_options(opts)
+        subtype_select.set_value(opts[0])
+
+    async def reset_inputs(self):
+        # todo: setting to None is an error and '' is immediate validation error
+        self.cinput.set_value('')
+
+
 class UploadFileDialog(Dialog):
 
     def __init__(self, collection: Collection):
@@ -68,54 +108,26 @@ class UploadFileDialog(Dialog):
             done_button.enable()
 
 
-class CreateDialog(Dialog):
-    def __init__(self):
-        Dialog.__init__(self)
-
-        with self, ui.card():
-            with ui.column().classes('w-full'):
-                ui.label('Create A Collection').classes('text-xl self-center')
-                self.cinput = ui.input(label='Collection Name',
-                                       placeholder='3-63 chars, no spaces, unders or hyphens',
-                                       validation={'Too short!': lambda value: len(value) >= 3,
-                                                   'Too long!': lambda value: len(value) <= 63,
-                                                   'No Spaces!': lambda value: str(value).find(' ') == -1},
-                                       ).classes('flex-grow min-w-80').props('outlined').props('color=primary').props('bg-color=white')
-                embedding_types = VSChroma.embedding_types_list()
-                et_start_value = embedding_types[0]
-                etype = ui.select(label='Embedding Type:', options=embedding_types, value=et_start_value).props('square outlined label-color=green').classes('w-full')
-                etype.on_value_change(lambda vc: self.select_embedding_subtype(vc.value, subtype_select))
-                subtype_select = ui.select(label='Subtype:', options=[]).props('square outlined label-color=green').classes('w-full')
-                self.select_embedding_subtype(et_start_value, subtype_select)
-                ui.separator()
-                ui.button('Create', on_click=lambda: self.create_collection_submit(self.cinput.value, etype.value, subtype_select.value)).props('no-caps').classes('self-center')
-
-    async def create_collection_submit(self, collection_name: str, embedding_type: str, subtype: str):
-        if len(collection_name.strip()) < 3 or len(collection_name.strip()) > 63 or len(collection_name.strip()) != len(collection_name):
-            ui.notify(message='Invalid collection name', position='top', type='negative', close_button='Dismiss')
-        else:
-            log.info(f'creating collection {collection_name}: {embedding_type=} {subtype=}')
-            self.submit((collection_name, embedding_type, subtype))
-
-    @staticmethod
-    def select_embedding_subtype(embedding_type: str, subtype_select: Select):
-        opts = list(VSChroma.embedding_types[embedding_type].keys())
-        subtype_select.set_options(opts)
-        subtype_select.set_value(opts[0])
-
-    async def reset_inputs(self):
-        # todo: setting to None is an error and '' is immediate validation error
-        self.cinput.set_value('')
-
-
 # noinspection PyUnusedLocal
 def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]):
-    async def delete_coll(coll_name: str) -> None:
+    async def do_create_dialog(create_dialog: CreateDialog, page_spinner: Spinner):
+        await create_dialog.reset_inputs()
+        result = await create_dialog
+
+        page_spinner.set_visibility(True)
+        if result is not None:
+            (collection_name, embedding_type, subtype) = result
+            await run.io_bound(lambda: vectorstore.create_collection(collection_name, embedding_type, subtype))
+
+        # todo: page spinner
+        chroma_ui.refresh()
+
+    async def do_delete_collection(coll_name: str) -> None:
         log.info(f'deleting collection {coll_name}')
         await run.io_bound(lambda: vectorstore.delete_index(coll_name))
         chroma_ui.refresh()
 
-    async def peek(coll_name: str) -> None:
+    async def do_peek_dialog(coll_name: str) -> None:
         collection = vectorstore.get_collection(coll_name)
         peek_n = 3  # todo: configure this?
         peeks = collection.peek(limit=peek_n)
@@ -136,9 +148,9 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         peek_dialog.close()
         peek_dialog.clear()
 
-    async def upload(collection_name: str, page_spinner: Spinner) -> None:
+    async def do_add_dialog(collection_name: str, page_spinner: Spinner) -> None:
 
-        def set_filetype_propsx(upload_element: Upload, doc_type: str):
+        def set_filetype_props(upload_element: Upload, doc_type: str):
             types = ','.join(f'.{ft}' for ft in docloaders[doc_type]['filetypes'])
             upload_element.props(remove='accept')
             upload_element.props(add=f'accept="{types}"')
@@ -157,12 +169,12 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                 doc_types = VSChroma.doc_loaders_list()
                 chunker_types = VSChroma.chunkers_list()
                 dtype = ui.select(label='Doc Reader:', options=doc_types,
-                                  on_change=lambda vcargs: set_filetype_propsx(upld, vcargs.value), value=doc_types[0]).props('square outlined label-color=green')
+                                  on_change=lambda vcargs: set_filetype_props(upld, vcargs.value), value=doc_types[0]).props('square outlined label-color=green')
                 ctype = ui.select(label='Chunker:', options=chunker_types, value=chunker_types[0]).props('square outlined label-color=green')
                 ui.separator()
                 ui.label('Choose a file:').classes('text-quasargreen')
                 upld = ui.upload(auto_upload=True)
-                set_filetype_propsx(upld, dtype.value)
+                set_filetype_props(upld, dtype.value)
                 with ui.row().classes('w-full place-content-center'):
                     done_button = ui.button(text='Done', on_click=lambda: upload_file_dialog.submit(None)).props('no-caps')
                     upld_spinner = ui.spinner(size='3em', type='default')
@@ -202,10 +214,10 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                             ui.label(f'{collection_md.metadata['embedding_function_name']}')
                             ui.label(f'{model_name}')
                         with ui.row().classes('w-full gap-x-2 pt-2'):
-                            ui.button(text='delete').on('click.stop', lambda c=collection_name: delete_coll(c)).props('no-caps')
-                            ui.button(text='peek').on('click.stop', lambda c=collection_name: peek(c)).props('no-caps')
-                            ui.button(text='add').on('click.stop', lambda c=collection_name: upload(c, page_spinner)).props('no-caps')
-                            ui.button(text='dump').on('click.stop', lambda c=collection_name: peek(c)).props('no-caps')
+                            ui.button(text='delete').on('click.stop', lambda c=collection_name: do_delete_collection(c)).props('no-caps')
+                            ui.button(text='peek').on('click.stop', lambda c=collection_name: do_peek_dialog(c)).props('no-caps')
+                            ui.button(text='add').on('click.stop', lambda c=collection_name: do_add_dialog(c, page_spinner)).props('no-caps')
+                            ui.button(text='dump').on('click.stop', lambda c=collection_name: do_peek_dialog(c)).props('no-caps')
 
                 # details table (embedded)
                 with rbui.table():
@@ -252,18 +264,6 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                         rbui.td(f'{collection_md.database}')
 
         page_spinner.set_visibility(False)
-
-    async def do_create_dialog(create_dialog: CreateDialog, page_spinner: Spinner):
-        await create_dialog.reset_inputs()
-        result = await create_dialog
-
-        page_spinner.set_visibility(True)
-        if result is not None:
-            (collection_name, embedding_type, subtype) = result
-            await run.io_bound(lambda: vectorstore.create_collection(collection_name, embedding_type, subtype))
-
-        # todo: page spinner
-        chroma_ui.refresh()
 
     @ui.page(path=path)
     async def index(request: Request, client: Client) -> None:

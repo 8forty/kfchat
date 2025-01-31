@@ -417,7 +417,7 @@ class VSChroma(VSAPI):
         collection.modify(metadata=self.fix_metadata_for_modify(self.filter_metadata(collection.metadata)))
 
         #  add documents + ids + metadata to the collection
-        log.debug(f'adding embeddings for {len(chunks)} [{chunker_type}] chunks to collection {collection.name}')
+        log.debug(f'adding embeddings for {len(chunks)} chunks [{chunker_type}] to collection {collection.name}')
         collection.add(documents=[c.page_content for c in chunks],
                        ids=[f'{org_filename}-{i}' for i in range(0, len(chunks))],  # use name:count for chunk-ids
                        metadatas=[c.metadata for c in chunks],
