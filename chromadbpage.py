@@ -137,17 +137,23 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         chroma_ui.refresh()
 
     async def do_peek_dialog(coll_name: str) -> None:
+        print(f'~~~~ peek: {coll_name}')
         collection = vectorstore.get_collection(coll_name)
         peek_n = 3  # todo: configure this?
         peeks = collection.peek(limit=peek_n)
         with ui.dialog() as peek_dialog, ui.card().classes('min-w-full'):
-            with ui.column().classes('gap-y-0'):
+            with ui.column().classes('gap-y-0 w-full'):
+                ui.label(f'Peek: {coll_name}:')
                 with rbui.table():
+                    with rbui.tr():
+                        rbui.th('ID')
+                        rbui.th('Chunk')
+                        rbui.th('Metadata')
                     for i in range(0, peek_n):
                         with rbui.tr():
                             if 'documents' in peeks and len(peeks['documents']) > i:
                                 doc_id = peeks['ids'][i]
-                                doc = peeks['documents'][i][0:100] + '[...]'
+                                doc = peeks['documents'][i][0:300] + '[...]'
                                 md = '\n'.join(f'{k}:{v}' for k, v in peeks['metadatas'][i].items())
                                 rbui.td(label=f'{doc_id}')
                                 rbui.td(label=f'{doc}')
@@ -225,10 +231,10 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                             ui.label(f'{efp['model_name'] if 'model_name' in efp else 'model:unknown'}')
                             ui.label(f'created:{collection_md.metadata['created'] if 'created' in collection_md.metadata else 'unknown'}').classes('italic')
                         with ui.row().classes('w-full gap-x-2 pt-2'):
-                            ui.button(text='delete').on('click.stop', lambda c=collection_name: do_delete_collection(c)).props('no-caps')
-                            ui.button(text='peek').on('click.stop', lambda c=collection_name: do_peek_dialog(c)).props('no-caps')
-                            ui.button(text='add').on('click.stop', lambda c=collection_name: do_add_dialog(c, page_spinner)).props('no-caps')
-                            ui.button(text='dump').on('click.stop', lambda c=collection_name: do_peek_dialog(c)).props('no-caps')
+                            ui.button(text='delete').on('click.stop', lambda c=collection_md.name: do_delete_collection(c)).props('no-caps')
+                            ui.button(text='peek').on('click.stop', lambda c=collection_md.name: do_peek_dialog(c)).props('no-caps')
+                            ui.button(text='add').on('click.stop', lambda c=collection_md.name: do_add_dialog(c, page_spinner)).props('no-caps')
+                            ui.button(text='dump').on('click.stop', lambda c=collection_md.name: do_peek_dialog(c)).props('no-caps')
 
                 # details table (embedded)
                 with rbui.table():
