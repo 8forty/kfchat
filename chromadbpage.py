@@ -200,25 +200,30 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
     async def chroma_ui(page_spinner: Spinner) -> None:
         page_spinner.set_visibility(True)
 
+        colls_with_md = []
         for collection_name in await run.io_bound(vectorstore.list_index_names):
             try:
-                collection_md = await run.io_bound(lambda: vectorstore.get_collection_metadata(collection_name))
+                colls_with_md.append(await run.io_bound(lambda: vectorstore.get_collection_metadata(collection_name)))
             except (Exception,) as e:
                 errmsg = f'Error loading metadata for collection {collection_name}: {e} (skipping)'
                 log.warning(errmsg)
                 ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
                 traceback.print_exc(file=sys.stdout)
                 continue
+        ancient = config.ancient_datetime()
+        colls_with_md = sorted(colls_with_md, key=lambda coll: coll.metadata['created'] if 'created' in coll.metadata else ancient, reverse=True)  # newest on top
 
+        for collection_md in colls_with_md:
             with ui.expansion().classes('w-full border-solid border border-black') as expansion:
                 with expansion.add_slot('header'):
                     with ui.column().classes('w-full gap-y-0'):
                         with ui.row().classes('w-full'):
-                            ui.label(collection_name).classes('min-w-32')
+                            ui.label(collection_md.name).classes('min-w-32 text-orange-500 font-bold')
                             ui.label(f'{collection_md.count()}').classes('min-w-12')
-                            ui.label(f'{collection_md.metadata['embedding_type']}')
+                            ui.label(f'{collection_md.metadata['embedding_type'] if 'embedding_type' in collection_md.metadata else 'embedding-type:unknown'}')
                             efp = json.loads(collection_md.metadata['embedding_function_parms'])
-                            ui.label(f'{efp['model_name'] if 'model_name' in efp else '[unknown]'}')
+                            ui.label(f'{efp['model_name'] if 'model_name' in efp else 'model:unknown'}')
+                            ui.label(f'created:{collection_md.metadata['created'] if 'created' in collection_md.metadata else 'unknown'}').classes('italic')
                         with ui.row().classes('w-full gap-x-2 pt-2'):
                             ui.button(text='delete').on('click.stop', lambda c=collection_name: do_delete_collection(c)).props('no-caps')
                             ui.button(text='peek').on('click.stop', lambda c=collection_name: do_peek_dialog(c)).props('no-caps')

@@ -362,6 +362,7 @@ class VSChroma(VSAPI):
                 'hnsw:M': 40,  # default 16
 
                 'chroma_version': self._client.get_version(),
+                'created': config.now_datetime()
             },
             embedding_function=embedding_function_info['function'](**embedding_function_info['create_parms']),
             data_loader=None,

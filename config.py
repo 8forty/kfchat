@@ -25,6 +25,10 @@ def now_datetime() -> str:
     return datetime.datetime.now(datetime.UTC).strftime('%Y-%m-%d-%H:%M:%S')
 
 
+def ancient_datetime() -> str:
+    return datetime.datetime.fromordinal(1).strftime('%Y-%m-%d-%H:%M:%S')
+
+
 def now_time() -> str:
     return datetime.datetime.now(datetime.UTC).strftime('%H:%M:%S')
 
