@@ -92,7 +92,7 @@ class UploadFileDialog(Dialog):
                 await run.io_bound(lambda: vectorstore.ingest(self.collection, tmpfile.name, local_file_name, doc_type, chunker_type))
             except (Exception,) as e:
                 errmsg = f'Error ingesting {local_file_name}: {e}'
-                if not isinstance(e, VSChroma.EmptyIngestError):
+                if not isinstance(e, VSChroma.EmptyIngestError) and not isinstance(e, VSChroma.OllamaEmbeddingsError):
                     traceback.print_exc(file=sys.stdout)
                 log.error(errmsg)
                 ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
@@ -111,13 +111,22 @@ class UploadFileDialog(Dialog):
 # noinspection PyUnusedLocal
 def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]):
     async def do_create_dialog(create_dialog: CreateDialog, page_spinner: Spinner):
-        await create_dialog.reset_inputs()
-        result = await create_dialog
+        try:
+            await create_dialog.reset_inputs()
+            result = await create_dialog
 
-        page_spinner.set_visibility(True)
-        if result is not None:
-            (collection_name, embedding_type, subtype) = result
-            await run.io_bound(lambda: vectorstore.create_collection(collection_name, embedding_type, subtype))
+            page_spinner.set_visibility(True)
+            try:
+                if result is not None:
+                    (collection_name, embedding_type, subtype) = result
+                    await run.io_bound(lambda: vectorstore.create_collection(collection_name, embedding_type, subtype))
+            except (Exception,) as e:
+                page_spinner.set_visibility(False)
+                raise e
+        except (Exception,) as e:
+            errmsg = f'Error creating collection: {e}'
+            log.warning(errmsg)
+            ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
 
         # todo: page spinner
         chroma_ui.refresh()
@@ -207,12 +216,9 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                         with ui.row().classes('w-full'):
                             ui.label(collection_name).classes('min-w-32')
                             ui.label(f'{collection_md.count()}').classes('min-w-12')
-                            model_name = '[unknown]'
+                            ui.label(f'{collection_md.metadata['embedding_type']}')
                             efp = json.loads(collection_md.metadata['embedding_function_parms'])
-                            if 'model_name' in efp:
-                                model_name = efp['model_name']
-                            ui.label(f'{collection_md.metadata['embedding_function_name']}')
-                            ui.label(f'{model_name}')
+                            ui.label(f'{efp['model_name'] if 'model_name' in efp else '[unknown]'}')
                         with ui.row().classes('w-full gap-x-2 pt-2'):
                             ui.button(text='delete').on('click.stop', lambda c=collection_name: do_delete_collection(c)).props('no-caps')
                             ui.button(text='peek').on('click.stop', lambda c=collection_name: do_peek_dialog(c)).props('no-caps')

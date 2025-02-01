@@ -43,6 +43,9 @@ class VSChroma(VSAPI):
     class EmptyIngestError(Exception):
         pass
 
+    class OllamaEmbeddingsError(Exception):
+        pass
+
     def __init__(self, api_type_name: str, parms: dict[str, str]):
         super().__init__(api_type_name, parms)
         self._client: chromadb.ClientAPI | None = None
@@ -51,7 +54,7 @@ class VSChroma(VSAPI):
 
     # function-name-string : {model-name : {function, create_parms: {model_name}, read_parms: {}}}
     embedding_types: dict[str, dict[str, dict[str, any]]] = {
-        SentenceTransformerEmbeddingFunction.__name__: {
+        'SentenceTransformer-Embeddings': {
             'all-MiniLM-L6-v2': {
                 'function': SentenceTransformerEmbeddingFunction,
                 'create_parms': {'model_name': 'all-MiniLM-L6-v2'},
@@ -63,7 +66,7 @@ class VSChroma(VSAPI):
                 'read_parms': {},
             },
         },
-        OpenAIEmbeddingFunction.__name__: {
+        'OpenAI-Embeddings': {
             'text-embedding-3-large': {
                 'function': OpenAIEmbeddingFunction,
                 'create_parms': {'model_name': 'text-embedding-3-large', 'api_key': config.env.get('kfOPENAI_API_KEY')},
@@ -80,7 +83,7 @@ class VSChroma(VSAPI):
                 'read_parms': {'api_key': config.env.get('kfOPENAI_API_KEY')},
             },
         },
-        GoogleGenerativeAiEmbeddingFunction.__name__: {
+        'Google-GenerativeAI-Embeddings': {
             'models/text-embedding-004': {
                 'function': GoogleGenerativeAiEmbeddingFunction,
                 'create_parms': {'model_name': 'models/text-embedding-004', 'api_key': config.env.get('kfGEMINI_API_KEY')},
@@ -92,14 +95,35 @@ class VSChroma(VSAPI):
                 'read_parms': {'api_key': config.env.get('kfGEMINI_API_KEY')},
             },
         },
-        OllamaEmbeddingFunction.__name__: {
-            'abc': {
+        'Ollama-Embeddings': {
+            'nomic-embed-text': {
                 'function': OllamaEmbeddingFunction,
-                'create_parms': {},
+                'create_parms': {'model_name': 'nomic-embed-text', 'url': 'http://localhost:11434/api/embeddings'},
                 'read_parms': {},
-            }
+            },
+            'snowflake-arctic-embed2': {
+                'function': OllamaEmbeddingFunction,
+                'create_parms': {'model_name': 'snowflake-arctic-embed2', 'url': 'http://localhost:11434/api/embeddings'},
+                'read_parms': {},
+            },
+            'mxbai-embed-large': {
+                'function': OllamaEmbeddingFunction,
+                'create_parms': {'model_name': 'mxbai-embed-large', 'url': 'http://localhost:11434/api/embeddings'},
+                'read_parms': {},
+            },
+            'granite-embedding:278m': {
+                'function': OllamaEmbeddingFunction,
+                'create_parms': {'model_name': 'granite-embedding:278m', 'url': 'http://localhost:11434/api/embeddings'},
+                'read_parms': {},
+            },
+            # todo: this one doesn't work!? errors embedding chunks
+            # 'granite-embedding': {
+            #     'function': OllamaEmbeddingFunction,
+            #     'create_parms': {'model_name': 'granite-embedding', 'url': 'http://localhost:11434/api/embeddings'},
+            #     'read_parms': {},
+            # },
         },
-        'github-openai-embeddings': {
+        'Github-OpenAI-Embeddings': {
             'text-embedding-3-large': {
                 'function': OpenAIEmbeddingFunction,
                 'create_parms': {'model_name': 'text-embedding-3-large', 'api_key': config.env.get('kfGITHUB_TOKEN')},
@@ -153,12 +177,13 @@ class VSChroma(VSAPI):
             metadata = self._client.get_collection(name=collection_name).metadata
             log.debug(f'{collection_name} metadata load {timeit.default_timer() - start: .1f}s')
             if 'embedding_function_name' in metadata:
-                ef_name: str = metadata['embedding_function_name']
-                ef_parms: str = metadata['embedding_function_parms']
+                ef_type: str = metadata['embedding_type'] if 'embedding_type' in metadata else 'unknown'
+                ef_name: str = metadata['embedding_function_name'] if 'embedding_function_name' in metadata else 'unknown'
+                ef_parms: str = metadata['embedding_function_parms'] if 'embedding_function_parms' in metadata else 'unknown'
                 model_name = json.loads(ef_parms)['model_name']
-                ef: chroma_api_types.EmbeddingFunction[chroma_api_types.Documents] = self.embedding_types[ef_name][model_name]['function']
+                ef: chroma_api_types.EmbeddingFunction[chroma_api_types.Documents] = self.embedding_types[ef_type][model_name]['function']
                 ef_parms: dict[str, str] = json.loads(metadata['embedding_function_parms'])
-                ef_parms.update(self.embedding_types[ef_name][model_name]['read_parms'])  # adds e.g. a key
+                ef_parms.update(self.embedding_types[ef_type][model_name]['read_parms'])  # adds e.g. a key
 
                 start = timeit.default_timer()
                 # noinspection PyTypeChecker
@@ -327,6 +352,7 @@ class VSChroma(VSAPI):
         collection: Collection = self._client.create_collection(
             name=name,
             metadata={
+                'embedding_type': embedding_type,
                 'embedding_function_name': embedding_function_info['function'].__name__,
                 'embedding_function_parms': json.dumps(self.filter_metadata(embedding_function_info['create_parms']), ensure_ascii=False),
 
@@ -435,10 +461,19 @@ class VSChroma(VSAPI):
 
         #  add documents + ids + metadata to the collection
         log.debug(f'adding embeddings for {len(chunks)} chunks [{chunker_type}] to collection {collection.name}')
-        collection.add(documents=[c.page_content for c in chunks],
-                       ids=[f'{org_filename}-{i}' for i in range(0, len(chunks))],  # use name:count for chunk-ids
-                       metadatas=[c.metadata for c in chunks],
-                       )
+        try:
+            collection.add(documents=[c.page_content for c in chunks],
+                           ids=[f'{org_filename}-{i}' for i in range(0, len(chunks))],  # use name:count for chunk-ids
+                           metadatas=[c.metadata for c in chunks],
+                           )
+        except (Exception,) as e:
+            collection_md = collection.metadata
+            e_type: str = collection_md['embedding_type'] if 'embedding_type' in collection_md else 'unknown'
+            ef_name: str = collection_md['embedding_function_name'] if 'embedding_function_name' in collection_md else 'unknown'
+            errmsg = f'Error adding embeddings to {collection.name} function:{ef_name} type:{e_type}: {e}'
+            log.warning(errmsg)
+            if 'ollama' in e_type.lower():
+                raise VSChroma.OllamaEmbeddingsError(errmsg + ' (is model loaded in ollama?)')
 
         return collection
 

@@ -121,7 +121,7 @@ class LLMOaiConfig(LLMConfig):
         if self._api_client is not None:
             return self._api_client
 
-        # todo: this is a 2nd place that lists api types :(
+        # todo: this is a 2nd place that lists api types :(, for now to highlight any diffs in client-setup api's
         if self.api_type_name == 'ollama':
             endpoint = llm_api_types_config[self.api_type_name]['OLLAMA_ENDPOINT']
             key = llm_api_types_config[self.api_type_name]['key']
