@@ -58,7 +58,7 @@ class CreateDialog(Dialog):
 
     @staticmethod
     def select_embedding_subtype(embedding_type: str, subtype_select: Select):
-        opts = list(VSChroma.embedding_types[embedding_type].keys())
+        opts = list(VSChroma.embedding_types_list(embedding_type))
         subtype_select.set_options(opts)
         subtype_select.set_value(opts[0])
 

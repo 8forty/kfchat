@@ -33,6 +33,6 @@ chunkers = {
                                                                                                    openai_api_key=llm_api_types_config['openai']['key']),
                                                                     'breakpoint_threshold_type': 'gradient',
                                                                     'breakpoint_threshold_amount': 95.0}},
-    f'{NLTKTextSplitter.__name__}:defaults': {'function': NLTKTextSplitter},
-    f'{SpacyTextSplitter.__name__}:defaults': {'function': SpacyTextSplitter},
+    f'{NLTKTextSplitter.__name__}:defaults': {'function': NLTKTextSplitter, 'args': {}},
+    f'{SpacyTextSplitter.__name__}:defaults': {'function': SpacyTextSplitter, 'args': {}},
 }

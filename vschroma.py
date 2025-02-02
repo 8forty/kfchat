@@ -25,12 +25,105 @@ from vsapi import VSAPI
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
+# function-name-string : {model-name : {function, create_parms: {model_name}, read_parms: {}}}
+chroma_embedding_types: dict[str, dict[str, dict[str, any]]] = {
+    'SentenceTransformer-Embeddings': {
+        'all-MiniLM-L6-v2': {
+            'function': SentenceTransformerEmbeddingFunction,
+            'create_parms': {'model_name': 'all-MiniLM-L6-v2'},
+            'read_parms': {},
+        },
+        'all-mpnet-base-v2': {
+            'function': SentenceTransformerEmbeddingFunction,
+            'create_parms': {'model_name': 'all-mpnet-base-v2'},
+            'read_parms': {},
+        },
+    },
+    'OpenAI-Embeddings': {
+        'text-embedding-3-large': {
+            'function': OpenAIEmbeddingFunction,
+            'create_parms': {'model_name': 'text-embedding-3-large', 'api_key': config.env.get('kfOPENAI_API_KEY')},
+            'read_parms': {'api_key': config.env.get('kfOPENAI_API_KEY')},
+        },
+        'text-embedding-ada-002': {
+            'function': OpenAIEmbeddingFunction,
+            'create_parms': {'model_name': 'text-embedding-ada-002', 'api_key': config.env.get('kfOPENAI_API_KEY')},
+            'read_parms': {'api_key': config.env.get('kfOPENAI_API_KEY')},
+        },
+        'text-embedding-3-small': {
+            'function': OpenAIEmbeddingFunction,
+            'create_parms': {'model_name': 'text-embedding-3-small', 'api_key': config.env.get('kfOPENAI_API_KEY')},
+            'read_parms': {'api_key': config.env.get('kfOPENAI_API_KEY')},
+        },
+    },
+    'Google-GenerativeAI-Embeddings': {
+        'models/text-embedding-004': {
+            'function': GoogleGenerativeAiEmbeddingFunction,
+            'create_parms': {'model_name': 'models/text-embedding-004', 'api_key': config.env.get('kfGEMINI_API_KEY')},
+            'read_parms': {'api_key': config.env.get('kfGEMINI_API_KEY')},
+        },
+        'models/embedding-001': {
+            'function': GoogleGenerativeAiEmbeddingFunction,
+            'create_parms': {'model_name': 'models/embedding-001', 'api_key': config.env.get('kfGEMINI_API_KEY')},
+            'read_parms': {'api_key': config.env.get('kfGEMINI_API_KEY')},
+        },
+    },
+    'Ollama-Embeddings': {
+        'nomic-embed-text': {
+            'function': OllamaEmbeddingFunction,
+            'create_parms': {'model_name': 'nomic-embed-text', 'url': 'http://localhost:11434/api/embeddings'},
+            'read_parms': {},
+        },
+        'snowflake-arctic-embed2': {
+            'function': OllamaEmbeddingFunction,
+            'create_parms': {'model_name': 'snowflake-arctic-embed2', 'url': 'http://localhost:11434/api/embeddings'},
+            'read_parms': {},
+        },
+        'mxbai-embed-large': {
+            'function': OllamaEmbeddingFunction,
+            'create_parms': {'model_name': 'mxbai-embed-large', 'url': 'http://localhost:11434/api/embeddings'},
+            'read_parms': {},
+        },
+        'granite-embedding:278m': {
+            'function': OllamaEmbeddingFunction,
+            'create_parms': {'model_name': 'granite-embedding:278m', 'url': 'http://localhost:11434/api/embeddings'},
+            'read_parms': {},
+        },
+        # todo: this one doesn't work!? errors embedding chunks
+        # 'granite-embedding': {
+        #     'function': OllamaEmbeddingFunction,
+        #     'create_parms': {'model_name': 'granite-embedding', 'url': 'http://localhost:11434/api/embeddings'},
+        #     'read_parms': {},
+        # },
+    },
+    'Github-OpenAI-Embeddings': {
+        'text-embedding-3-large': {
+            'function': OpenAIEmbeddingFunction,
+            'create_parms': {'model_name': 'text-embedding-3-large', 'api_key': config.env.get('kfGITHUB_TOKEN')},
+            'read_parms': {'api_key': config.env.get('kfGITHUB_TOKEN')},
+        },
+        'text-embedding-ada-002': {
+            'function': OpenAIEmbeddingFunction,
+            'create_parms': {'model_name': 'text-embedding-ada-002', 'api_key': config.env.get('kfGITHUB_TOKEN')},
+            'read_parms': {'api_key': config.env.get('kfGITHUB_TOKEN')},
+        },
+        'text-embedding-3-small': {
+            'function': OpenAIEmbeddingFunction,
+            'create_parms': {'model_name': 'text-embedding-3-small', 'api_key': config.env.get('kfGITHUB_TOKEN')},
+            'read_parms': {'api_key': config.env.get('kfGITHUB_TOKEN')},
+        },
+    },
+}
+
 
 class VSChroma(VSAPI):
 
     @staticmethod
-    def embedding_types_list() -> list[str]:
-        return list(VSChroma.embedding_types.keys())
+    def embedding_types_list(embedding_type: str = None) -> list[str]:
+        if embedding_type is None:
+            return list(chroma_embedding_types.keys())
+        else:
+            return list(chroma_embedding_types[embedding_type].keys())
 
     @staticmethod
     def doc_loaders_list() -> list[str]:
@@ -51,96 +144,6 @@ class VSChroma(VSAPI):
         self._client: chromadb.ClientAPI | None = None
         self.collection_name: str | None = None  # todo: get rid of this
         self._collection: chromadb.Collection | None = None  # todo: and this
-
-    # function-name-string : {model-name : {function, create_parms: {model_name}, read_parms: {}}}
-    embedding_types: dict[str, dict[str, dict[str, any]]] = {
-        'SentenceTransformer-Embeddings': {
-            'all-MiniLM-L6-v2': {
-                'function': SentenceTransformerEmbeddingFunction,
-                'create_parms': {'model_name': 'all-MiniLM-L6-v2'},
-                'read_parms': {},
-            },
-            'all-mpnet-base-v2': {
-                'function': SentenceTransformerEmbeddingFunction,
-                'create_parms': {'model_name': 'all-mpnet-base-v2'},
-                'read_parms': {},
-            },
-        },
-        'OpenAI-Embeddings': {
-            'text-embedding-3-large': {
-                'function': OpenAIEmbeddingFunction,
-                'create_parms': {'model_name': 'text-embedding-3-large', 'api_key': config.env.get('kfOPENAI_API_KEY')},
-                'read_parms': {'api_key': config.env.get('kfOPENAI_API_KEY')},
-            },
-            'text-embedding-ada-002': {
-                'function': OpenAIEmbeddingFunction,
-                'create_parms': {'model_name': 'text-embedding-ada-002', 'api_key': config.env.get('kfOPENAI_API_KEY')},
-                'read_parms': {'api_key': config.env.get('kfOPENAI_API_KEY')},
-            },
-            'text-embedding-3-small': {
-                'function': OpenAIEmbeddingFunction,
-                'create_parms': {'model_name': 'text-embedding-3-small', 'api_key': config.env.get('kfOPENAI_API_KEY')},
-                'read_parms': {'api_key': config.env.get('kfOPENAI_API_KEY')},
-            },
-        },
-        'Google-GenerativeAI-Embeddings': {
-            'models/text-embedding-004': {
-                'function': GoogleGenerativeAiEmbeddingFunction,
-                'create_parms': {'model_name': 'models/text-embedding-004', 'api_key': config.env.get('kfGEMINI_API_KEY')},
-                'read_parms': {'api_key': config.env.get('kfGEMINI_API_KEY')},
-            },
-            'models/embedding-001': {
-                'function': GoogleGenerativeAiEmbeddingFunction,
-                'create_parms': {'model_name': 'models/embedding-001', 'api_key': config.env.get('kfGEMINI_API_KEY')},
-                'read_parms': {'api_key': config.env.get('kfGEMINI_API_KEY')},
-            },
-        },
-        'Ollama-Embeddings': {
-            'nomic-embed-text': {
-                'function': OllamaEmbeddingFunction,
-                'create_parms': {'model_name': 'nomic-embed-text', 'url': 'http://localhost:11434/api/embeddings'},
-                'read_parms': {},
-            },
-            'snowflake-arctic-embed2': {
-                'function': OllamaEmbeddingFunction,
-                'create_parms': {'model_name': 'snowflake-arctic-embed2', 'url': 'http://localhost:11434/api/embeddings'},
-                'read_parms': {},
-            },
-            'mxbai-embed-large': {
-                'function': OllamaEmbeddingFunction,
-                'create_parms': {'model_name': 'mxbai-embed-large', 'url': 'http://localhost:11434/api/embeddings'},
-                'read_parms': {},
-            },
-            'granite-embedding:278m': {
-                'function': OllamaEmbeddingFunction,
-                'create_parms': {'model_name': 'granite-embedding:278m', 'url': 'http://localhost:11434/api/embeddings'},
-                'read_parms': {},
-            },
-            # todo: this one doesn't work!? errors embedding chunks
-            # 'granite-embedding': {
-            #     'function': OllamaEmbeddingFunction,
-            #     'create_parms': {'model_name': 'granite-embedding', 'url': 'http://localhost:11434/api/embeddings'},
-            #     'read_parms': {},
-            # },
-        },
-        'Github-OpenAI-Embeddings': {
-            'text-embedding-3-large': {
-                'function': OpenAIEmbeddingFunction,
-                'create_parms': {'model_name': 'text-embedding-3-large', 'api_key': config.env.get('kfGITHUB_TOKEN')},
-                'read_parms': {'api_key': config.env.get('kfGITHUB_TOKEN')},
-            },
-            'text-embedding-ada-002': {
-                'function': OpenAIEmbeddingFunction,
-                'create_parms': {'model_name': 'text-embedding-ada-002', 'api_key': config.env.get('kfGITHUB_TOKEN')},
-                'read_parms': {'api_key': config.env.get('kfGITHUB_TOKEN')},
-            },
-            'text-embedding-3-small': {
-                'function': OpenAIEmbeddingFunction,
-                'create_parms': {'model_name': 'text-embedding-3-small', 'api_key': config.env.get('kfGITHUB_TOKEN')},
-                'read_parms': {'api_key': config.env.get('kfGITHUB_TOKEN')},
-            },
-        },
-    }
 
     def warmup(self):
         self._build_clients()
@@ -181,9 +184,9 @@ class VSChroma(VSAPI):
                 ef_name: str = metadata['embedding_function_name'] if 'embedding_function_name' in metadata else 'unknown'
                 ef_parms: str = metadata['embedding_function_parms'] if 'embedding_function_parms' in metadata else 'unknown'
                 model_name = json.loads(ef_parms)['model_name']
-                ef: chroma_api_types.EmbeddingFunction[chroma_api_types.Documents] = self.embedding_types[ef_type][model_name]['function']
+                ef: chroma_api_types.EmbeddingFunction[chroma_api_types.Documents] = chroma_embedding_types[ef_type][model_name]['function']
                 ef_parms: dict[str, str] = json.loads(metadata['embedding_function_parms'])
-                ef_parms.update(self.embedding_types[ef_type][model_name]['read_parms'])  # adds e.g. a key
+                ef_parms.update(chroma_embedding_types[ef_type][model_name]['read_parms'])  # adds e.g. a key
 
                 start = timeit.default_timer()
                 # noinspection PyTypeChecker
@@ -347,7 +350,7 @@ class VSChroma(VSAPI):
         # },
         # default hnsw: {'space': 'l2', 'construction_ef': 100, 'search_ef': 10, 'num_threads': 22, 'M': 16, 'resize_factor': 1.2, 'batch_size': 100, 'sync_threshold': 1000, '_type': 'HNSWConfigurationInternal'}
         # todo: CollectionConfiguration will eventually be implemented: https://github.com/chroma-core/chroma/pull/2495
-        embedding_function_info = self.embedding_types[embedding_type][subtype]  # default: 'all-MiniLM-L6-v2'
+        embedding_function_info = chroma_embedding_types[embedding_type][subtype]  # default: 'all-MiniLM-L6-v2'
         #  x: CollectionConfiguration = CollectionConfiguration(hnsw_configuration=HNSWConfiguration(space='cosine'))
         collection: Collection = self._client.create_collection(
             name=name,
@@ -475,6 +478,8 @@ class VSChroma(VSAPI):
             log.warning(errmsg)
             if 'ollama' in e_type.lower():
                 raise VSChroma.OllamaEmbeddingsError(errmsg + ' (is model loaded in ollama?)')
+            else:
+                raise e
 
         return collection
 
