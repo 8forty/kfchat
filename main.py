@@ -53,9 +53,9 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         LLMOaiConfig(model_name='gpt-4o', api_type_name='github', settings=settings),
         LLMOaiConfig(model_name='gpt-4o-mini', api_type_name='github', settings=settings),
         LLMOaiConfig(model_name='deepseek-r1', api_type_name='github', settings=settings),
-        LLMOaiConfig(model_name='gpt-o1-preview', api_type_name='github', settings=settings),
-        LLMOaiConfig(model_name='openai-o1-preview', api_type_name='github', settings=settings),
-        LLMOaiConfig(model_name='o1-preview', api_type_name='github', settings=settings),
+        # LLMOaiConfig(model_name='gpt-o1-preview', api_type_name='github', settings=settings),
+        # LLMOaiConfig(model_name='openai-o1-preview', api_type_name='github', settings=settings),
+        # LLMOaiConfig(model_name='o1-preview', api_type_name='github', settings=settings),
     ]
     llm_configs = {lc.model_name: lc for lc in llm_configs_list}
 
