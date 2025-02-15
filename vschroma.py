@@ -393,25 +393,38 @@ class VSChroma(VSAPI):
     md_redacted_keys: list[str] = ['api_key', '_api_key']
 
     def filter_metadata_docs(self, documents: list[Document], org_filename: str) -> list[Document]:
-        retval: list[Document] = []
+        """
+        filters and does some *light* processing on docs from chunker:
+        - removes docs with metadata that's not one of the allowed types
+        - removes docs with len(page_content) == 0
+        - redacts any secret keys
+        - replaces any 'source' metadata with the original filename instead of the useless temporary filename
+        :param documents:
+        :param org_filename:
+        :return:
+        """
+        good_docs: list[Document] = []
         for doc in documents:
-            doc_md = {}
-            for key, value in doc.metadata.items():
-                if not isinstance(value, self.md_allowed_types):
-                    continue
-                if key in self.md_redacted_keys:
-                    value = config.redact(value)
+            if len(doc.page_content) > 0:  # some chunkers can't handle 0-length docs (and why bother keeping them anyway?)
+                doc_md = {}
+                for key, value in doc.metadata.items():
+                    if not isinstance(value, self.md_allowed_types):
+                        continue
+                    if key in self.md_redacted_keys:
+                        value = config.redact(value)
 
-                # fix 'source' in chunks metadata since it references a tmp file which is pointless
-                if key == 'source':
-                    value = org_filename
+                    # fix 'source' in chunks metadata since it references a tmp file which is pointless
+                    if key == 'source':
+                        value = org_filename
 
-                doc_md[key] = value
+                    doc_md[key] = value
 
-            doc.metadata = doc_md
-            retval.append(doc)
+                doc.metadata = doc_md
+                good_docs.append(doc)
+            else:
+                log.debug(f'{self.collection_name}:{org_filename}: filtered 0-length chunk ({doc.metadata})')
 
-        return retval
+        return good_docs
 
     def filter_metadata(self, metadata: dict[str, any]) -> dict[str, any]:
         """
