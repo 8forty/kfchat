@@ -9,7 +9,7 @@ import config
 import logstuff
 from chatexchanges import ChatExchanges
 from llmoaiconfig import LLMOaiConfig
-from vsapi import VSAPI
+from vectorstore.vsapi import VSAPI
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)

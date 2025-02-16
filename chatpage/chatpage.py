@@ -18,7 +18,7 @@ import frame
 import logstuff
 from chatexchanges import ChatExchange, VectorStoreResponse, LLMOaiResponse
 from llmoaiconfig import LLMOaiExchange, LLMOaiConfig
-from vsapi import VSAPI
+from vectorstore.vsapi import VSAPI
 from .instancedata import InstanceData
 
 log: logging.Logger = logging.getLogger(__name__)

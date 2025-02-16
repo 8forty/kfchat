@@ -21,7 +21,7 @@ import frame
 import logstuff
 import rbui
 from lc_docloaders import docloaders
-from vschroma import VSChroma
+from vectorstore.vschroma import VSChroma
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)

@@ -3,8 +3,8 @@ import timeit
 import dotenv
 from dotenv import load_dotenv
 
-import vsapi_factory
-from vsapi import VSAPI
+from vectorstore import vsapi_factory
+from vectorstore.vsapi import VSAPI
 
 load_dotenv(override=True)
 

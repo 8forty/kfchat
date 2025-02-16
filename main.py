@@ -8,7 +8,7 @@ from nicegui import ui
 import chromadbpage
 import config
 import logstuff
-import vsapi_factory
+from vectorstore import vsapi_factory
 from chatpage import chatpage
 from llmoaiconfig import LLMOaiConfig, LLMOaiSettings
 
