@@ -20,7 +20,7 @@ import config
 import frame
 import logstuff
 import rbui
-from lc_docloaders import docloaders
+from langchain.lc_docloaders import docloaders
 from vectorstore.vschroma import VSChroma
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -91,7 +91,7 @@ class UploadFileDialog(Dialog):
                 log.debug(f'chunking ({chunker_type}) server file {tmpfile.name}...')
                 await run.io_bound(lambda: vectorstore.ingest(self.collection, tmpfile.name, local_file_name, doc_type, chunker_type))
             except (Exception,) as e:
-                errmsg = f'Error ingesting {local_file_name}: {e}'
+                errmsg = f'Error ingesting {local_file_name}: {e.__class__.__name__}: {e}'
                 if not isinstance(e, VSChroma.EmptyIngestError) and not isinstance(e, VSChroma.OllamaEmbeddingsError):
                     traceback.print_exc(file=sys.stdout)
                 log.error(errmsg)
@@ -124,7 +124,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                 page_spinner.set_visibility(False)
                 raise e
         except (Exception,) as e:
-            errmsg = f'Error creating collection: {e}'
+            errmsg = f'Error creating collection: {e.__class__.__name__}: {e}'
             log.warning(errmsg)
             ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
 
@@ -175,6 +175,11 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
             start = timeit.default_timer()
             collection = await run.io_bound(lambda: vectorstore.get_collection(collection_name))
             log.debug(f'loaded {collection_name} in {timeit.default_timer() - start:.1f}s')
+        except (Exception,) as e:
+            errmsg = f'Error loading collection: {collection_name}: {e.__class__.__name__}: {e}'
+            log.warning(errmsg)
+            ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
+            raise e
         finally:
             page_spinner.set_visibility(False)
 
@@ -211,7 +216,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
             try:
                 colls_with_md.append(await run.io_bound(lambda: vectorstore.get_collection_metadata(collection_name)))
             except (Exception,) as e:
-                errmsg = f'Error loading metadata for collection {collection_name}: {e} (skipping)'
+                errmsg = f'Error loading metadata for collection {collection_name}: {e.__class__.__name__}: {e} (skipping)'
                 log.warning(errmsg)
                 ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
                 traceback.print_exc(file=sys.stdout)
@@ -223,9 +228,9 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
             with ui.expansion().classes('w-full border-solid border border-black') as expansion:
                 with expansion.add_slot('header'):
                     with ui.column().classes('w-full gap-y-0'):
-                        with ui.row().classes('w-full'):
-                            ui.label(collection_md.name).classes('min-w-32 text-orange-500 font-bold')
-                            ui.label(f'{collection_md.count()}').classes('min-w-12')
+                        with ui.row().classes('w-full grid grid-cols-6 grid-rows-1'):
+                            ui.label(collection_md.name).classes('text-orange-500 font-bold')
+                            ui.label(f'[{collection_md.count()} chunks]')
                             ui.label(f'{collection_md.metadata['embedding_type'] if 'embedding_type' in collection_md.metadata else 'embedding-type:unknown'}')
                             efp = json.loads(collection_md.metadata['embedding_function_parms'])
                             ui.label(f'{efp['model_name'] if 'model_name' in efp else 'model:unknown'}')

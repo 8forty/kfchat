@@ -202,7 +202,7 @@ class LLMOaiConfig(LLMConfig):
                 else:
                     time.sleep(1.0 * quota_retries)  # todo: progressive backoff?
             except (Exception,) as e:
-                log.warning(f'chat error! {self.api_type_name}:{self.model_name}: {e}')
+                log.warning(f'chat error! {self.api_type_name}:{self.model_name}: {e.__class__.__name__}: {e}')
                 raise e
 
     def chat_messages(self, messages: Iterable[tuple[str, str] | dict]) -> LLMOaiExchange:

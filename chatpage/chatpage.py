@@ -88,8 +88,9 @@ class ChatPage:
                 exchange = await run.io_bound(lambda: do_llm(prompt, idata))
             except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)
-                log.warning(f'llm error! {e}')
-                ui.notify(message=f'llm error! {e}', position='top', type='negative', close_button='Dismiss', timeout=0)
+                errmsg = f'llm error! {e.__class__.__name__}: {e}'
+                log.warning(errmsg)
+                ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
 
             spinner.set_visibility(False)
 
@@ -122,8 +123,9 @@ class ChatPage:
                 log.debug(f'vector-search response: {vsresponse}')
             except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)
-                log.warning(f'vector-search error! {e}')
-                ui.notify(message=f'vector-search error! {e}', position='top', type='negative', close_button='Dismiss', timeout=0)
+                errmsg = f'vector-search error! {e.__class__.__name__}: {e}'
+                log.warning(errmsg)
+                ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
 
             spinner.set_visibility(False)
 

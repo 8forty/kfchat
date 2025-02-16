@@ -10,7 +10,7 @@ async def main():
         await client.delete_collection(collection_name)
         print(f'deleted existing collection: {collection_name}')
     except (Exception,) as e:
-        print(f'no existing collection to delete: {collection_name} {e}')
+        print(f'no existing collection to delete: {collection_name}: {e.__class__.__name__}: {e}')
 
     collection = await client.create_collection(name=collection_name,
                                                 metadata={

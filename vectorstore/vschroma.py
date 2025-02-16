@@ -14,12 +14,11 @@ from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 
 import config
-import lc_chunkers
-import lc_docloaders
+from langchain import lc_docloaders, lc_chunkers
 import logstuff
 from chatexchanges import VectorStoreResponse, VectorStoreResult
-from lc_chunkers import chunkers
-from lc_docloaders import docloaders
+from langchain.lc_chunkers import chunkers
+from langchain.lc_docloaders import docloaders
 from vectorstore.vsapi import VSAPI
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -84,15 +83,9 @@ chroma_embedding_types: dict[str, dict[str, dict[str, any]]] = {
             'create_parms': {'model_name': 'mxbai-embed-large', 'url': 'http://localhost:11434/api/embeddings'},
             'read_parms': {},
         },
-        'granite-embedding:278m': {
-            'function': OllamaEmbeddingFunction,
-            'create_parms': {'model_name': 'granite-embedding:278m', 'url': 'http://localhost:11434/api/embeddings'},
-            'read_parms': {},
-        },
-        # todo: this one doesn't work!? errors embedding chunks
-        # 'granite-embedding': {
+        # 'granite-embedding:278m': {
         #     'function': OllamaEmbeddingFunction,
-        #     'create_parms': {'model_name': 'granite-embedding', 'url': 'http://localhost:11434/api/embeddings'},
+        #     'create_parms': {'model_name': 'granite-embedding:278m', 'url': 'http://localhost:11434/api/embeddings'},
         #     'read_parms': {},
         # },
     },
@@ -487,7 +480,7 @@ class VSChroma(VSAPI):
             collection_md = collection.metadata
             e_type: str = collection_md['embedding_type'] if 'embedding_type' in collection_md else 'unknown'
             ef_name: str = collection_md['embedding_function_name'] if 'embedding_function_name' in collection_md else 'unknown'
-            errmsg = f'Error adding embeddings to {collection.name} function:{ef_name} type:{e_type}: {e}'
+            errmsg = f'Error adding embeddings to {collection.name} function:{ef_name} type:{e_type}: {e.__class__.__name__}: {e}'
             log.warning(errmsg)
             if 'ollama' in e_type.lower():
                 raise VSChroma.OllamaEmbeddingsError(errmsg + ' (is model loaded in ollama?)')

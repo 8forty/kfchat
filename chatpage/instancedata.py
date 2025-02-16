@@ -77,7 +77,7 @@ class InstanceData:
 
             self.source_select_name = selected_name
         except (Exception,) as e:
-            errmsg = f'change source failed! {e}'
+            errmsg = f'change source failed! {e.__class__.__name__}: {e}'
             log.warning(errmsg)
             ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
 

@@ -19,7 +19,7 @@ def chat(message_set: list[tuple[str, str]], cfg: LLMOaiConfig, model_name: str)
     try:
         return cfg.chat_messages(messages)
     except (Exception,) as e:
-        print(f'chat Exception! {model_name}:  {e}')
+        print(f'chat Exception! {model_name}: {e.__class__.__name__}: {e}')
         raise
 
 
@@ -42,7 +42,7 @@ def run(api_type_name: str, model_set_name: str, settings_set_name: str, message
         try:
             model_warmup(cfg, model)
         except (Exception,) as e:
-            print(f'warmup Exception! {api_type_name}:{model}: {e} skipping...')
+            print(f'warmup Exception! {api_type_name}:{model}: {e.__class__.__name__}: {e} skipping...')
             break
 
         print(f'{config.secs_string(all_start)}: [{cfg.api_type()}:{model}] model-warmup: [{timeit.default_timer() - model_start:.0f}]s')
@@ -59,7 +59,7 @@ def run(api_type_name: str, model_set_name: str, settings_set_name: str, message
                                     cfg=cfg,
                                     model_name=model)
                 except (Exception,) as e:
-                    print(f'run Exception! {cfg.api_type()}:{model} {settings_set_name} {message_set["name"]}: {e} skipping...')
+                    print(f'run Exception! {cfg.api_type()}:{model} {settings_set_name} {message_set["name"]}: {e.__class__.__name__}: {e} skipping...')
                     break
 
                 ms_end = timeit.default_timer()

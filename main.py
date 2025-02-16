@@ -69,7 +69,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
                 vectorstore.warmup()
                 break
             except (Exception,) as e:
-                print(f'!!! Chroma client error, will retry in {retry_wait_seconds} secs: {e}')
+                print(f'!!! Chroma client error, will retry in {retry_wait_seconds} secs: {e.__class__.__name__}: {e}')
             time.sleep(retry_wait_seconds)  # todo: configure this?
     except (Exception,) as e:
         log.warning(f'ERROR making vector-store client objects: {e}')
