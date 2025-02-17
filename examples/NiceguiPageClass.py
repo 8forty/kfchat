@@ -47,8 +47,6 @@ class NiceguiPageClass:
             else:
                 keytext += ' old'
 
-            print(f'~~~~ {sharedkeytext}')
-            print(f'~~~~ {keytext}')
             ui.label(sharedkeytext)
             ui.label(keytext)
             ui.button('refresh', on_click=lambda: handle_button(npc))

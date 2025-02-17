@@ -7,6 +7,8 @@ import timeit
 import traceback
 from typing import AnyStr
 
+import chardet
+import chromadb
 from chromadb.types import Collection
 from fastapi import Request
 from nicegui import ui, run, events, Client
@@ -137,7 +139,6 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         chroma_ui.refresh()
 
     async def do_peek_dialog(coll_name: str) -> None:
-        print(f'~~~~ peek: {coll_name}')
         collection = vectorstore.get_collection(coll_name)
         peek_n = 3  # todo: configure this?
         peeks = collection.peek(limit=peek_n)
@@ -162,6 +163,35 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         await peek_dialog
         peek_dialog.close()
         peek_dialog.clear()
+
+    async def do_dump(coll_name: str) -> None:
+        collection = vectorstore.get_collection(coll_name)
+        offset = 0
+        max_read_count = 50
+        write_count = 0
+        with tempfile.NamedTemporaryFile(prefix=f'{coll_name}_', suffix='.csv', mode='w+', delete=False) as tfile:
+            while True:
+                gr: chromadb.GetResult = collection.get(offset=offset, limit=max_read_count, include=[chromadb.api.types.IncludeEnum.documents])
+                print(f'~~~ read {len(gr["ids"])} at offset {offset} ~~~')
+                loop_docs = ''.join(gr['documents'])
+                # chardet_file_encoding = chardet.detect(docs)
+                # log.info(f'{self.log_prefix} upload file {full_filename} encoding: {chardet_file_encoding}')
+                # if float(chardet_file_encoding['confidence']) < 1.0:  # this is a strict check at 1.0, but the warning is cheap and might be really valuable
+                #     log.warning(f'{self.log_prefix} Uncertain encoding! upload file {full_filename} encoding: {chardet_file_encoding}')
+
+                # decode the lines, and throw an exception if there's any characters that can't be decoded
+                # chardet_lines = [line.decode(chardet_file_encoding['encoding'], errors='strict') for line in content_lines]
+                for chunk_id, doc in zip(gr["ids"], gr["documents"]):
+                    tfile.write(f'{chunk_id},"{doc.encode("ascii", errors="replace")}"\n')  # todo: are these the right options?
+                    write_count += 1
+                if len(gr['ids']) < max_read_count:
+                    break
+                offset += len(gr['ids'])
+
+        if write_count > 0:
+            msg = f'dumped {write_count} documents from collection {coll_name} to {tfile.name}'
+            log.info(msg)
+            ui.notify(message=msg, position='top', type='info')
 
     async def do_add_dialog(collection_name: str, page_spinner: Spinner) -> None:
 
@@ -239,7 +269,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                             ui.button(text='delete').on('click.stop', lambda c=collection_md.name: do_delete_collection(c)).props('no-caps')
                             ui.button(text='peek').on('click.stop', lambda c=collection_md.name: do_peek_dialog(c)).props('no-caps')
                             ui.button(text='add').on('click.stop', lambda c=collection_md.name: do_add_dialog(c, page_spinner)).props('no-caps')
-                            ui.button(text='dump').on('click.stop', lambda c=collection_md.name: do_peek_dialog(c)).props('no-caps')
+                            ui.button(text='dump').on('click.stop', lambda c=collection_md.name: do_dump(c)).props('no-caps')
 
                 # details table (embedded)
                 with rbui.table():

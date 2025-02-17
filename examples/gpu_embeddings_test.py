@@ -57,8 +57,7 @@ if __name__ == "__main__":
     for i in range(1000):
         mdocs.append(f"this is a document with id {i}")
 
-    for f in [onnx_minilm, st_cpu_minilm, st_mps_minilm, st_gpu_minilm, st_npu_minilm, st_cpu_mpnet, st_mps_mpnet, st_gpu_mpnet, st_npu_mpnet][5:]:
-        # for f in [st_cpu_mpnet]:
+    for f in [onnx_minilm, st_cpu_minilm, st_mps_minilm, st_gpu_minilm, st_npu_minilm, st_cpu_mpnet, st_mps_mpnet, st_gpu_mpnet, st_npu_mpnet]:
         start = timeit.default_timer()
         f(mdocs)
         print(f"{f.__name__} time: {timeit.default_timer() - start:.2f}s")
