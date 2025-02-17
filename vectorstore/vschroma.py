@@ -383,6 +383,8 @@ class VSChroma(VSAPI):
 
     # borrowed from langchain_community.vectorstores.utils.filter_complex_metadata
     md_allowed_types: tuple[type, ...] = (str, bool, int, float)
+
+    # todo: config this?
     md_redacted_keys: list[str] = ['api_key', '_api_key']
 
     def filter_metadata_docs(self, documents: list[Document], org_filename: str) -> list[Document]:

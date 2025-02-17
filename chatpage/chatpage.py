@@ -55,7 +55,10 @@ class ChatPage:
             elif prompt.startswith('*info'):
                 idata.info_messages.append('env:')
                 for key in self.parms.keys():
-                    idata.info_messages.append(f'----{key}: {self.parms[key]}')
+                    val = self.parms[key]
+                    if key.lower().endswith('_key') or key.lower().endswith('_token'):
+                        val = config.redact(val)
+                    idata.info_messages.append(f'----{key}: {val}')
             elif prompt.startswith('*repeat'):
                 prompt_input.set_value(idata.last_prompt)
                 await handle_enter_llm(request, prompt_input, spinner, scroller, idata)
