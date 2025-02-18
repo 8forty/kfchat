@@ -3,6 +3,7 @@ import logging
 import sys
 import timeit
 import traceback
+from dataclasses import dataclass, field
 
 from fastapi import Request
 from nicegui import ui, run, Client
@@ -38,10 +39,69 @@ class ChatPage:
 
         async def refresh(idata: InstanceData, scroller: ScrollArea) -> None:
             # todo: local-storage-session to separate messages
-            response_text_classes = 'w-full text-lg text-green text-left px-10'
-            response_subscript_classes = 'w-full italic text-xs text-black text-left px-10'
+            result_text_classes = 'w-full text-lg text-green text-left px-10'
+            subscript_classes = 'w-full italic text-xs text-black text-left px-10'
+            prompt_classes = 'w-full font-bold text-lg text-blue text-left px-10 py-4'
 
             # todo: increaase encapsulation of InstanceData for some/all idata.<whatever> usages below
+            if idata.exchanges.len() > 0:
+                idata.last_prompt = idata.exchanges.list()[-1].prompt
+
+            # setup vars to hold results and subscripts
+            @dataclass
+            class ResponseText:
+                response_duration_seconds: float
+                prompt: str
+                results: list[str] = field(default_factory=list)
+                result_subscripts: list[list[str]] = field(default_factory=list)  # a list of e.g. metrics strings per result
+                response_context = ''
+                response_subscripts: list[str] = field(default_factory=list)
+                response_problems: list[str] = field(default_factory=list)
+
+            responses: list[ResponseText] = []
+
+            # loop the exchanges to build the texts needed to display
+            for exchange in idata.exchanges.list():
+                rtext: ResponseText = ResponseText(exchange.response_duration_secs, exchange.prompt)
+
+                # llm response
+                if exchange.llm_response is not None:
+                    ex_resp = exchange.llm_response
+                    for choice in ex_resp.chat_completion.choices:
+                        rtext.results.append(f'{choice.message.content}')  # .classes(response_text_classes)
+                        rtext.result_subscripts.append([f'logprobs: {choice.logprobs}'])
+                    rtext.response_context += f'{ex_resp.source_type},{ex_resp.api_type}:{ex_resp.model_name},n:{ex_resp.n},temp:{ex_resp.temp},top_p:{ex_resp.top_p},max_tokens:{ex_resp.max_tokens}'
+                    rtext.response_subscripts.append(f'tokens:{ex_resp.chat_completion.usage.prompt_tokens}->{ex_resp.chat_completion.usage.completion_tokens}')
+                    rtext.response_subscripts.append(f'{ex_resp.system_message}')
+
+                    # stop problems
+                    for choice_idx, stop_problem in exchange.stop_problems().items():
+                        rtext.response_problems.append(f'stop[{choice_idx}]:{stop_problem}')
+
+                    # exchange problems
+                    if exchange.overflowed():
+                        rtext.response_problems.append(f'exchange history (max:{idata.exchanges.max_exchanges()}) overflowed!  Oldest exchange dropped')
+
+                # vector store response
+                elif exchange.vector_store_response is not None:
+                    vs_resp = exchange.vector_store_response
+                    rtext.response_context += f'{vs_resp.source_type},{vs_resp.source_name}'
+                    for result in exchange.vector_store_response.results:
+                        rtext.results.append(f'[{vs_resp.source_type}]: {result.content}')  # .classes(response_text_classes)
+
+                        metric_list = []
+                        for metric in result.metrics:
+                            val = result.metrics[metric]
+                            if val is not None and len(str(val)) > 0:
+                                if isinstance(val, float):
+                                    metric_list.append(f'{metric}: {result.metrics[metric]:.03f}')
+                                else:
+                                    metric_list.append(f'{metric}: {result.metrics[metric]}')
+                        rtext.result_subscripts.append(metric_list)
+
+                responses.append(rtext)
+
+            # display the various texts
             scroller.clear()
             with scroller, ui.column().classes('w-full gap-y-0'):
                 if len(idata.info_messages) > 0:
@@ -49,70 +109,28 @@ class ChatPage:
                     for im in idata.info_messages:
                         ui.label(im).classes('w-full text-left')
                     idata.info_messages.clear()
-                elif idata.exchanges.len() > 0:
-                    idata.last_prompt = idata.exchanges.list()[-1].prompt
-                    for exchange in idata.exchanges.list():
+                elif len(responses) > 0:
+                    for rtext in responses:
                         # the prompt
-                        ui.label(exchange.prompt).classes('w-full font-bold text-lg text-blue text-left px-10 py-4')
+                        ui.label(rtext.prompt).classes(prompt_classes)
                         ui.separator()
 
-                        # setup vars to hold results and subscripts
-                        results: list[str] = []
-                        result_subscripts: list[list[str]] = []  # a list of e.g. metrics strings per result
-                        response_context = ''
-                        response_subscripts: list[str] = []
-
-                        # llm response
-                        if exchange.llm_response is not None:
-                            ex_resp = exchange.llm_response
-                            for choice in ex_resp.chat_completion.choices:
-                                results.append(f'{choice.message.content}')  # .classes(response_text_classes)
-                                result_subscripts.append([f'logprobs: {choice.logprobs}'])
-                            response_context += f'{ex_resp.source_type},{ex_resp.api_type}:{ex_resp.model_name},n:{ex_resp.n},temp:{ex_resp.temp},top_p:{ex_resp.top_p},max_tokens:{ex_resp.max_tokens}'
-                            response_subscripts.append(f'tokens:{ex_resp.chat_completion.usage.prompt_tokens}->{ex_resp.chat_completion.usage.completion_tokens}')
-                            response_subscripts.append(f'{ex_resp.system_message}')
-
-                        # vector store response
-                        if exchange.vector_store_response is not None:
-                            vs_resp = exchange.vector_store_response
-                            response_context += f'{vs_resp.source_type},{vs_resp.source_name}'
-                            for result in exchange.vector_store_response.results:
-                                results.append(f'[{vs_resp.source_type}]: {result.content}')  # .classes(response_text_classes)
-
-                                metric_list = []
-                                for metric in result.metrics:
-                                    val = result.metrics[metric]
-                                    if val is not None and len(str(val)) > 0:
-                                        if isinstance(val, float):
-                                            metric_list.append(f'{metric}: {result.metrics[metric]:.03f}')
-                                        else:
-                                            metric_list.append(f'{metric}: {result.metrics[metric]}')
-                                result_subscripts.append(metric_list)
-
                         # results
-                        for ri in range(0, len(results)):
-                            for line in results[ri].split('\n'):
-                                ui.label(line).classes(response_text_classes)
+                        for ri in range(0, len(rtext.results)):
+                            for line in rtext.results[ri].split('\n'):
+                                ui.label(line).classes(result_text_classes)
                             # results-subscript
-                            for rinfo in result_subscripts[ri]:
-                                ui.label(rinfo).classes(response_subscript_classes)
+                            for rinfo in rtext.result_subscripts[ri]:
+                                ui.label(rinfo).classes(subscript_classes)
 
                         # response extra stuff
-                        ui.label(f'[{response_context}]: {exchange.response_duration_secs:.1f}s').classes(response_subscript_classes)
-                        for ei in response_subscripts:
-                            ui.label(f'{ei}').classes(response_subscript_classes)
+                        ui.label(f'[{rtext.response_context}]: {rtext.response_duration_seconds:.1f}s').classes(subscript_classes)
+                        for ei in rtext.response_subscripts:
+                            ui.label(f'{ei}').classes(subscript_classes)
 
-                        # stop problems
-                        stop_problems_string = ''
-                        for choice_idx, stop_problem in exchange.stop_problems().items():
-                            stop_problems_string += f'stop[{choice_idx}]:{stop_problem}'
-                        if len(stop_problems_string) > 0:
-                            ui.label(f'{stop_problems_string}').classes('w-full italic text-xs text-red text-left px-10')
-
-                        # exchange problems
-                        if exchange.overflowed():
-                            ui.label(f'exchange history (max:{idata.exchanges.max_exchanges()}) overflowed!  Oldest exchange dropped'
-                                     ).classes('w-full italic text-xs text-red text-left px-10')
+                        # problems
+                        for problem in rtext.response_problems:
+                            ui.label(f'{problem}').classes('w-full italic text-xs text-red text-left px-10')
 
             scroller.scroll_to(percent=1e6)
 
