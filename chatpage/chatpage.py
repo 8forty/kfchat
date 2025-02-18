@@ -6,7 +6,6 @@ import traceback
 
 from fastapi import Request
 from nicegui import ui, run, Client
-from nicegui.element import Element
 from nicegui.elements.input import Input
 from nicegui.elements.scroll_area import ScrollArea
 from nicegui.elements.select import Select
@@ -139,9 +138,19 @@ class ChatPage:
             await idata.refresh_instance(scroller)
             await prompt_input.run_method('focus')
 
-        async def change_and_focus(callback: Handler[ValueChangeEventArguments], focus_element: Element):
-            await callback()
-            await focus_element.run_method('focus')
+        async def change_and_focus(callback: Handler[ValueChangeEventArguments], prompt_input: Input, spinner: Spinner):
+            prompt_input.disable()
+            spinner.set_visibility(True)
+            try:
+                await callback()
+            except (Exception,) as e:
+                errmsg = f'change failed! {e.__class__.__name__}: {e}'
+                log.warning(errmsg)
+                ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
+            finally:
+                prompt_input.enable()
+                spinner.set_visibility(False)
+                await prompt_input.run_method('focus')
 
         @ui.page(path=path)
         async def index(request: Request, client: Client) -> None:
@@ -156,40 +165,40 @@ class ChatPage:
             # setup the standard "frame" for all pages
             with frame.frame(f'{config.name} {pagename}', 'bg-white'):
                 with (ui.column().classes('w-full flex-grow border-solid border border-black')):  # place-content-center')):
-                    # the source selection/info row
+                    # the settings selection row
                     with (ui.row().classes('w-full border-solid border border-black')):  # place-content-center')):
                         source_names = idata.source_names_list()
                         settings = self.llm_config.settings
                         selmodel = ui.select(label='Model:',
                                              options=source_names,
                                              value=idata.source_select_name,
-                                             ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_source(vc.value, spinner, pinput), pinput)
+                                             ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_source(vc.value, spinner, pinput), pinput, spinner)
                                                                ).tooltip('vs=vector search, llm=lang model chat').props('square outlined label-color=green').classes('min-w-30')
                         seln = ui.select(label='n:',
                                          options=[i for i in range(1, 10)],
                                          value=settings.n,
-                                         ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_n(vc.value), pinput)
+                                         ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_n(vc.value), pinput, spinner)
                                                            ).tooltip('number of results per query').props('square outlined label-color=green').classes('min-w-20')
                         seltemp = ui.select(label='Temp:',
                                             options=[float(t) / 10.0 for t in range(0, 21)],
                                             value=settings.temp,
-                                            ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_temp(vc.value), pinput)
+                                            ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_temp(vc.value), pinput, spinner)
                                                               ).tooltip('responses: 0=very predictable, 2=very random/creative').props('square outlined label-color=green').classes('min-w-40')
                         seltopp = ui.select(label='Top_p:',
                                             options=[float(t) / 10.0 for t in range(0, 11)],
                                             value=settings.top_p,
-                                            ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_top_p(vc.value), pinput)
+                                            ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_top_p(vc.value), pinput, spinner)
                                                               ).tooltip('responses: 0=less random, 1 more random').props('square outlined label-color=green').classes('min-w-40')
                         selmaxtok = ui.select(label='Max Tokens:',
                                               options=[80, 200, 400, 800, 1000, 1500, 2000],
                                               value=settings.max_tokens,
-                                              ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_max_tokens(vc.value), pinput)
+                                              ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_max_tokens(vc.value), pinput, spinner)
                                                                 ).tooltip('max tokens in response').props('square outlined label-color=green').classes('min-w-40')
                         sysmsg_names = [key for key in data.sysmsg_all]
                         selsysmsg = ui.select(label='Sys Msg:',
                                               options=sysmsg_names,
                                               value=settings.system_message_name
-                                              ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_sysmsg(vc.value), pinput)
+                                              ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_sysmsg(vc.value), pinput, spinner)
                                                                 ).tooltip('system/setup text sent with each prompt').props('square outlined label-color=green').classes('min-w-50')
 
                         settings_selects = {'model': selmodel, 'n': seln, 'temp': seltemp, 'top_p': seltopp, 'maxtokens': selmaxtok, 'sysmsg': selsysmsg}

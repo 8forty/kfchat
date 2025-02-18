@@ -59,30 +59,20 @@ class InstanceData:
 
     async def change_source(self, selected_name: str, spinner: Spinner, prompt_input: Input):
         log.info(f'Changing source to: {selected_name}')
-        prompt_input.disable()
-        spinner.set_visibility(True)
 
-        try:
-            if selected_name.startswith(self.llm_name_prefix):
-                self.current_source_type = self.llm_source_type
-                long_name = selected_name.removeprefix(self.llm_name_prefix)  # removes "llm: "
-                self.source_name = ':'.join(long_name.split(':')[1:])  # removes e.g. "groq:"
-                self.llm_config = self.llm_configs[self.source_name]
-                log.debug(f'new llm name: {self.source_name} (api_type: {self.llm_config.api_type()})')
-            else:
-                self.source_name = selected_name.removeprefix(self.vs_name_prefix)
-                self.current_source_type = self.vs_source_type
-                await run.io_bound(lambda: self.vectorstore.switch_index(self.source_name))
-                log.debug(f'new vs name: {self.source_name}')
+        if selected_name.startswith(self.llm_name_prefix):
+            self.current_source_type = self.llm_source_type
+            long_name = selected_name.removeprefix(self.llm_name_prefix)  # removes "llm: "
+            self.source_name = ':'.join(long_name.split(':')[1:])  # removes e.g. "groq:"
+            self.llm_config = self.llm_configs[self.source_name]
+            log.debug(f'new llm name: {self.source_name} (api_type: {self.llm_config.api_type()})')
+        else:
+            self.source_name = selected_name.removeprefix(self.vs_name_prefix)
+            self.current_source_type = self.vs_source_type
+            await run.io_bound(lambda: self.vectorstore.switch_index(self.source_name))
+            log.debug(f'new vs name: {self.source_name}')
 
-            self.source_select_name = selected_name
-        except (Exception,) as e:
-            errmsg = f'change source failed! {e.__class__.__name__}: {e}'
-            log.warning(errmsg)
-            ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
-
-        prompt_input.enable()
-        spinner.set_visibility(False)
+        self.source_select_name = selected_name
 
     async def change_n(self, new_n: int):
         for llm_config in self.llm_configs.values():
