@@ -132,7 +132,7 @@ class InstanceData:
                     # the response(s)
                     with (ui.column().classes('w-full gap-y-0')):
                         results: list[str] = []
-                        subscript_results_info: list[list[str]] = []  # a list of metric strings per result
+                        subscript_results_info: list[list[str]] = []  # a list of e.g. metrics strings per result
                         subscript_context_info = ''
                         subscript_extra_info: list[str] = []
 
@@ -167,6 +167,7 @@ class InstanceData:
                         for ri in range(0, len(results)):
                             for line in results[ri].split('\n'):
                                 ui.label(line).classes(response_text_classes)
+                            # results-subscript
                             for rinfo in subscript_results_info[ri]:
                                 ui.label(rinfo).classes(response_subscript_classes)
 
