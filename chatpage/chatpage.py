@@ -36,6 +36,86 @@ class ChatPage:
 
     def setup(self, path: str, pagename: str):
 
+        async def refresh(idata: InstanceData, scroller: ScrollArea) -> None:
+            # todo: local-storage-session to separate messages
+            response_text_classes = 'w-full text-lg text-green text-left px-10'
+            response_subscript_classes = 'w-full italic text-xs text-black text-left px-10'
+
+            # todo: increaase encapsulation of InstanceData for some/all idata.<whatever> usages below
+            scroller.clear()
+            with scroller, ui.column().classes('w-full gap-y-0'):
+                if len(idata.info_messages) > 0:
+                    # info-messages are not exchanges/responses, e.g. they come from special commands
+                    for im in idata.info_messages:
+                        ui.label(im).classes('w-full text-left')
+                    idata.info_messages.clear()
+                elif idata.exchanges.len() > 0:
+                    idata.last_prompt = idata.exchanges.list()[-1].prompt
+                    for exchange in idata.exchanges.list():
+                        # the prompt
+                        ui.label(exchange.prompt).classes('w-full font-bold text-lg text-blue text-left px-10 py-4')
+                        ui.separator()
+
+                        # setup vars to hold results and subscripts
+                        results: list[str] = []
+                        result_subscripts: list[list[str]] = []  # a list of e.g. metrics strings per result
+                        response_context = ''
+                        response_subscripts: list[str] = []
+
+                        # llm response
+                        if exchange.llm_response is not None:
+                            ex_resp = exchange.llm_response
+                            for choice in ex_resp.chat_completion.choices:
+                                results.append(f'{choice.message.content}')  # .classes(response_text_classes)
+                                result_subscripts.append([f'logprobs: {choice.logprobs}'])
+                            response_context += f'{ex_resp.source_type},{ex_resp.api_type}:{ex_resp.model_name},n:{ex_resp.n},temp:{ex_resp.temp},top_p:{ex_resp.top_p},max_tokens:{ex_resp.max_tokens}'
+                            response_subscripts.append(f'tokens:{ex_resp.chat_completion.usage.prompt_tokens}->{ex_resp.chat_completion.usage.completion_tokens}')
+                            response_subscripts.append(f'{ex_resp.system_message}')
+
+                        # vector store response
+                        if exchange.vector_store_response is not None:
+                            vs_resp = exchange.vector_store_response
+                            response_context += f'{vs_resp.source_type},{vs_resp.source_name}'
+                            for result in exchange.vector_store_response.results:
+                                results.append(f'[{vs_resp.source_type}]: {result.content}')  # .classes(response_text_classes)
+
+                                metric_list = []
+                                for metric in result.metrics:
+                                    val = result.metrics[metric]
+                                    if val is not None and len(str(val)) > 0:
+                                        if isinstance(val, float):
+                                            metric_list.append(f'{metric}: {result.metrics[metric]:.03f}')
+                                        else:
+                                            metric_list.append(f'{metric}: {result.metrics[metric]}')
+                                result_subscripts.append(metric_list)
+
+                        # results
+                        for ri in range(0, len(results)):
+                            for line in results[ri].split('\n'):
+                                ui.label(line).classes(response_text_classes)
+                            # results-subscript
+                            for rinfo in result_subscripts[ri]:
+                                ui.label(rinfo).classes(response_subscript_classes)
+
+                        # response extra stuff
+                        ui.label(f'[{response_context}]: {exchange.response_duration_secs:.1f}s').classes(response_subscript_classes)
+                        for ei in response_subscripts:
+                            ui.label(f'{ei}').classes(response_subscript_classes)
+
+                        # stop problems
+                        stop_problems_string = ''
+                        for choice_idx, stop_problem in exchange.stop_problems().items():
+                            stop_problems_string += f'stop[{choice_idx}]:{stop_problem}'
+                        if len(stop_problems_string) > 0:
+                            ui.label(f'{stop_problems_string}').classes('w-full italic text-xs text-red text-left px-10')
+
+                        # exchange problems
+                        if exchange.overflowed():
+                            ui.label(f'exchange history (max:{idata.exchanges.max_exchanges()}) overflowed!  Oldest exchange dropped'
+                                     ).classes('w-full italic text-xs text-red text-left px-10')
+
+            scroller.scroll_to(percent=1e6)
+
         def do_llm(prompt: str, idata: InstanceData) -> LLMOaiExchange:
             # todo: count tokens, etc.
             convo = [LLMOaiExchange(ex.prompt, ex.llm_response.chat_completion) for ex in idata.exchanges.list() if ex.llm_response is not None]
@@ -135,10 +215,10 @@ class ChatPage:
             prompt_input.value = ''
             prompt_input.enable()
 
-            await idata.refresh_instance(scroller)
+            await refresh(idata, scroller)
             await prompt_input.run_method('focus')
 
-        async def change_and_focus(callback: Handler[ValueChangeEventArguments], prompt_input: Input, spinner: Spinner):
+        async def call_and_focus(callback: Handler[ValueChangeEventArguments], prompt_input: Input, spinner: Spinner):
             prompt_input.disable()
             spinner.set_visibility(True)
             try:
@@ -172,40 +252,40 @@ class ChatPage:
                         selmodel = ui.select(label='Model:',
                                              options=source_names,
                                              value=idata.source_select_name,
-                                             ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_source(vc.value, spinner, pinput), pinput, spinner)
+                                             ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_source(vc.value), pinput, spinner)
                                                                ).tooltip('vs=vector search, llm=lang model chat').props('square outlined label-color=green').classes('min-w-30')
                         seln = ui.select(label='n:',
                                          options=[i for i in range(1, 10)],
                                          value=settings.n,
-                                         ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_n(vc.value), pinput, spinner)
+                                         ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_n(vc.value), pinput, spinner)
                                                            ).tooltip('number of results per query').props('square outlined label-color=green').classes('min-w-20')
                         seltemp = ui.select(label='Temp:',
                                             options=[float(t) / 10.0 for t in range(0, 21)],
                                             value=settings.temp,
-                                            ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_temp(vc.value), pinput, spinner)
+                                            ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_temp(vc.value), pinput, spinner)
                                                               ).tooltip('responses: 0=very predictable, 2=very random/creative').props('square outlined label-color=green').classes('min-w-40')
                         seltopp = ui.select(label='Top_p:',
                                             options=[float(t) / 10.0 for t in range(0, 11)],
                                             value=settings.top_p,
-                                            ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_top_p(vc.value), pinput, spinner)
+                                            ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_top_p(vc.value), pinput, spinner)
                                                               ).tooltip('responses: 0=less random, 1 more random').props('square outlined label-color=green').classes('min-w-40')
                         selmaxtok = ui.select(label='Max Tokens:',
                                               options=[80, 200, 400, 800, 1000, 1500, 2000],
                                               value=settings.max_tokens,
-                                              ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_max_tokens(vc.value), pinput, spinner)
+                                              ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_max_tokens(vc.value), pinput, spinner)
                                                                 ).tooltip('max tokens in response').props('square outlined label-color=green').classes('min-w-40')
                         sysmsg_names = [key for key in data.sysmsg_all]
                         selsysmsg = ui.select(label='Sys Msg:',
                                               options=sysmsg_names,
                                               value=settings.system_message_name
-                                              ).on_value_change(lambda vc: change_and_focus(lambda: idata.change_sysmsg(vc.value), pinput, spinner)
+                                              ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_sysmsg(vc.value), pinput, spinner)
                                                                 ).tooltip('system/setup text sent with each prompt').props('square outlined label-color=green').classes('min-w-50')
 
                         settings_selects = {'model': selmodel, 'n': seln, 'temp': seltemp, 'top_p': seltopp, 'maxtokens': selmaxtok, 'sysmsg': selsysmsg}
 
                     # with ui.scroll_area(on_scroll=lambda e: print(f'~~~~ e: {e}')).classes('w-full flex-grow border border-solid border-black') as scroller:
                     with ui.scroll_area().classes('w-full flex-grow border border-solid border-black') as scroller:
-                        await idata.refresh_instance(scroller)
+                        await refresh(idata, scroller)
 
             # the footer is a "top-level" element in nicegui, so need not be setup in visual page order
             with ui.footer().classes('bg-slate-100 h-24'):
