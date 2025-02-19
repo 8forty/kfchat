@@ -81,34 +81,6 @@ class ChatPage:
                     for problem in rtext.response_problems:
                         ui.label(f'{problem}').classes(problem_classes)
 
-        # def render_with_markdown(responses: list[ResponseText], scroller: ScrollArea):
-        #     # display/render the various texts
-        #     scroller.clear()
-        #     with scroller, ui.column().classes('w-full gap-y-0'):
-        #         for rtext in responses:
-        #             # the prompt
-        #             ui.markdown(f'# {rtext.prompt}')  # .classes(prompt_classes)
-        #             ui.separator()
-        #
-        #             # results
-        #             for ri in range(0, len(rtext.results)):
-        #                 for line in rtext.results[ri].split('\n'):
-        #                     ui.markdown(line)  # .classes(result_text_classes)
-        #                 # results-subscript
-        #                 if len(rtext.result_subscripts) > ri:
-        #                     for rinfo in rtext.result_subscripts[ri]:
-        #                         ui.markdown(rinfo)  # .classes(subscript_classes)
-        #
-        #             # response extra stuff
-        #             with ui.column():
-        #                 ui.markdown(f'[{rtext.response_context}]: {rtext.response_duration_seconds:.1f}s')  # .classes(subscript_classes)
-        #                 for ei in rtext.response_subscripts:
-        #                     ui.markdown(f'{ei}')  # .classes(subscript_classes)
-        #
-        #                 # problems
-        #                 for problem in rtext.response_problems:
-        #                     ui.markdown(f'{problem}')  # .classes(problem_classes)
-
         async def refresh(idata: InstanceData, scroller: ScrollArea) -> None:
             # todo: local-storage-session to separate messages
 
@@ -167,9 +139,8 @@ class ChatPage:
 
                     responses.append(rtext)
 
-            # display/render the various texts
+            # display/render the various texts of the response
             render_response(responses, scroller)
-            # render_with_markdown(responses, scroller)
 
             scroller.scroll_to(percent=1e6)  # 1e6 works around quasar scroll-area bug
 
