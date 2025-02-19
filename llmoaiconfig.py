@@ -174,7 +174,7 @@ class LLMOaiConfig(LLMConfig):
                   f'{self.settings.system_message=} {prompt=}')
 
         quota_retries = 0
-        retry_wait = 1.0
+        retry_wait_secs = 1.0
         while True:
             try:
                 # todo: seed, etc. (by actual llm?)
@@ -196,13 +196,14 @@ class LLMOaiConfig(LLMConfig):
                 return LLMOaiExchange(prompt, chat_completion)
             except openai.RateLimitError as e:
                 quota_retries += 1
-                log.warning(f'{self.api_type_name}:{self.model_name}: rate limit exceeded attempt {quota_retries}/{max_quota_retries}, {(f"will retry in {retry_wait}s" if quota_retries <= max_quota_retries else "")}')
+                log.warning(f'{self.api_type_name}:{self.model_name}: rate limit exceeded attempt {quota_retries}/{max_quota_retries}, '
+                            f'{(f"will retry in {retry_wait_secs}s" if quota_retries <= max_quota_retries else "")}')
                 if quota_retries > max_quota_retries:
                     log.warning(f'chat quota exceeded! {self.api_type_name}:{self.model_name}: rate limit exceeded all {quota_retries} retries')
                     raise e
                 else:
-                    time.sleep(1.0 * quota_retries)  # todo: progressive backoff?
-                    retry_wait = 1.0 * (quota_retries + 1)
+                    time.sleep(retry_wait_secs)  # todo: progressive backoff?
+                    retry_wait_secs = quota_retries * quota_retries
             except (Exception,) as e:
                 log.warning(f'chat error! {self.api_type_name}:{self.model_name}: {e.__class__.__name__}: {e}')
                 raise e
