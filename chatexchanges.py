@@ -12,7 +12,7 @@ log.setLevel(logstuff.logging_level)
 class LLMOaiResponse:
     def __init__(self, chat_completion: ChatCompletion, llm_config: LLMOaiConfig, source_name: str, source_type: str):
         self.chat_completion: ChatCompletion = chat_completion
-        self.api_type: str = llm_config.provider()
+        self.provider: str = llm_config.provider()
         self.model_name: str = llm_config.model_name
         self.n: int = llm_config.settings.n
         self.temp: float = llm_config.settings.temp

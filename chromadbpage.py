@@ -323,7 +323,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
 
         create_dialog = CreateDialog()
 
-        with frame.frame(f'{config.name} {pagename}', 'bg-white'):
+        with frame.frame(f'{config.name} {pagename}'):
             with ui.column().classes('w-full'):  # .classes('w-full max-w-2xl mx-auto items-stretch'):
                 with ui.row().classes('w-full border-solid border border-black items-center'):
                     ui.button('Refresh', on_click=lambda: chroma_ui.refresh()).props('no-caps')

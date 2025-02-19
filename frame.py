@@ -10,7 +10,7 @@ from menu import menu
 
 
 @contextmanager
-def frame(header_title: str, bg_color: str = None):
+def frame(header_title: str):
     """Custom page frame to share the same styling and behavior across all pages"""
 
     # need this to get the content section to fill the space between header and footer
@@ -30,7 +30,10 @@ def frame(header_title: str, bg_color: str = None):
     #  ui.colors(primary='#6E93D6', secondary='#53B689', accent='#111B1E', positive='#53B689')
     ui.colors(quasargreen='#66B969')
 
-    bg_color = 'bg-white' if bg_color is None else bg_color
+    # dark mode
+    ui.dark_mode(value=True)
+
+    bg_color = 'bg-black'
     with ui.header().classes(f'{bg_color} py-0 px-0'):
         with ui.row().classes('w-full py-2 px-2 gap-y-0'):
             menu()

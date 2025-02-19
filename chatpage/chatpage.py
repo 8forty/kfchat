@@ -50,9 +50,9 @@ class ChatPage:
 
         def render_response(responses: list[ResponseText], scroller: ScrollArea):
             # display/render the various texts
-            result_text_classes = 'w-full text-lg text-green text-left px-10'
-            subscript_classes = 'w-full italic text-xs text-black text-left px-10'
-            prompt_classes = 'w-full font-bold text-lg text-blue text-left px-10 py-4'
+            result_text_classes = 'w-full text-lg text-white text-left px-10'
+            subscript_classes = 'w-full italic text-xs text-slate-500 text-left px-10'
+            prompt_classes = 'w-full font-bold text-lg text-blue text-left px-2 py-4'
             problem_classes = 'w-full italic text-xs text-red text-left px-10'
             scroller.clear()
             with scroller, ui.column().classes('w-full gap-y-0'):
@@ -108,7 +108,7 @@ class ChatPage:
                         for choice in ex_resp.chat_completion.choices:
                             rtext.results.append(f'{choice.message.content}')  # .classes(response_text_classes)
                             rtext.result_subscripts.append([f'logprobs: {choice.logprobs}'])
-                        rtext.response_context += f'{ex_resp.source_type},{ex_resp.api_type}:{ex_resp.model_name},n:{ex_resp.n},temp:{ex_resp.temp},top_p:{ex_resp.top_p},max_tokens:{ex_resp.max_tokens}'
+                        rtext.response_context += f'{ex_resp.source_type},{ex_resp.provider}:{ex_resp.model_name},n:{ex_resp.n},temp:{ex_resp.temp},top_p:{ex_resp.top_p},max_tokens:{ex_resp.max_tokens}'
                         rtext.response_subscripts.append(f'tokens:{ex_resp.chat_completion.usage.prompt_tokens}->{ex_resp.chat_completion.usage.completion_tokens}')
                         rtext.response_subscripts.append(f'{ex_resp.system_message}')
 
@@ -271,7 +271,7 @@ class ChatPage:
             idata = InstanceData(self.llm_configs, self.llm_config, self.vectorstore, self.parms)
 
             # setup the standard "frame" for all pages
-            with frame.frame(f'{config.name} {pagename}', 'bg-white'):
+            with frame.frame(f'{config.name} {pagename}'):
                 with (ui.column().classes('w-full flex-grow border-solid border border-black')):  # place-content-center')):
                     # the settings selection row
                     with (ui.row().classes('w-full border-solid border border-black')):  # place-content-center')):
@@ -316,11 +316,11 @@ class ChatPage:
                         await refresh(idata, scroller)
 
             # the footer is a "top-level" element in nicegui, so need not be setup in visual page order
-            with ui.footer().classes('bg-slate-100 h-24'):
+            with ui.footer(bordered=True).classes('bg-black h-24'):
                 with ui.row().classes('w-full'):
                     spinner = ui.spinner(size='xl')
                     spinner.set_visibility(False)
-                    pinput = ui.input(placeholder="Enter prompt").classes('flex-grow').props('rounded outlined').props('color=primary').props('bg-color=white')
+                    pinput = ui.input(placeholder="Enter prompt").classes('flex-grow').props('rounded outlined color=primary bg-color=black')
                     pinput.on('keydown.enter', lambda req=request, i=idata: handle_enter(req, pinput, spinner, scroller, settings_selects, i))
 
             try:
