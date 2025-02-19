@@ -49,7 +49,7 @@ class InstanceData:
         return self.current_source_type == self.vs_source_type
 
     def source_api_name_llm(self, llm_config: LLMOaiConfig) -> str:
-        return f'{self.llm_name_prefix}{llm_config.api_type()}:{llm_config.model_name}'
+        return f'{self.llm_name_prefix}{llm_config.provider()}:{llm_config.model_name}'
 
     def forget(self):
         self.exchanges.clear()
@@ -62,7 +62,7 @@ class InstanceData:
             long_name = selected_name.removeprefix(self.llm_name_prefix)  # removes "llm: "
             self.source_name = ':'.join(long_name.split(':')[1:])  # removes e.g. "groq:"
             self.llm_config = self.llm_configs[self.source_name]
-            log.debug(f'new llm name: {self.source_name} (api_type: {self.llm_config.api_type()})')
+            log.debug(f'new llm name: {self.source_name} (api_type: {self.llm_config.provider()})')
         else:
             self.source_name = selected_name.removeprefix(self.vs_name_prefix)
             self.current_source_type = self.vs_source_type

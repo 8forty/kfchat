@@ -14,12 +14,12 @@ def chat(sysmsg: str, prompt: str, cfg: LLMOaiConfig) -> LLMOaiExchange:
     return cfg.chat_messages([{"role": "system", "content": sysmsg}, {"role": "user", "content": prompt}])
 
 
-def run(api_type_name: str, model_name: str):
+def run(provider_name: str, model_name: str):
     start = timeit.default_timer()
-    cfg = LLMOaiConfig(model_name, api_type_name,
+    cfg = LLMOaiConfig(model_name, provider_name,
                        LLMOaiSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=80, init_system_message_name="carl-sagan"))
 
-    print(f'---- generating response from {cfg.api_type()}:{model_name}')
+    print(f'---- generating response from {cfg.provider()}:{model_name}')
     exchange = chat(sysmsg=cfg.settings.system_message,
                     prompt="How many galaxies are there?",
                     cfg=cfg)
@@ -27,7 +27,7 @@ def run(api_type_name: str, model_name: str):
 
     print(exchange.completion.choices[0].message.content)
 
-    print(f'\n{cfg.api_type()}:{model_name} '
+    print(f'\n{cfg.provider()}:{model_name} '
           f'responded with {exchange.completion.usage.prompt_tokens}+{exchange.completion.usage.completion_tokens} tokens '
           f'in {end - start:.0f} seconds')
 
@@ -38,6 +38,6 @@ models = {
     # 'azure': ['RFI-Automate-GPT-4o-mini-2000k'],
     'ollama': ['llama3.2:1b', 'llama3.2:3b', 'llama3.3:70b', 'qwen2.5:0.5b', 'gemma2:2b', 'qwq'],
 }
-for atype in models.keys():
-    run(atype, models[atype][0])
+for ptype in models.keys():
+    run(ptype, models[ptype][0])
     print('\n')

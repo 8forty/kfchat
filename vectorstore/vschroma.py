@@ -132,8 +132,8 @@ class VSChroma(VSAPI):
     class OllamaEmbeddingsError(Exception):
         pass
 
-    def __init__(self, api_type_name: str, parms: dict[str, str]):
-        super().__init__(api_type_name, parms)
+    def __init__(self, vs_type_name: str, parms: dict[str, str]):
+        super().__init__(vs_type_name, parms)
         self._client: chromadb.ClientAPI | None = None
         self.collection_name: str | None = None  # todo: get rid of this
         self._collection: chromadb.Collection | None = None  # todo: and this
@@ -142,8 +142,8 @@ class VSChroma(VSAPI):
         self._build_clients()
 
     @staticmethod
-    def create(api_type_name: str, parms: dict[str, str]):
-        return VSChroma(api_type_name, parms)
+    def create(vs_type_name: str, parms: dict[str, str]):
+        return VSChroma(vs_type_name, parms)
 
     def get_collection_metadata(self, collection_name: str) -> Collection:
         """
@@ -200,7 +200,7 @@ class VSChroma(VSAPI):
         if self._client is not None:
             return
 
-        log.info(f'building VS API for [{self._api_type_name}]: {self.parms.get("CHROMA_HOST")=}, {self.parms.get("CHROMA_PORT")=}')
+        log.info(f'building VS API for [{self._vs_type_name}]: {self.parms.get("CHROMA_HOST")=}, {self.parms.get("CHROMA_PORT")=}')
 
         self._client = chromadb.HttpClient(host=self.parms.get("CHROMA_HOST"), port=int(self.parms.get("CHROMA_PORT")))
 

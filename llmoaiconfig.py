@@ -18,7 +18,7 @@ log.setLevel(logstuff.logging_level)
 dotenv.load_dotenv(override=True)
 env = dotenv.dotenv_values()
 
-llm_api_types_config = {
+llm_providers_config = {
     'azure': {
         'key': env.get('kfAZURE_OPENAI_API_KEY'),
         'AZURE_OPENAI_API_VERSION': env.get('AZURE_OPENAI_API_VERSION'),
@@ -76,20 +76,20 @@ class LLMOaiSettings:
 
 
 class LLMOaiConfig(LLMConfig):
-    def __init__(self, model_name: str, api_type_name: str, settings: LLMOaiSettings):
+    def __init__(self, model_name: str, provider_name: str, settings: LLMOaiSettings):
         """
 
         :param model_name:
-        :param api_type_name
+        :param provider_name
         :param settings:
 
         """
-        super().__init__(model_name, api_type_name)
+        super().__init__(model_name, provider_name)
 
         self.settings = settings
 
-        if self.api_type_name not in list(llm_api_types_config.keys()):
-            raise ValueError(f'{__class__.__name__}: invalid api_type! {api_type_name}')
+        if self.provider_name not in list(llm_providers_config.keys()):
+            raise ValueError(f'{__class__.__name__}: invalid provider! {provider_name}')
         self._api_client = None
 
     def __repr__(self) -> str:
@@ -122,32 +122,32 @@ class LLMOaiConfig(LLMConfig):
             return self._api_client
 
         # todo: this is a 2nd place that lists api types :(, for now to highlight any diffs in client-setup api's
-        if self.api_type_name == 'ollama':
-            endpoint = llm_api_types_config[self.api_type_name]['OLLAMA_ENDPOINT']
-            key = llm_api_types_config[self.api_type_name]['key']
-            log.info(f'building LLM API for [{self.api_type_name}]: {endpoint=} key={redact(key)}')
+        if self.provider_name == 'ollama':
+            endpoint = llm_providers_config[self.provider_name]['OLLAMA_ENDPOINT']
+            key = llm_providers_config[self.provider_name]['key']
+            log.info(f'building LLM API for [{self.provider_name}]: {endpoint=} key={redact(key)}')
             self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
-        elif self.api_type_name == 'openai':
-            endpoint = llm_api_types_config[self.api_type_name]['OPENAI_ENDPOINT']
-            key = llm_api_types_config[self.api_type_name]['key']
-            log.info(f'building LLM API for [{self.api_type_name}]: {endpoint=} key={redact(key)}')
+        elif self.provider_name == 'openai':
+            endpoint = llm_providers_config[self.provider_name]['OPENAI_ENDPOINT']
+            key = llm_providers_config[self.provider_name]['key']
+            log.info(f'building LLM API for [{self.provider_name}]: {endpoint=} key={redact(key)}')
             self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
-        elif self.api_type_name == 'groq':
-            endpoint = llm_api_types_config[self.api_type_name]['GROQ_OPENAI_ENDPOINT']
-            key = llm_api_types_config[self.api_type_name]['key']
-            log.info(f'building LLM API for [{self.api_type_name}]: {endpoint=} key={redact(key)}')
+        elif self.provider_name == 'groq':
+            endpoint = llm_providers_config[self.provider_name]['GROQ_OPENAI_ENDPOINT']
+            key = llm_providers_config[self.provider_name]['key']
+            log.info(f'building LLM API for [{self.provider_name}]: {endpoint=} key={redact(key)}')
             self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
-        elif self.api_type_name == 'gemini':
-            endpoint = llm_api_types_config[self.api_type_name]['GEMINI_OPENAI_ENDPOINT']
-            key = llm_api_types_config[self.api_type_name]['key']
-            log.info(f'building LLM API for [{self.api_type_name}]: {endpoint=} key={redact(key)}')
+        elif self.provider_name == 'gemini':
+            endpoint = llm_providers_config[self.provider_name]['GEMINI_OPENAI_ENDPOINT']
+            key = llm_providers_config[self.provider_name]['key']
+            log.info(f'building LLM API for [{self.provider_name}]: {endpoint=} key={redact(key)}')
             self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
-        elif self.api_type_name == 'github':
-            endpoint = llm_api_types_config[self.api_type_name]['GITHUB_ENDPOINT']
-            key = llm_api_types_config[self.api_type_name]['key']
-            log.info(f'building LLM API for [{self.api_type_name}]: {endpoint=} key={redact(key)}')
+        elif self.provider_name == 'github':
+            endpoint = llm_providers_config[self.provider_name]['GITHUB_ENDPOINT']
+            key = llm_providers_config[self.provider_name]['key']
+            log.info(f'building LLM API for [{self.provider_name}]: {endpoint=} key={redact(key)}')
             self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
-        elif self.api_type_name == 'azure':
+        elif self.provider_name == 'azure':
             # token_provider = azure.identity.get_bearer_token_provider(
             #     azure.identity.DefaultAzureCredential(), 'https://cognitiveservices.azure.com/.default'
             # )
@@ -156,13 +156,13 @@ class LLMOaiConfig(LLMConfig):
             #     azure_endpoint=self.parms.get('AZURE_OPENAI_ENDPOINT'),
             #     azure_ad_token_provider=token_provider,
             # )
-            endpoint = llm_api_types_config[self.api_type_name]['AZURE_OPENAI_ENDPOINT']
-            key = llm_api_types_config[self.api_type_name]['key']
-            api_version = llm_api_types_config[self.api_type_name]['AZURE_OPENAI_API_VERSION']
-            log.info(f'building LLM API for [{self.api_type_name}]: {endpoint=} key={redact(key)} {api_version=}')
+            endpoint = llm_providers_config[self.provider_name]['AZURE_OPENAI_ENDPOINT']
+            key = llm_providers_config[self.provider_name]['key']
+            api_version = llm_providers_config[self.provider_name]['AZURE_OPENAI_API_VERSION']
+            log.info(f'building LLM API for [{self.provider_name}]: {endpoint=} key={redact(key)} {api_version=}')
             self._api_client = openai.AzureOpenAI(azure_endpoint=endpoint, api_key=key, api_version=api_version)
         else:
-            raise ValueError(f'invalid api type! {self.api_type_name}')
+            raise ValueError(f'invalid api type! {self.provider_name}')
 
         return self._api_client
 
@@ -196,16 +196,16 @@ class LLMOaiConfig(LLMConfig):
                 return LLMOaiExchange(prompt, chat_completion)
             except openai.RateLimitError as e:
                 quota_retries += 1
-                log.warning(f'{self.api_type_name}:{self.model_name}: rate limit exceeded attempt {quota_retries}/{max_quota_retries}, '
+                log.warning(f'{self.provider_name}:{self.model_name}: rate limit exceeded attempt {quota_retries}/{max_quota_retries}, '
                             f'{(f"will retry in {retry_wait_secs}s" if quota_retries <= max_quota_retries else "")}')
                 if quota_retries > max_quota_retries:
-                    log.warning(f'chat quota exceeded! {self.api_type_name}:{self.model_name}: rate limit exceeded all {quota_retries} retries')
+                    log.warning(f'chat quota exceeded! {self.provider_name}:{self.model_name}: rate limit exceeded all {quota_retries} retries')
                     raise e
                 else:
                     time.sleep(retry_wait_secs)  # todo: progressive backoff?
                     retry_wait_secs = quota_retries * quota_retries
             except (Exception,) as e:
-                log.warning(f'chat error! {self.api_type_name}:{self.model_name}: {e.__class__.__name__}: {e}')
+                log.warning(f'chat error! {self.provider_name}:{self.model_name}: {e.__class__.__name__}: {e}')
                 raise e
 
     def chat_messages(self, messages: Iterable[tuple[str, str] | dict]) -> LLMOaiExchange:

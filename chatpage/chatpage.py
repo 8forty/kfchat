@@ -151,7 +151,7 @@ class ChatPage:
             return exchange
 
         async def handle_special_prompt(prompt: str, settings_select: dict[str, Select], idata: InstanceData) -> None:
-            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.current_source_type}:{idata.llm_config.api_type()}:{idata.llm_config.model_name}): "{prompt}"')
+            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.current_source_type}:{idata.llm_config.provider()}:{idata.llm_config.model_name}): "{prompt}"')
             about = 'special commands: *, *info, *repeat, *forget, *n'
 
             # extract *n, e.g. "*2", "*3"...
@@ -183,7 +183,7 @@ class ChatPage:
 
         async def handle_llm_prompt(prompt: str, idata: InstanceData) -> None:
             log.info(
-                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.current_source_type}:{idata.llm_config.api_type()}:{idata.llm_config.model_name},'
+                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.current_source_type}:{idata.llm_config.provider()}:{idata.llm_config.model_name},'
                 f'{idata.llm_config.settings.temp},{idata.llm_config.settings.top_p},{idata.llm_config.settings.max_tokens}): "{prompt}"')
 
             start = timeit.default_timer()

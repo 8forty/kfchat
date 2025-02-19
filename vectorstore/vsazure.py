@@ -20,8 +20,8 @@ log.setLevel(logstuff.logging_level)
 
 class VSAzure(VSAPI):
 
-    def __init__(self, api_type_name: str, parms: dict[str, str]):
-        super().__init__(api_type_name, parms)
+    def __init__(self, vs_type_name: str, parms: dict[str, str]):
+        super().__init__(vs_type_name, parms)
         self._aoai_client: openai.AzureOpenAI | None = None
         self._aais_search_client: SearchClient | None = None
         self.deployment: str = parms.get("AZURE_AI_SEARCH_EMBEDDING_DEPLOYMENT")
@@ -30,8 +30,8 @@ class VSAzure(VSAPI):
         self._index: SearchIndex | None = None
 
     @staticmethod
-    def create(api_type_name: str, parms: dict[str, str]):
-        return VSAzure(api_type_name, parms)
+    def create(vs_type_name: str, parms: dict[str, str]):
+        return VSAzure(vs_type_name, parms)
 
     def _build_clients(self):
         if self._aoai_client is not None:
@@ -46,7 +46,7 @@ class VSAzure(VSAPI):
         #     azure_ad_token_provider=token_provider,
         # )
 
-        log.info(f'building VS API for [{self._api_type_name}]: {self.parms.get("AZURE_OPENAI_ENDPOINT")=}, '
+        log.info(f'building VS API for [{self._vs_type_name}]: {self.parms.get("AZURE_OPENAI_ENDPOINT")=}, '
                  f'AZURE_OPENAI_API_KEY={redact(self.parms.get("AZURE_OPENAI_API_KEY"))}, '
                  f'{self.parms.get("AZURE_OPENAI_API_VERSION")=}, {self.parms.get("AZURE_AI_SEARCH_ENDPOINT")=}, '
                  f'AZURE_AI_SEARCH_API_KEY={redact(self.parms.get("AZURE_AI_SEARCH_API_KEY"))}, {self.parms.get("AZURE_AI_SEARCH_EMBEDDING_DEPLOYMENT")=}, '

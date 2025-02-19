@@ -8,14 +8,14 @@ log.setLevel(logstuff.logging_level)
 
 
 class LLMConfig(ABC):
-    def __init__(self, model_name: str, api_type_name: str):
+    def __init__(self, model_name: str, provider_name: str):
         """
 
         :param model_name
-        :param api_type_name
+        :param provider_name
         """
         self.model_name = model_name
-        self.api_type_name = api_type_name
+        self.provider_name = provider_name
 
-    def api_type(self) -> str:
-        return self.api_type_name
+    def provider(self) -> str:
+        return self.provider_name
