@@ -6,7 +6,7 @@ import traceback
 from dataclasses import dataclass, field
 
 from fastapi import Request
-from nicegui import ui, run, Client
+from nicegui import ui, run, Client, context
 from nicegui.elements.input import Input
 from nicegui.elements.scroll_area import ScrollArea
 from nicegui.elements.select import Select
@@ -39,32 +39,32 @@ class ResponseText:
 
 class ChatPage:
 
-    def __init__(self, llm_configs: dict[str, LLMOaiConfig], init_llm_model_name: str, vectorstore: VSAPI, parms: dict[str, str]):
+    def __init__(self, llm_configs: dict[str, LLMOaiConfig], init_llm: str, vectorstore: VSAPI, parms: dict[str, str]):
         # anything in here is shared by all instances of ChatPage
         self.llm_configs = llm_configs
-        self.llm_config = llm_configs[init_llm_model_name]
+        self.llm_config = llm_configs[init_llm]
         self.vectorstore = vectorstore
         self.parms = parms
 
     def setup(self, path: str, pagename: str):
 
         def render_response(responses: list[ResponseText], scroller: ScrollArea):
-            # display/render the various texts
-            result_text_classes = 'w-full text-lg text-white text-left px-10'
+            prompt_classes = 'w-full font-bold text-lg text-blue text-left px-2 pt-4 pb-1'
+            result_text_classes = 'w-full text-lg text-white text-left px-2'
             subscript_classes = 'w-full italic text-xs text-slate-500 text-left px-10'
-            prompt_classes = 'w-full font-bold text-lg text-blue text-left px-2 py-4'
             problem_classes = 'w-full italic text-xs text-red text-left px-10'
+
             scroller.clear()
             with scroller, ui.column().classes('w-full gap-y-0'):
                 for rtext in responses:
                     # the prompt
                     ui.label(rtext.prompt).classes(prompt_classes)
-                    ui.separator()
+                    ui.separator().props('size=4px')
 
                     # results
                     for ri in range(0, len(rtext.results)):
                         for line in rtext.results[ri].split('\n'):
-                            # todo: don't really know if this is necessary and/or sufficient for code with latex?  markdown needs latex2mathml also...
+                            # todo: this works for prompt "einsteins equation"/sysmsg:technical800 on gemini and ollama.llama3.2, but not openai.gpt-4o-mini or github.gpt-4o
                             line = line.replace('[', '$$').replace(']', '$$')  # latex markdown
                             ui.markdown(content=line, extras=['fenced-code-blocks', 'tables', 'latex']).classes(result_text_classes)
                         # results-subscript
@@ -272,6 +272,10 @@ class ChatPage:
 
             # setup the standard "frame" for all pages
             with frame.frame(f'{config.name} {pagename}'):
+
+                # this suppresses the enormous default(?) 8px top/bottom margins on every line of markdown
+                ui.add_css('div.nicegui-markdown p { margin-top: 0px; margin-bottom: 0px; }')
+
                 with (ui.column().classes('w-full flex-grow border-solid border border-black')):  # place-content-center')):
                     # the settings selection row
                     with (ui.row().classes('w-full border-solid border border-black')):  # place-content-center')):
@@ -280,7 +284,7 @@ class ChatPage:
                         selmodel = ui.select(label='Model:',
                                              options=source_names,
                                              value=idata.source_select_name,
-                                             ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_source(vc.value), pinput, spinner)
+                                             ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_model(vc.value), pinput, spinner)
                                                                ).tooltip('vs=vector search, llm=lang model chat').props('square outlined label-color=green').classes('min-w-30')
                         seln = ui.select(label='n:',
                                          options=[i for i in range(1, 10)],

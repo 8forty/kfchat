@@ -49,24 +49,24 @@ class InstanceData:
         return self.current_source_type == self.vs_source_type
 
     def source_api_name_llm(self, llm_config: LLMOaiConfig) -> str:
-        return f'{self.llm_name_prefix}{llm_config.provider()}:{llm_config.model_name}'
+        return f'{self.llm_name_prefix}{llm_config.provider()}.{llm_config.model_name}'
 
     def forget(self):
         self.exchanges.clear()
 
-    async def change_source(self, selected_name: str):
-        log.info(f'Changing source to: {selected_name}')
+    async def change_model(self, selected_name: str):
+        log.info(f'Changing model to: {selected_name}')
 
         if selected_name.startswith(self.llm_name_prefix):
             self.current_source_type = self.llm_source_type
             long_name = selected_name.removeprefix(self.llm_name_prefix)  # removes "llm: "
-            self.source_name = ':'.join(long_name.split(':')[1:])  # removes e.g. "groq:"
-            self.llm_config = self.llm_configs[self.source_name]
+            self.source_name = selected_name  # ':'.join(long_name.split(':')[1:])  # removes e.g. "groq:"
+            self.llm_config = self.llm_configs[long_name]
             log.debug(f'new llm name: {self.source_name} (provider: {self.llm_config.provider()})')
         else:
-            self.source_name = selected_name.removeprefix(self.vs_name_prefix)
+            self.source_name = selected_name  # .removeprefix(self.vs_name_prefix)
             self.current_source_type = self.vs_source_type
-            await run.io_bound(lambda: self.vectorstore.switch_index(self.source_name))
+            await run.io_bound(lambda: self.vectorstore.switch_index(self.source_name.removeprefix(self.vs_name_prefix)))
             log.debug(f'new vs name: {self.source_name}')
 
         self.source_select_name = selected_name

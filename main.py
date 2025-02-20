@@ -4,6 +4,7 @@ import traceback
 
 from fastapi import FastAPI
 from nicegui import ui
+from typing_extensions import OrderedDict
 
 import chromadbpage
 import config
@@ -32,6 +33,13 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
     settings = LLMOaiSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_system_message_name='technical800')
     llm_configs_list = [
 
+        LLMOaiConfig(model_name='gpt-4o', provider_name='github', settings=settings),
+        # LLMOaiConfig(model_name='gpt-4o-mini', provider_name='github', settings=settings),
+        LLMOaiConfig(model_name='deepseek-r1', provider_name='github', settings=settings),
+        # LLMOaiConfig(model_name='gpt-o1-preview', provider_name='github', settings=settings),
+        # LLMOaiConfig(model_name='openai-o1-preview', provider_name='github', settings=settings),
+        # LLMOaiConfig(model_name='o1-preview', provider_name='github', settings=settings),
+
         LLMOaiConfig(model_name='llama-3.3-70b-versatile', provider_name='groq', settings=settings),
         LLMOaiConfig(model_name='deepseek-r1-distill-llama-70b', provider_name='groq', settings=settings),
 
@@ -51,14 +59,8 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         LLMOaiConfig(model_name='RFI-Automate-GPT-4o-mini-2000k',  # really the deployment name for azure
                      provider_name='azure', settings=settings),
 
-        LLMOaiConfig(model_name='gpt-4o', provider_name='github', settings=settings),
-        # LLMOaiConfig(model_name='gpt-4o-mini', provider_name='github', settings=settings),
-        LLMOaiConfig(model_name='deepseek-r1', provider_name='github', settings=settings),
-        # LLMOaiConfig(model_name='gpt-o1-preview', provider_name='github', settings=settings),
-        # LLMOaiConfig(model_name='openai-o1-preview', provider_name='github', settings=settings),
-        # LLMOaiConfig(model_name='o1-preview', provider_name='github', settings=settings),
     ]
-    llm_configs = {lc.model_name: lc for lc in llm_configs_list}
+    llm_configs = OrderedDict({f'{lc.provider_name}.{lc.model_name}': lc for lc in llm_configs_list})
 
     # setup vs
     try:
@@ -79,7 +81,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         raise
 
     # the chat page
-    cp = chatpage.ChatPage(llm_configs=llm_configs, init_llm_model_name=llm_configs_list[0].model_name, vectorstore=vectorstore, parms=config.env)
+    cp = chatpage.ChatPage(llm_configs=llm_configs, init_llm=list(llm_configs.keys())[0], vectorstore=vectorstore, parms=config.env)
     cp.setup('/', 'Chat')
 
     # the chromadb page
