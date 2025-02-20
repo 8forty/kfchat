@@ -63,9 +63,18 @@ class ChatPage:
 
                     # results
                     for ri in range(0, len(rtext.results)):
+                        latex_line = False  # todo: some models put "\[" and "\]" on sep lines, others just use the "$$" markers, this is still far from perfect :(
                         for line in rtext.results[ri].split('\n'):
-                            # todo: this works for prompt "einsteins equation"/sysmsg:technical800 on gemini and ollama.llama3.2, but not openai.gpt-4o-mini or github.gpt-4o
-                            line = line.replace('[', '$$').replace(']', '$$')  # latex markdown
+
+                            if line.strip() == '\\[':
+                                latex_line = True
+                                continue
+                            if line.strip() == '\\]':
+                                latex_line = False
+                                continue
+
+                            if latex_line:
+                                line = f'$${line}$$'
                             ui.markdown(content=line, extras=['fenced-code-blocks', 'tables', 'latex']).classes(result_text_classes)
                         # results-subscript
                         if len(rtext.result_subscripts) > ri:

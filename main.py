@@ -33,8 +33,8 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
     settings = LLMOaiSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_system_message_name='technical800')
     llm_configs_list = [
 
+        LLMOaiConfig(model_name='gpt-4o-mini', provider_name='github', settings=settings),
         LLMOaiConfig(model_name='gpt-4o', provider_name='github', settings=settings),
-        # LLMOaiConfig(model_name='gpt-4o-mini', provider_name='github', settings=settings),
         LLMOaiConfig(model_name='deepseek-r1', provider_name='github', settings=settings),
         # LLMOaiConfig(model_name='gpt-o1-preview', provider_name='github', settings=settings),
         # LLMOaiConfig(model_name='openai-o1-preview', provider_name='github', settings=settings),
@@ -55,6 +55,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         LLMOaiConfig(model_name='gemini-1.5-pro', provider_name='gemini', settings=settings),
 
         LLMOaiConfig(model_name='gpt-4o-mini', provider_name='openai', settings=settings),
+        LLMOaiConfig(model_name='gpt-4o', provider_name='openai', settings=settings),
 
         LLMOaiConfig(model_name='RFI-Automate-GPT-4o-mini-2000k',  # really the deployment name for azure
                      provider_name='azure', settings=settings),
