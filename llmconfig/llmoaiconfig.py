@@ -18,7 +18,7 @@ log.setLevel(logstuff.logging_level)
 dotenv.load_dotenv(override=True)
 env = dotenv.dotenv_values()
 
-llm_providers_config = {
+providers_config = {
     'azure': {
         'key': env.get('kfAZURE_OPENAI_API_KEY'),
         'AZURE_OPENAI_API_VERSION': env.get('AZURE_OPENAI_API_VERSION'),
@@ -88,7 +88,7 @@ class LLMOaiConfig(LLMConfig):
 
         self.settings = settings
 
-        if self.provider_name not in list(llm_providers_config.keys()):
+        if self.provider_name not in list(providers_config.keys()):
             raise ValueError(f'{__class__.__name__}: invalid provider! {provider_name}')
         self._api_client = None
 
@@ -123,28 +123,28 @@ class LLMOaiConfig(LLMConfig):
 
         # todo: this is a 2nd place that lists api types :(, for now to highlight any diffs in client-setup api's
         if self.provider_name == 'ollama':
-            endpoint = llm_providers_config[self.provider_name]['OLLAMA_ENDPOINT']
-            key = llm_providers_config[self.provider_name]['key']
+            endpoint = providers_config[self.provider_name]['OLLAMA_ENDPOINT']
+            key = providers_config[self.provider_name]['key']
             log.info(f'building LLM API for [{self.provider_name}]: {endpoint=} key={redact(key)}')
             self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         elif self.provider_name == 'openai':
-            endpoint = llm_providers_config[self.provider_name]['OPENAI_ENDPOINT']
-            key = llm_providers_config[self.provider_name]['key']
+            endpoint = providers_config[self.provider_name]['OPENAI_ENDPOINT']
+            key = providers_config[self.provider_name]['key']
             log.info(f'building LLM API for [{self.provider_name}]: {endpoint=} key={redact(key)}')
             self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         elif self.provider_name == 'groq':
-            endpoint = llm_providers_config[self.provider_name]['GROQ_OPENAI_ENDPOINT']
-            key = llm_providers_config[self.provider_name]['key']
+            endpoint = providers_config[self.provider_name]['GROQ_OPENAI_ENDPOINT']
+            key = providers_config[self.provider_name]['key']
             log.info(f'building LLM API for [{self.provider_name}]: {endpoint=} key={redact(key)}')
             self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         elif self.provider_name == 'gemini':
-            endpoint = llm_providers_config[self.provider_name]['GEMINI_OPENAI_ENDPOINT']
-            key = llm_providers_config[self.provider_name]['key']
+            endpoint = providers_config[self.provider_name]['GEMINI_OPENAI_ENDPOINT']
+            key = providers_config[self.provider_name]['key']
             log.info(f'building LLM API for [{self.provider_name}]: {endpoint=} key={redact(key)}')
             self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         elif self.provider_name == 'github':
-            endpoint = llm_providers_config[self.provider_name]['GITHUB_ENDPOINT']
-            key = llm_providers_config[self.provider_name]['key']
+            endpoint = providers_config[self.provider_name]['GITHUB_ENDPOINT']
+            key = providers_config[self.provider_name]['key']
             log.info(f'building LLM API for [{self.provider_name}]: {endpoint=} key={redact(key)}')
             self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         elif self.provider_name == 'azure':
@@ -156,9 +156,9 @@ class LLMOaiConfig(LLMConfig):
             #     azure_endpoint=self.parms.get('AZURE_OPENAI_ENDPOINT'),
             #     azure_ad_token_provider=token_provider,
             # )
-            endpoint = llm_providers_config[self.provider_name]['AZURE_OPENAI_ENDPOINT']
-            key = llm_providers_config[self.provider_name]['key']
-            api_version = llm_providers_config[self.provider_name]['AZURE_OPENAI_API_VERSION']
+            endpoint = providers_config[self.provider_name]['AZURE_OPENAI_ENDPOINT']
+            key = providers_config[self.provider_name]['key']
+            api_version = providers_config[self.provider_name]['AZURE_OPENAI_API_VERSION']
             log.info(f'building LLM API for [{self.provider_name}]: {endpoint=} key={redact(key)} {api_version=}')
             self._api_client = openai.AzureOpenAI(azure_endpoint=endpoint, api_key=key, api_version=api_version)
         else:

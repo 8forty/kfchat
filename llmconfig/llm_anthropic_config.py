@@ -1,15 +1,15 @@
 import logging
 import time
-from dataclasses import dataclass
-from typing import Iterable
 
+import anthropic
 import dotenv
 import openai
-from openai.types.chat import ChatCompletion
+from anthropic.types import Message
 
 import data
 import logstuff
 from config import redact
+from llmconfig.llm_anthropic_exchange import LLMAnthropicExchange
 from llmconfig.llmconfig import LLMConfig
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -19,21 +19,16 @@ dotenv.load_dotenv(override=True)
 env = dotenv.dotenv_values()
 
 providers_config = {
-    'claude': {
-        'key': env.get('kfCLAUDE_TOKEN'),
-        'CLAUDE_API_VERSION': env.get('AZURE_OPENAI_API_VERSION'),
-        'CLAUDE_ENDPOINT': env.get('AZURE_OPENAI_ENDPOINT'),
+    'anthropic': {
+        'key': env.get('kfANTHROPIC_TOKEN'),
+        'ANTHROPIC_API_VERSION': env.get('ANTHROPIC_API_VERSION'),
+        'ANTHROPIC_ENDPOINT': env.get('ANTHROPIC_ENDPOINT'),
     },
 }
 
 
-# @dataclass
-# class LLMOaiExchange:
-#     prompt: str
-#     completion: ChatCompletion
-
-
-class LLMClaudeSettings:
+class LLMAnthropicSettings:
+    # todo: all of these?
     def __init__(self, init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int, init_system_message_name: str):
         """
 
@@ -52,8 +47,8 @@ class LLMClaudeSettings:
         self.system_message = data.dummy_llm_config.sysmsg_all[init_system_message_name]
 
 
-class LLMOaiConfig(LLMConfig):
-    def __init__(self, model_name: str, provider_name: str, settings: LLMClaudeSettings):
+class LLMAnthropicConfig(LLMConfig):
+    def __init__(self, model_name: str, provider_name: str, settings: LLMAnthropicSettings):
         """
 
         :param model_name:
@@ -94,57 +89,24 @@ class LLMOaiConfig(LLMConfig):
         self.settings.system_message_name = new_system_message_name
         self.settings.system_message = new_system_message
 
-    def _client(self) -> openai.OpenAI:
+    def _client(self) -> anthropic.Anthropic:
         if self._api_client is not None:
             return self._api_client
 
-        # todo: this is a 2nd place that lists api types :(, for now to highlight any diffs in client-setup api's
-        if self.provider_name == 'ollama':
-            endpoint = providers_config[self.provider_name]['OLLAMA_ENDPOINT']
+        # todo: this is a 2nd place that lists providers :(, for now to highlight any diffs in client-setup api's
+        if self.provider_name == 'anthropic':
+            # endpoint = providers_config[self.provider_name]['OLLAMA_ENDPOINT']
+            endpoint = 'huh?'
             key = providers_config[self.provider_name]['key']
-            log.info(f'building LLM API for [{self.provider_name}]: {endpoint=} key={redact(key)}')
-            self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
-        elif self.provider_name == 'openai':
-            endpoint = providers_config[self.provider_name]['OPENAI_ENDPOINT']
-            key = providers_config[self.provider_name]['key']
-            log.info(f'building LLM API for [{self.provider_name}]: {endpoint=} key={redact(key)}')
-            self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
-        elif self.provider_name == 'groq':
-            endpoint = providers_config[self.provider_name]['GROQ_OPENAI_ENDPOINT']
-            key = providers_config[self.provider_name]['key']
-            log.info(f'building LLM API for [{self.provider_name}]: {endpoint=} key={redact(key)}')
-            self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
-        elif self.provider_name == 'gemini':
-            endpoint = providers_config[self.provider_name]['GEMINI_OPENAI_ENDPOINT']
-            key = providers_config[self.provider_name]['key']
-            log.info(f'building LLM API for [{self.provider_name}]: {endpoint=} key={redact(key)}')
-            self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
-        elif self.provider_name == 'github':
-            endpoint = providers_config[self.provider_name]['GITHUB_ENDPOINT']
-            key = providers_config[self.provider_name]['key']
-            log.info(f'building LLM API for [{self.provider_name}]: {endpoint=} key={redact(key)}')
-            self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
-        elif self.provider_name == 'azure':
-            # token_provider = azure.identity.get_bearer_token_provider(
-            #     azure.identity.DefaultAzureCredential(), 'https://cognitiveservices.azure.com/.default'
-            # )
-            # client = openai.AzureOpenAI(
-            #     api_version=self.parms.get('AZURE_OPENAI_API_VERSION'),
-            #     azure_endpoint=self.parms.get('AZURE_OPENAI_ENDPOINT'),
-            #     azure_ad_token_provider=token_provider,
-            # )
-            endpoint = providers_config[self.provider_name]['AZURE_OPENAI_ENDPOINT']
-            key = providers_config[self.provider_name]['key']
-            api_version = providers_config[self.provider_name]['AZURE_OPENAI_API_VERSION']
-            log.info(f'building LLM API for [{self.provider_name}]: {endpoint=} key={redact(key)} {api_version=}')
-            self._api_client = openai.AzureOpenAI(azure_endpoint=endpoint, api_key=key, api_version=api_version)
+            log.info(f'building ANTHROPIC LLM API for [{self.provider_name}]: {endpoint=} key={redact(key)}')
+            self._api_client = anthropic.Anthropic(api_key=key)
         else:
-            raise ValueError(f'invalid api type! {self.provider_name}')
+            raise ValueError(f'invalid provider! {self.provider_name}')
 
         return self._api_client
 
     # todo: configure max_quota_retries
-    def _do_chat(self, messages: list[dict], max_quota_retries: int = 10) -> LLMOaiExchange:
+    def _do_chat(self, messages: list[dict], sysmsg: str, max_quota_retries: int = 10) -> LLMAnthropicExchange:
         # prompt is the last dict in the list
         prompt = messages[-1]['content']
         log.debug(f'{self.model_name=}, {self.settings.temp=}, {self.settings.top_p=}, {self.settings.max_tokens=}, {self.settings.n=}, '
@@ -155,22 +117,24 @@ class LLMOaiConfig(LLMConfig):
         while True:
             try:
                 # todo: seed, etc. (by actual llm?)
-                chat_completion: ChatCompletion = self._client().chat.completions.create(
+                chat_completion: Message = self._client().messages.create(
                     model=self.model_name,
-                    temperature=self.settings.temp,  # default 1.0, 0.0->2.0
-                    top_p=self.settings.top_p,  # default 1, ~0.01->1.0
+                    temperature=self.settings.temp,  # todo: default 1.0, 0.0->1.0
+                    top_p=self.settings.top_p,  # todo: default 1, ~0.01->1.0
                     messages=messages,
                     max_tokens=self.settings.max_tokens,  # default 16?
-                    n=self.settings.n,  # todo: openai,azure,gemini:any(?) value works; ollama: only 1 resp for any value; groq: requires 1;
+                    system=sysmsg,
 
-                    stream=False,  # todo: allow streaming
+                    # n=self.settings.n,  # todo: openai,azure,gemini:any(?) value works; ollama: only 1 resp for any value; groq: requires 1;
+
+                    # stream=False,  # todo: allow streaming
 
                     # seed=27,
                     # frequency_penalty=1,  # default 0, -2.0->2.0
                     # presence_penalty=1,  # default 0, -2.0->2.0
                     # stop=[],
                 )
-                return LLMOaiExchange(prompt, chat_completion)
+                return LLMAnthropicExchange(prompt, chat_completion)
             except openai.RateLimitError as e:
                 quota_retries += 1
                 log.warning(f'{self.provider_name}:{self.model_name}: rate limit exceeded attempt {quota_retries}/{max_quota_retries}, '
@@ -184,33 +148,3 @@ class LLMOaiConfig(LLMConfig):
             except (Exception,) as e:
                 log.warning(f'chat error! {self.provider_name}:{self.model_name}: {e.__class__.__name__}: {e}')
                 raise e
-
-    def chat_messages(self, messages: Iterable[tuple[str, str] | dict]) -> LLMOaiExchange:
-        """
-        run chat-completion from a list of messages
-        :param messages: properly ordered list of either tuples of (role, value) or dicts; must include system message and prompt
-        """
-        # transform convo to list-of-dicts, elements are either tuples or already dicts (and I guess a mix of each, why not?)
-        msgs_list = [{t[0]: t[1]} if isinstance(t, tuple) else t for t in messages]
-        return self._do_chat(msgs_list)
-
-    def chat_convo(self, convo: Iterable[LLMOaiExchange], prompt: str) -> LLMOaiExchange:
-        """
-        run chat-completion
-        :param convo: properly ordered list of LLMOpenaiExchange's
-        :param prompt: the prompt duh
-        """
-        messages: list[dict] = []
-        if self.settings.system_message is not None and len(self.settings.system_message) > 0:
-            messages.append({'role': 'system', 'content': self.settings.system_message})
-
-        # add the convo
-        for exchange in convo:
-            # todo: what about previous vector-store responses?
-            messages.append({'role': 'user', 'content': exchange.prompt})
-            for choice in exchange.completion.choices:
-                messages.append({'role': choice.message.role, 'content': choice.message.content})
-
-        # add the prompt
-        messages.append({'role': 'user', 'content': prompt})
-        return self._do_chat(messages)
