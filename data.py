@@ -3,6 +3,8 @@ from collections import OrderedDict
 
 from dotenv import load_dotenv
 
+from llmconfig import LLMConfig
+
 load_dotenv(override=True)
 
 warmup_data = {
@@ -101,27 +103,6 @@ settings_sets = {
     ],
 }
 
-csagan_sysmsg = 'You are a helpful assistant that talks like Carl Sagan.'
-generic_sysmsg = 'You are a helpful chatbot that talks in a conversational manner.'
-generic80_sysmsg = 'You are a helpful chatbot that talks in a conversational manner. Your responses must always be less than 80 tokens.'
-answer_sysmsg = ('You are a chatbot that answers questions that are labeled "Question:" based on the context labeled "Context:". '
-                 'Keep your answers short and concise. Always respond "Unsure about answer" if not sure about the answer.')
-textclass_sysmsg = 'Classify each prompt into neutral, negative or positive.'
-technical_sysmsg = 'You are an AI research assistant. Respond in a tone that is technical and scientific.'
-technical800_sysmsg = 'You are an AI research assistant. Respond in a tone that is technical and scientific. All math equations should be latex format delimited by $$. Your responses must always be less than 800 tokens.'
-empty_sysmsg = ''
-
-sysmsg_all = OrderedDict({
-    'generic80': generic80_sysmsg,
-    'generic': generic_sysmsg,
-    'technical': technical_sysmsg,
-    'technical800': technical800_sysmsg,
-    'text-sentiment': textclass_sysmsg,
-    'carl-sagan': csagan_sysmsg,
-    'empty': empty_sysmsg,
-    'answer': answer_sysmsg,
-})
-
 galaxies_prompt = 'How many galaxies are there?'
 explain_prompt = 'Explain antibiotics'
 onesent_prompt = ('Antibiotics are a type of medication used to treat bacterial infections. They work by either killing '
@@ -146,33 +127,36 @@ rag_lc_rlm_prompt = ("You are an assistant for question-answering tasks. Use the
                      " to answer the question. If you don't know the answer, just say that you don't know. Use three "
                      "sentences maximum and keep the answer concise.  \nQuestion: {question}  \nContext: {context}  \nAnswer:")
 
+
+dummy_llm_config = LLMConfig('no-model', 'no-provider')
+
 csagan_galaxies = {
     'name': 'csagan_galaxies',
-    'messages': [('system', csagan_sysmsg), ('user', galaxies_prompt)]
+    'messages': [('system', dummy_llm_config.csagan_sysmsg), ('user', galaxies_prompt)]
 }
 explain_antibiotics = {
     'name': 'explain_antibiotics',
-    'messages': [('system', generic_sysmsg), ('user', explain_prompt)]
+    'messages': [('system', dummy_llm_config.conversational_sysmsg), ('user', explain_prompt)]
 }
 one_sentence = {
     'name': 'one_sentence',
-    'messages': [('system', generic_sysmsg), ('user', onesent_prompt)]
+    'messages': [('system', dummy_llm_config.conversational_sysmsg), ('user', onesent_prompt)]
 }
 info_extract = {
     'name': 'info_extract',
-    'messages': [('system', generic_sysmsg), ('user', info_prompt)]
+    'messages': [('system', dummy_llm_config.conversational_sysmsg), ('user', info_prompt)]
 }
 qa = {
     'name': 'qa',
-    'messages': [('system', answer_sysmsg), ('user', teplizumab_prompt)]
+    'messages': [('system', dummy_llm_config.answer_sysmsg), ('user', teplizumab_prompt)]
 }
 text_classification = {
     'name': 'text_classification',
-    'messages': [('system', textclass_sysmsg), ('user', neutralfood_prompt)]
+    'messages': [('system', dummy_llm_config.textclass_sysmsg), ('user', neutralfood_prompt)]
 }
 technical = {
     'name': 'technical',
-    'messages': [('system', technical_sysmsg), ('user', blackholes_prompt)]
+    'messages': [('system', dummy_llm_config.technical_sysmsg), ('user', blackholes_prompt)]
 }
 
 message_sets: dict[str, list] = {

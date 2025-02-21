@@ -315,7 +315,7 @@ class ChatPage:
                                               value=settings.max_tokens,
                                               ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_max_tokens(vc.value), pinput, spinner)
                                                                 ).tooltip('max tokens in response').props('square outlined label-color=green').classes('min-w-40')
-                        sysmsg_names = [key for key in data.sysmsg_all]
+                        sysmsg_names = [key for key in idata.llm_config.sysmsg_all]
                         selsysmsg = ui.select(label='Sys Msg:',
                                               options=sysmsg_names,
                                               value=settings.system_message_name

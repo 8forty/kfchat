@@ -30,21 +30,23 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
 
     # setup llm
     # todo: these should come from somewhere, e.g. pref screen
-    settings = LLMOaiSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_system_message_name='technical800')
+    settings = LLMOaiSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_system_message_name='professional800')
     llm_configs_list = [
 
+        LLMOaiConfig(model_name='Cohere-command-r-plus-08-2024', provider_name='github', settings=settings),
         LLMOaiConfig(model_name='gpt-4o-mini', provider_name='github', settings=settings),
         LLMOaiConfig(model_name='gpt-4o', provider_name='github', settings=settings),
         LLMOaiConfig(model_name='deepseek-r1', provider_name='github', settings=settings),
-        # LLMOaiConfig(model_name='gpt-o1-preview', provider_name='github', settings=settings),
-        # LLMOaiConfig(model_name='openai-o1-preview', provider_name='github', settings=settings),
-        # LLMOaiConfig(model_name='o1-preview', provider_name='github', settings=settings),
+        LLMOaiConfig(model_name='Phi-4', provider_name='github', settings=settings),
+        LLMOaiConfig(model_name='AI21-Jamba-1.5-Large', provider_name='github', settings=settings),
+        LLMOaiConfig(model_name='Cohere-command-r-08-2024', provider_name='github', settings=settings),
+        LLMOaiConfig(model_name='Llama-3.3-70B-Instruct', provider_name='github', settings=settings),
+        LLMOaiConfig(model_name='Mistral-large', provider_name='github', settings=settings),
 
         LLMOaiConfig(model_name='llama-3.3-70b-versatile', provider_name='groq', settings=settings),
         LLMOaiConfig(model_name='deepseek-r1-distill-llama-70b', provider_name='groq', settings=settings),
-        # LLMOaiConfig(model_name='DeepSeek-r1-distill-llama-70b-specdec', provider_name='groq', settings=settings),
 
-        # LLMOaiConfig(model_name='llama3.2:1b', provider_name='ollama', settings=settings),
+        LLMOaiConfig(model_name='llama3.2:1b', provider_name='ollama', settings=settings),
         LLMOaiConfig(model_name='llama3.2:3b', provider_name='ollama', settings=settings),
         LLMOaiConfig(model_name='mistral-nemo:12b', provider_name='ollama', settings=settings),
         LLMOaiConfig(model_name='gemma2:9b', provider_name='ollama', settings=settings),

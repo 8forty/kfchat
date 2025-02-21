@@ -72,7 +72,7 @@ class LLMOaiSettings:
         self.top_p = init_top_p
         self.max_tokens = init_max_tokens
         self.system_message_name = init_system_message_name
-        self.system_message = data.sysmsg_all[init_system_message_name]
+        self.system_message = data.dummy_llm_config.sysmsg_all[init_system_message_name]
 
 
 class LLMOaiConfig(LLMConfig):
