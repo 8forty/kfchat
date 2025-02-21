@@ -40,6 +40,6 @@ def frame(header_title: str):
             ui.space()
             ui.label(header_title).classes('text-blue text-3xl font-bold p-0 absolute-center')
             ui.space()
-            ui.image('pluto.jpg').classes('w-12 place-self-end p-0 m-0').on('dblclick', lambda: ui.navigate.to('https://en.wikipedia.org/wiki/Pluto'))
+            ui.image('xpluto.jpg').classes('w-12 place-self-end p-0 m-0').on('dblclick', lambda: ui.navigate.to('https://en.wikipedia.org/wiki/Pluto'))
         ui.separator().classes('h-1')  # .classes('w-full h-1 text-blue')
     yield

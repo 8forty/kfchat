@@ -26,7 +26,7 @@ async def root():
 
 def init_with_fastapi(fastapi_app: FastAPI) -> None:
     log.info('init_with_fastapi')
-    ui.run_with(fastapi_app, storage_secret='pick your private secret here', favicon='pluto.jpg', title=config.name)
+    ui.run_with(fastapi_app, storage_secret='pick your private secret here', favicon='xpluto.jpg', title=config.name)
 
     # setup llm
     # todo: these should come from somewhere, e.g. pref screen
@@ -49,7 +49,13 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         LLMOaiConfig(model_name='mistral-nemo:12b', provider_name='ollama', settings=settings),
         LLMOaiConfig(model_name='gemma2:9b', provider_name='ollama', settings=settings),
         LLMOaiConfig(model_name='llama3.3:70b-instruct-q2_K', provider_name='ollama', settings=settings),
-        # LLMOaiConfig(model_name='gemma2:27b', provider_name='ollama', settings=settings),
+        LLMOaiConfig(model_name='deepseek-v2:16b', provider_name='ollama', settings=settings),
+        LLMOaiConfig(model_name='deepseek-r1:14b', provider_name='ollama', settings=settings),
+        LLMOaiConfig(model_name='deepseek-r1:8b', provider_name='ollama', settings=settings),
+        LLMOaiConfig(model_name='deepseek-r1:1.5b', provider_name='ollama', settings=settings),
+        LLMOaiConfig(model_name='phi4:14b', provider_name='ollama', settings=settings),
+        LLMOaiConfig(model_name='gemma2:9b', provider_name='ollama', settings=settings),
+        LLMOaiConfig(model_name='gemma2:2b', provider_name='ollama', settings=settings),
 
         LLMOaiConfig(model_name='gemini-1.5-flash', provider_name='gemini', settings=settings),
         LLMOaiConfig(model_name='gemini-1.5-flash-8b', provider_name='gemini', settings=settings),

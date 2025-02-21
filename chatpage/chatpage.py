@@ -63,7 +63,7 @@ class ChatPage:
 
                     # results
                     for ri in range(0, len(rtext.results)):
-                        latex_line = False  # todo: some models put "\[" and "\]" on sep lines, others just use the "$$" markers, this is still far from perfect :(
+                        latex_line = False  # todo: some models put "\[" and "\]" on sep lines, others just use the "$$" markers or [/] or ```latex, this is still far from perfect :(
                         for line in rtext.results[ri].split('\n'):
 
                             if line.strip() == '\\[':
@@ -73,7 +73,7 @@ class ChatPage:
                                 latex_line = False
                                 continue
 
-                            if latex_line:
+                            if latex_line or line.strip().startswith('[') and line.strip().endswith(']'):
                                 line = f'$${line}$$'
                             ui.markdown(content=line, extras=['fenced-code-blocks', 'tables', 'latex']).classes(result_text_classes)
                         # results-subscript

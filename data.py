@@ -108,7 +108,7 @@ answer_sysmsg = ('You are a chatbot that answers questions that are labeled "Que
                  'Keep your answers short and concise. Always respond "Unsure about answer" if not sure about the answer.')
 textclass_sysmsg = 'Classify each prompt into neutral, negative or positive.'
 technical_sysmsg = 'You are an AI research assistant. Respond in a tone that is technical and scientific.'
-technical800_sysmsg = 'You are an AI research assistant. Respond in a tone that is technical and scientific. All math equations should be latex format. Your responses must always be less than 800 tokens.'
+technical800_sysmsg = 'You are an AI research assistant. Respond in a tone that is technical and scientific. All math equations should be latex format delimited by $$. Your responses must always be less than 800 tokens.'
 empty_sysmsg = ''
 
 sysmsg_all = OrderedDict({
