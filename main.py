@@ -42,6 +42,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
 
         LLMOaiConfig(model_name='llama-3.3-70b-versatile', provider_name='groq', settings=settings),
         LLMOaiConfig(model_name='deepseek-r1-distill-llama-70b', provider_name='groq', settings=settings),
+        # LLMOaiConfig(model_name='DeepSeek-r1-distill-llama-70b-specdec', provider_name='groq', settings=settings),
 
         # LLMOaiConfig(model_name='llama3.2:1b', provider_name='ollama', settings=settings),
         LLMOaiConfig(model_name='llama3.2:3b', provider_name='ollama', settings=settings),
@@ -53,6 +54,10 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         LLMOaiConfig(model_name='gemini-1.5-flash', provider_name='gemini', settings=settings),
         LLMOaiConfig(model_name='gemini-1.5-flash-8b', provider_name='gemini', settings=settings),
         LLMOaiConfig(model_name='gemini-1.5-pro', provider_name='gemini', settings=settings),
+        LLMOaiConfig(model_name='gemini-2.0-flash-001', provider_name='gemini', settings=settings),
+        LLMOaiConfig(model_name='gemini-2.0-flash-lite-preview-02-05', provider_name='gemini', settings=settings),
+        LLMOaiConfig(model_name='gemini-2.0-pro-exp-02-05', provider_name='gemini', settings=settings),
+        LLMOaiConfig(model_name='gemini-2.0-flash-thinking-exp-01-21', provider_name='gemini', settings=settings),
 
         LLMOaiConfig(model_name='gpt-4o-mini', provider_name='openai', settings=settings),
         LLMOaiConfig(model_name='gpt-4o', provider_name='openai', settings=settings),
