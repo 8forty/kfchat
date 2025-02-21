@@ -112,7 +112,7 @@ class LLMOaiConfig(LLMConfig):
         self.settings.max_tokens = new_max_tokens
 
     async def change_sysmsg(self, new_system_message_name: str):
-        new_system_message = data.sysmsg_all[new_system_message_name]
+        new_system_message = self.sysmsg_all[new_system_message_name]
         log.info(f'{self.model_name} changing system message to: {new_system_message_name}:{new_system_message}')
         self.settings.system_message_name = new_system_message_name
         self.settings.system_message = new_system_message
