@@ -1,9 +1,8 @@
 import os
-from collections import OrderedDict
 
 from dotenv import load_dotenv
 
-from llmconfig import LLMConfig
+from llmconfig.llmconfig import LLMConfig
 
 load_dotenv(override=True)
 
@@ -126,7 +125,6 @@ blackholes_prompt = 'Can you tell me about the creation of blackholes?'
 rag_lc_rlm_prompt = ("You are an assistant for question-answering tasks. Use the following pieces of retrieved context"
                      " to answer the question. If you don't know the answer, just say that you don't know. Use three "
                      "sentences maximum and keep the answer concise.  \nQuestion: {question}  \nContext: {context}  \nAnswer:")
-
 
 dummy_llm_config = LLMConfig('no-model', 'no-provider')
 

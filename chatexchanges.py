@@ -3,7 +3,7 @@ import logging
 from openai.types.chat import ChatCompletion
 
 import logstuff
-from llmoaiconfig import LLMOaiConfig
+from llmconfig.llmoaiconfig import LLMOaiConfig
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)

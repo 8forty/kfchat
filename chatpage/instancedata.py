@@ -5,7 +5,7 @@ from nicegui import run
 import config
 import logstuff
 from chatexchanges import ChatExchanges
-from llmoaiconfig import LLMOaiConfig
+from llmconfig.llmoaiconfig import LLMOaiConfig
 from vectorstore.vsapi import VSAPI
 
 log: logging.Logger = logging.getLogger(__name__)

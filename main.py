@@ -11,7 +11,7 @@ import config
 import logstuff
 from vectorstore import vsapi_factory
 from chatpage import chatpage
-from llmoaiconfig import LLMOaiConfig, LLMOaiSettings
+from llmconfig.llmoaiconfig import LLMOaiConfig, LLMOaiSettings
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)

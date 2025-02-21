@@ -2,7 +2,7 @@ import timeit
 
 import config
 import data
-from llmoaiconfig import LLMOaiConfig, LLMOaiExchange, LLMOaiSettings
+from llmconfig.llmoaiconfig import LLMOaiConfig, LLMOaiExchange, LLMOaiSettings
 
 
 def model_warmup(cfg: LLMOaiConfig, model: str):

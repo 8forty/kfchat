@@ -6,7 +6,7 @@ import traceback
 from dataclasses import dataclass, field
 
 from fastapi import Request
-from nicegui import ui, run, Client, context
+from nicegui import ui, run, Client
 from nicegui.elements.input import Input
 from nicegui.elements.scroll_area import ScrollArea
 from nicegui.elements.select import Select
@@ -14,11 +14,10 @@ from nicegui.elements.spinner import Spinner
 from nicegui.events import Handler, ValueChangeEventArguments
 
 import config
-import data
 import frame
 import logstuff
 from chatexchanges import ChatExchange, VectorStoreResponse, LLMOaiResponse
-from llmoaiconfig import LLMOaiExchange, LLMOaiConfig
+from llmconfig.llmoaiconfig import LLMOaiExchange, LLMOaiConfig
 from vectorstore.vsapi import VSAPI
 from .instancedata import InstanceData
 

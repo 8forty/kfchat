@@ -3,7 +3,7 @@ import timeit
 import dotenv
 from dotenv import load_dotenv
 
-from llmoaiconfig import LLMOaiConfig, LLMOaiExchange, LLMOaiSettings
+from llmconfig.llmoaiconfig import LLMOaiConfig, LLMOaiExchange, LLMOaiSettings
 
 load_dotenv(override=True)
 
