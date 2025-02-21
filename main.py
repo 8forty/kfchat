@@ -33,31 +33,32 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
     settings = LLMOaiSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_system_message_name='professional800')
     llm_configs_list = [
 
-        LLMOaiConfig(model_name='Cohere-command-r-plus-08-2024', provider_name='github', settings=settings),
         LLMOaiConfig(model_name='gpt-4o-mini', provider_name='github', settings=settings),
         LLMOaiConfig(model_name='gpt-4o', provider_name='github', settings=settings),
         LLMOaiConfig(model_name='deepseek-r1', provider_name='github', settings=settings),
         LLMOaiConfig(model_name='Phi-4', provider_name='github', settings=settings),
         LLMOaiConfig(model_name='AI21-Jamba-1.5-Large', provider_name='github', settings=settings),
         LLMOaiConfig(model_name='Cohere-command-r-08-2024', provider_name='github', settings=settings),
+        LLMOaiConfig(model_name='Cohere-command-r-plus-08-2024', provider_name='github', settings=settings),
         LLMOaiConfig(model_name='Llama-3.3-70B-Instruct', provider_name='github', settings=settings),
-        LLMOaiConfig(model_name='Mistral-large', provider_name='github', settings=settings),
+        LLMOaiConfig(model_name='Mistral-Large-2411', provider_name='github', settings=settings),
 
         LLMOaiConfig(model_name='llama-3.3-70b-versatile', provider_name='groq', settings=settings),
         LLMOaiConfig(model_name='deepseek-r1-distill-llama-70b', provider_name='groq', settings=settings),
+        LLMOaiConfig(model_name='gemma2-9b-it', provider_name='groq', settings=settings),
+        LLMOaiConfig(model_name='mixtral-8x7b-32768', provider_name='groq', settings=settings),
 
         LLMOaiConfig(model_name='llama3.2:1b', provider_name='ollama', settings=settings),
         LLMOaiConfig(model_name='llama3.2:3b', provider_name='ollama', settings=settings),
         LLMOaiConfig(model_name='mistral-nemo:12b', provider_name='ollama', settings=settings),
+        LLMOaiConfig(model_name='gemma2:2b', provider_name='ollama', settings=settings),
         LLMOaiConfig(model_name='gemma2:9b', provider_name='ollama', settings=settings),
         LLMOaiConfig(model_name='llama3.3:70b-instruct-q2_K', provider_name='ollama', settings=settings),
-        LLMOaiConfig(model_name='deepseek-v2:16b', provider_name='ollama', settings=settings),
-        LLMOaiConfig(model_name='deepseek-r1:14b', provider_name='ollama', settings=settings),
-        LLMOaiConfig(model_name='deepseek-r1:8b', provider_name='ollama', settings=settings),
         LLMOaiConfig(model_name='deepseek-r1:1.5b', provider_name='ollama', settings=settings),
+        LLMOaiConfig(model_name='deepseek-r1:8b', provider_name='ollama', settings=settings),
+        LLMOaiConfig(model_name='deepseek-r1:14b', provider_name='ollama', settings=settings),
+        LLMOaiConfig(model_name='deepseek-v2:16b', provider_name='ollama', settings=settings),
         LLMOaiConfig(model_name='phi4:14b', provider_name='ollama', settings=settings),
-        LLMOaiConfig(model_name='gemma2:9b', provider_name='ollama', settings=settings),
-        LLMOaiConfig(model_name='gemma2:2b', provider_name='ollama', settings=settings),
 
         LLMOaiConfig(model_name='gemini-1.5-flash', provider_name='gemini', settings=settings),
         LLMOaiConfig(model_name='gemini-1.5-flash-8b', provider_name='gemini', settings=settings),
@@ -75,6 +76,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
 
     ]
     llm_configs = OrderedDict({f'{lc.provider_name}.{lc.model_name}': lc for lc in llm_configs_list})
+    init_llm = 'github.Cohere-command-r-plus-08-2024'
 
     # setup vs
     try:
@@ -95,7 +97,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         raise
 
     # the chat page
-    cp = chatpage.ChatPage(llm_configs=llm_configs, init_llm=list(llm_configs.keys())[0], vectorstore=vectorstore, parms=config.env)
+    cp = chatpage.ChatPage(llm_configs=llm_configs, init_llm=init_llm, vectorstore=vectorstore, parms=config.env)
     cp.setup('/', 'Chat')
 
     # the chromadb page
