@@ -238,7 +238,7 @@ class VSChroma(VSAPI):
             results_raw=raw_results
         )
 
-    def search(self, prompt: str, howmany: int, source_name: str, mode: str) -> VectorStoreResponse:
+    def search(self, prompt: str, howmany: int) -> VectorStoreResponse:
         sresp: VSAPI.SearchResponse = self.raw_search(prompt, howmany)
 
         vs_results: list[VectorStoreResult] = []
@@ -252,7 +252,7 @@ class VSChroma(VSAPI):
             }
             vs_results.append(VectorStoreResult(sresp.results_raw[result_idx]['ids'], metrics,
                                                 sresp.results_raw[result_idx]['documents']))
-        return VectorStoreResponse(vs_results, source_name=source_name, mode=mode)
+        return VectorStoreResponse(vs_results)
 
     def delete_index(self, index_name: str):
         self._build_clients()

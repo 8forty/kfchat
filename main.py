@@ -80,7 +80,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         # LLMAnthropicConfig(model_name='claude-3-5-sonnet-20241022', provider_name='anthropic', settings=settings_anthropic),
     ]
     llm_configs = OrderedDict({f'{lc.provider_name}.{lc.model_name}': lc for lc in llm_configs_list})
-    init_llm = 'github.Cohere-command-r-plus-08-2024'
+    init_llm = 'github.gpt-4o'
 
     # setup vs
     try:

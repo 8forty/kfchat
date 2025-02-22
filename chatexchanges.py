@@ -10,13 +10,11 @@ log.setLevel(logstuff.logging_level)
 
 
 class LLMOaiResponse:
-    def __init__(self, chat_completion: ChatCompletion, llm_config: LLMConfig, source_name: str, mode: str):
+    def __init__(self, chat_completion: ChatCompletion, llm_config: LLMConfig):
         self.chat_completion: ChatCompletion = chat_completion
         self.provider: str = llm_config.provider()
         self.model_name: str = llm_config.model_name
         self.settings = llm_config.copy_settings()
-        self.source_name: str = source_name
-        self.mode: str = mode
 
     def __repr__(self) -> str:
         return f'[{self.__class__!s}:{self.__dict__!r}]'
@@ -34,10 +32,8 @@ class VectorStoreResult:
 
 
 class VectorStoreResponse:
-    def __init__(self, results: list[VectorStoreResult], source_name: str, mode: str):
+    def __init__(self, results: list[VectorStoreResult]):
         self.results = results
-        self.source_name: str = source_name
-        self.mode: str = mode
 
     def __repr__(self) -> str:
         return self.results.__repr__()
@@ -54,10 +50,12 @@ class ChatExchange:
     #     system_fingerprint: Optional[str] = None  This fingerprint represents the backend configuration that the model runs with, in conjunction with the `seed` to detect backend changes
     #     usage: Optional[CompletionUsage] = None  Usage statistics for the completion request.
 
-    def __init__(self, prompt: str, response_duration_secs: float,
+    def __init__(self, prompt: str, response_duration_secs: float, source_name: str, mode: str,
                  llm_response: LLMOaiResponse | None, vector_store_response: VectorStoreResponse | None):
         self.prompt: str = prompt
         self.response_duration_secs: float = response_duration_secs
+        self.source_name: str = source_name
+        self.mode: str = mode
 
         self.llm_response: LLMOaiResponse | None = llm_response
         self.vector_store_response: VectorStoreResponse | None = vector_store_response

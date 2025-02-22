@@ -116,7 +116,7 @@ class ChatPage:
                         for choice in ex_resp.chat_completion.choices:
                             rtext.results.append(f'{choice.message.content}')  # .classes(response_text_classes)
                             rtext.result_subscripts.append([f'logprobs: {choice.logprobs}'])
-                        rtext.response_context += f'{ex_resp.mode},{ex_resp.provider}:{ex_resp.model_name},{ex_resp.settings.numbers_oneline_logging_str()}'
+                        rtext.response_context += f'{exchange.mode},{ex_resp.provider}:{ex_resp.model_name},{ex_resp.settings.numbers_oneline_logging_str()}'
                         rtext.response_subscripts.append(f'tokens:{ex_resp.chat_completion.usage.prompt_tokens}->{ex_resp.chat_completion.usage.completion_tokens}')
                         rtext.response_subscripts.append(f'{ex_resp.settings.texts_oneline_logging_str()}')
 
@@ -131,9 +131,9 @@ class ChatPage:
                     # vector store response
                     elif exchange.vector_store_response is not None:
                         vs_resp = exchange.vector_store_response
-                        rtext.response_context += f'{vs_resp.mode},{vs_resp.source_name}'
+                        rtext.response_context += f'{exchange.mode},{exchange.source_name}'
                         for result in exchange.vector_store_response.results:
-                            rtext.results.append(f'[{vs_resp.mode}]: {result.content}')  # .classes(response_text_classes)
+                            rtext.results.append(f'[{exchange.mode}]: {result.content}')  # .classes(response_text_classes)
 
                             metric_list = []
                             for metric in result.metrics:
@@ -208,7 +208,8 @@ class ChatPage:
             if exchange is not None:
                 log.debug(f'chat completion: {exchange.completion}')
                 ce = ChatExchange(exchange.prompt, response_duration_secs=timeit.default_timer() - start,
-                                  llm_response=LLMOaiResponse(exchange.completion, idata.llm_config, idata.current_source, idata.current_mode), vector_store_response=None)
+                                  llm_response=LLMOaiResponse(exchange.completion, idata.llm_config), vector_store_response=None,
+                                  source_name=idata.current_source, mode=idata.current_mode)
                 for choice_idx, sp_text in ce.stop_problems().items():
                     log.warning(f'stop problem from prompt {prompt} choice[{choice_idx}]: {sp_text}')
                 idata.exchanges.append(ce)
@@ -220,8 +221,7 @@ class ChatPage:
 
             vsresponse: VectorStoreResponse | None = None
             try:
-                vsresponse = await run.io_bound(lambda: idata.vectorstore.search(prompt, howmany=idata.llm_config.settings.n,
-                                                                                 source_name=idata.current_source, mode=idata.current_mode))
+                vsresponse = await run.io_bound(lambda: idata.vectorstore.search(prompt, howmany=idata.llm_config.settings.n))
                 log.debug(f'vector-search response: {vsresponse}')
             except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)
@@ -230,7 +230,8 @@ class ChatPage:
                 ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
 
             if vsresponse is not None:
-                ce = ChatExchange(prompt, response_duration_secs=timeit.default_timer() - start, llm_response=None, vector_store_response=vsresponse)
+                ce = ChatExchange(prompt, response_duration_secs=timeit.default_timer() - start, llm_response=None, vector_store_response=vsresponse,
+                                  source_name=idata.current_source, mode=idata.current_mode)
                 idata.exchanges.append(ce)
 
         async def handle_enter(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, settings_select: dict[str, Select], idata: InstanceData) -> None:

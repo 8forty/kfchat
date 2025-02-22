@@ -101,7 +101,7 @@ class VSAzure(VSAPI):
             results_raw=raw_results
         )
 
-    def search(self, prompt: str, howmany: int, source_name: str, mode: str) -> VectorStoreResponse:
+    def search(self, prompt: str, howmany: int) -> VectorStoreResponse:
         sresp: VSAPI.SearchResponse = self.raw_search(prompt, howmany)
 
         vs_results: list[VectorStoreResult] = []
@@ -117,7 +117,7 @@ class VSAzure(VSAPI):
             # todo: this probably isn't right
             vs_results.append(VectorStoreResult(sresp.results_raw[result_idx]['ids'], metrics,
                                                 sresp.results_raw[result_idx]['documents']))
-        return VectorStoreResponse(vs_results, source_name, mode)
+        return VectorStoreResponse(vs_results)
 
     def switch_index(self, new_index_name: str) -> None:
         log.info(f'changing index to [{new_index_name}]')
