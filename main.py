@@ -32,7 +32,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
     # setup llm
     # todo: these should come from somewhere, e.g. pref screen
     settings_openai = LLMOaiSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_system_message_name='professional800')
-    settings_anthropic = LLMAnthropicSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_system_message_name='professional800')
+    settings_anthropic = LLMAnthropicSettings(init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_system_message_name='professional800')
     llm_configs_list = [
 
         LLMOaiConfig(model_name='gpt-4o-mini', provider_name='github', settings=settings_openai),

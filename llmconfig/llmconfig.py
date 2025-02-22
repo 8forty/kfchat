@@ -1,5 +1,5 @@
 import logging
-from abc import ABC
+from abc import ABC, abstractmethod
 from collections import OrderedDict
 
 import logstuff
@@ -8,7 +8,20 @@ log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
 
-class LLMConfig(ABC):
+class LLMSettings(ABC):
+    def __init__(self):
+        pass
+
+    @abstractmethod
+    def numbers_oneline_logging_str(self) -> str:
+        pass
+
+    @abstractmethod
+    def texts_oneline_logging_str(self) -> str:
+        pass
+
+
+class LLMConfig():
     def __init__(self, model_name: str, provider_name: str):
         """
 
@@ -21,10 +34,10 @@ class LLMConfig(ABC):
         self.conversational_sysmsg = 'You are a helpful chatbot that talks in a conversational manner.'
         self.conversational80_sysmsg = ('You are a helpful chatbot that talks in a conversational manner. '
                                         'Your responses must always be less than 80 tokens.')
-        self.professional_sysmsg = 'You are a helpful chatbot that talks in a conversational manner.'
-        self.professional80_sysmsg = ('You are a helpful chatbot that talks in a conversational manner. '
+        self.professional_sysmsg = 'You are a helpful chatbot that talks in a professional manner.'
+        self.professional80_sysmsg = ('You are a helpful chatbot that talks in a professional manner. '
                                       'Your responses must always be less than 80 tokens.')
-        self.professional800_sysmsg = ('You are a helpful chatbot that talks in a conversational manner. '
+        self.professional800_sysmsg = ('You are a helpful chatbot that talks in a professional manner. '
                                        'Your responses must always be less than 800 tokens.')
         self.technical_sysmsg = ('You are an AI research assistant. '
                                  'Respond in a tone that is technical and scientific.')
@@ -54,3 +67,6 @@ class LLMConfig(ABC):
 
     def provider(self) -> str:
         return self.provider_name
+
+    def copy_settings(self) -> LLMSettings:
+        pass

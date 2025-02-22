@@ -116,9 +116,9 @@ class ChatPage:
                         for choice in ex_resp.chat_completion.choices:
                             rtext.results.append(f'{choice.message.content}')  # .classes(response_text_classes)
                             rtext.result_subscripts.append([f'logprobs: {choice.logprobs}'])
-                        rtext.response_context += f'{ex_resp.mode},{ex_resp.provider}:{ex_resp.model_name},n:{ex_resp.n},temp:{ex_resp.temp},top_p:{ex_resp.top_p},max_tokens:{ex_resp.max_tokens}'
+                        rtext.response_context += f'{ex_resp.mode},{ex_resp.provider}:{ex_resp.model_name},{ex_resp.settings.numbers_oneline_logging_str()}'
                         rtext.response_subscripts.append(f'tokens:{ex_resp.chat_completion.usage.prompt_tokens}->{ex_resp.chat_completion.usage.completion_tokens}')
-                        rtext.response_subscripts.append(f'{ex_resp.system_message}')
+                        rtext.response_subscripts.append(f'{ex_resp.settings.texts_oneline_logging_str()}')
 
                         # stop problems
                         for choice_idx, stop_problem in exchange.stop_problems().items():

@@ -10,7 +10,7 @@ from openai.types.chat import ChatCompletion
 import data
 import logstuff
 from config import redact
-from llmconfig.llmconfig import LLMConfig
+from llmconfig.llmconfig import LLMConfig, LLMSettings
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -56,7 +56,7 @@ class LLMOaiExchange:
     completion: ChatCompletion
 
 
-class LLMOaiSettings:
+class LLMOaiSettings(LLMSettings):
     def __init__(self, init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int, init_system_message_name: str):
         """
 
@@ -67,12 +67,19 @@ class LLMOaiSettings:
         :param init_system_message_name:
 
         """
+        super().__init__()
         self.n = init_n
         self.temp = init_temp
         self.top_p = init_top_p
         self.max_tokens = init_max_tokens
         self.system_message_name = init_system_message_name
         self.system_message = data.dummy_llm_config.sysmsg_all[init_system_message_name]
+
+    def numbers_oneline_logging_str(self) -> str:
+        return f'n:{self.n},temp:{self.temp},top_p:{self.top_p},max_tokens:{self.max_tokens}'
+
+    def texts_oneline_logging_str(self) -> str:
+        return f'sysmsg:{self.system_message}'
 
 
 class LLMOaiConfig(LLMConfig):
@@ -94,6 +101,9 @@ class LLMOaiConfig(LLMConfig):
 
     def __repr__(self) -> str:
         return f'[{self.__class__!s}:{self.__dict__!r}]'
+
+    def copy_settings(self) -> LLMSettings:
+        return LLMOaiSettings(self.settings.n, self.settings.temp, self.settings.top_p, self.settings.max_tokens, self.settings.system_message_name)
 
     async def change_n(self, new_n: int):
         log.info(f'{self.model_name} changing n to: {new_n}')

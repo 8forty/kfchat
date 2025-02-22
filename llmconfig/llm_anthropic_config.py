@@ -10,7 +10,7 @@ import data
 import logstuff
 from config import redact
 from llmconfig.llm_anthropic_exchange import LLMAnthropicExchange
-from llmconfig.llmconfig import LLMConfig
+from llmconfig.llmconfig import LLMConfig, LLMSettings
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -27,9 +27,9 @@ providers_config = {
 }
 
 
-class LLMAnthropicSettings:
+class LLMAnthropicSettings(LLMSettings):
     # todo: all of these?
-    def __init__(self, init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int, init_system_message_name: str):
+    def __init__(self, init_temp: float, init_top_p: float, init_max_tokens: int, init_system_message_name: str):
         """
 
         :param init_n:
@@ -39,12 +39,18 @@ class LLMAnthropicSettings:
         :param init_system_message_name:
 
         """
-        self.n = init_n
+        super().__init__()
         self.temp = init_temp
         self.top_p = init_top_p
         self.max_tokens = init_max_tokens
         self.system_message_name = init_system_message_name
         self.system_message = data.dummy_llm_config.sysmsg_all[init_system_message_name]
+
+    def numbers_oneline_logging_str(self) -> str:
+        return f'temp:{self.temp},top_p:{self.top_p},max_tokens:{self.max_tokens}'
+
+    def texts_oneline_logging_str(self) -> str:
+        return f'sysmsg:{self.system_message}'
 
 
 class LLMAnthropicConfig(LLMConfig):
@@ -66,6 +72,9 @@ class LLMAnthropicConfig(LLMConfig):
 
     def __repr__(self) -> str:
         return f'[{self.__class__!s}:{self.__dict__!r}]'
+
+    def copy_settings(self) -> LLMSettings:
+        return LLMAnthropicSettings(self.settings.temp, self.settings.top_p, self.settings.max_tokens, self.settings.system_message_name)
 
     async def change_n(self, new_n: int):
         log.info(f'{self.model_name} changing n to: {new_n}')

@@ -3,22 +3,18 @@ import logging
 from openai.types.chat import ChatCompletion
 
 import logstuff
-from llmconfig.llmoaiconfig import LLMOaiConfig
+from llmconfig.llmconfig import LLMConfig
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
 
 class LLMOaiResponse:
-    def __init__(self, chat_completion: ChatCompletion, llm_config: LLMOaiConfig, source_name: str, mode: str):
+    def __init__(self, chat_completion: ChatCompletion, llm_config: LLMConfig, source_name: str, mode: str):
         self.chat_completion: ChatCompletion = chat_completion
         self.provider: str = llm_config.provider()
         self.model_name: str = llm_config.model_name
-        self.n: int = llm_config.settings.n
-        self.temp: float = llm_config.settings.temp
-        self.top_p: float = llm_config.settings.top_p
-        self.max_tokens: int = llm_config.settings.max_tokens
-        self.system_message: str = llm_config.settings.system_message
+        self.settings = llm_config.copy_settings()
         self.source_name: str = source_name
         self.mode: str = mode
 
