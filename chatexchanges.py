@@ -50,11 +50,11 @@ class ChatExchange:
     #     system_fingerprint: Optional[str] = None  This fingerprint represents the backend configuration that the model runs with, in conjunction with the `seed` to detect backend changes
     #     usage: Optional[CompletionUsage] = None  Usage statistics for the completion request.
 
-    def __init__(self, prompt: str, response_duration_secs: float, source_name: str, mode: str,
+    def __init__(self, prompt: str, response_duration_secs: float, source: str, mode: str,
                  llm_response: LLMOaiResponse | None, vector_store_response: VectorStoreResponse | None):
         self.prompt: str = prompt
         self.response_duration_secs: float = response_duration_secs
-        self.source_name: str = source_name
+        self.source: str = source
         self.mode: str = mode
 
         self.llm_response: LLMOaiResponse | None = llm_response

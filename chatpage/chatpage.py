@@ -131,7 +131,7 @@ class ChatPage:
                     # vector store response
                     elif exchange.vector_store_response is not None:
                         vs_resp = exchange.vector_store_response
-                        rtext.response_context += f'{exchange.mode},{exchange.source_name}'
+                        rtext.response_context += f'{exchange.mode},{exchange.source}'
                         for result in exchange.vector_store_response.results:
                             rtext.results.append(f'[{exchange.mode}]: {result.content}')  # .classes(response_text_classes)
 
@@ -159,7 +159,7 @@ class ChatPage:
             return exchange
 
         async def handle_special_prompt(prompt: str, settings_select: dict[str, Select], idata: InstanceData) -> None:
-            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.current_mode}:{idata.llm_config.provider()}:{idata.llm_config.model_name}): "{prompt}"')
+            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.mode}:{idata.llm_config.provider()}:{idata.llm_config.model_name}): "{prompt}"')
             about = 'special commands: *, *info, *repeat, *forget, *n'
 
             # extract *n, e.g. "*2", "*3"...
@@ -191,7 +191,7 @@ class ChatPage:
 
         async def handle_llm_prompt(prompt: str, idata: InstanceData) -> None:
             log.info(
-                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.current_mode}:{idata.llm_config.provider()}:{idata.llm_config.model_name},'
+                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.mode}:{idata.llm_config.provider()}:{idata.llm_config.model_name},'
                 f'{idata.llm_config.settings.temp},{idata.llm_config.settings.top_p},{idata.llm_config.settings.max_tokens}): "{prompt}"')
 
             start = timeit.default_timer()
@@ -209,13 +209,13 @@ class ChatPage:
                 log.debug(f'chat completion: {exchange.completion}')
                 ce = ChatExchange(exchange.prompt, response_duration_secs=timeit.default_timer() - start,
                                   llm_response=LLMOaiResponse(exchange.completion, idata.llm_config), vector_store_response=None,
-                                  source_name=idata.current_source, mode=idata.current_mode)
+                                  source=idata.source, mode=idata.mode)
                 for choice_idx, sp_text in ce.stop_problems().items():
                     log.warning(f'stop problem from prompt {prompt} choice[{choice_idx}]: {sp_text}')
                 idata.exchanges.append(ce)
 
         async def handle_vector_search_prompt(prompt: str, idata: InstanceData) -> None:
-            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.current_mode}:{idata.current_source}): "{prompt}"')
+            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.mode}:{idata.source}): "{prompt}"')
 
             start = timeit.default_timer()
 
@@ -231,7 +231,7 @@ class ChatPage:
 
             if vsresponse is not None:
                 ce = ChatExchange(prompt, response_duration_secs=timeit.default_timer() - start, llm_response=None, vector_store_response=vsresponse,
-                                  source_name=idata.current_source, mode=idata.current_mode)
+                                  source=idata.source, mode=idata.mode)
                 idata.exchanges.append(ce)
 
         async def handle_enter(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, settings_select: dict[str, Select], idata: InstanceData) -> None:
@@ -288,11 +288,11 @@ class ChatPage:
                 with (ui.column().classes('w-full flex-grow border-solid border border-black')):  # place-content-center')):
                     # the settings selection row
                     with (ui.row().classes('w-full border-solid border border-black')):  # place-content-center')):
-                        source_names = idata.all_source_names()
+                        sources = idata.all_sources()
                         settings = self.llm_config.settings
                         selmodel = ui.select(label='Source:',
-                                             options=source_names,
-                                             value=idata.source_selected_name,
+                                             options=sources,
+                                             value=idata.source_selected,
                                              ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_source(vc.value), pinput, spinner)
                                                                ).tooltip('vs=vector search, llm=lang model chat').props('square outlined label-color=green').classes('min-w-30')
                         seln = ui.select(label='n:',
