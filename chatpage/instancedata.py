@@ -55,8 +55,8 @@ class InstanceData:
     def forget(self):
         self.exchanges.clear()
 
-    async def change_model(self, selected_name: str):
-        log.info(f'Changing model to: {selected_name}')
+    async def change_source(self, selected_name: str):
+        log.info(f'Changing source to: {selected_name}')
 
         if selected_name.startswith(self.llm_mode_prefix):
             self.current_mode = self.llm_mode_name

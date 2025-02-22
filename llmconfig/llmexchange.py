@@ -19,3 +19,10 @@ class LLMExchange(ABC):
         self.responses = responses
         self.response_duration_secs = response_duration_seconds
         self.problems = problems  # [response-idx, problem-description]
+
+        self.provider: str = llm_config.provider()
+        self.model_name: str = llm_config.model_name
+        self.settings = llm_config.copy_settings()
+        self.source_name: str = source_name
+        self.mode: str = mode
+

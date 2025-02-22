@@ -289,10 +289,10 @@ class ChatPage:
                     with (ui.row().classes('w-full border-solid border border-black')):  # place-content-center')):
                         source_names = idata.all_source_names()
                         settings = self.llm_config.settings
-                        selmodel = ui.select(label='Model:',
+                        selmodel = ui.select(label='Source:',
                                              options=source_names,
                                              value=idata.source_selected_name,
-                                             ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_model(vc.value), pinput, spinner)
+                                             ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_source(vc.value), pinput, spinner)
                                                                ).tooltip('vs=vector search, llm=lang model chat').props('square outlined label-color=green').classes('min-w-30')
                         seln = ui.select(label='n:',
                                          options=[i for i in range(1, 10)],
