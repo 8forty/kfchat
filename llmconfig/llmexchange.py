@@ -1,6 +1,5 @@
 import logging
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from abc import ABC
 
 import logstuff
 
@@ -8,16 +7,15 @@ log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
 
-@dataclass
-class LLMResponse:
-    role: str
-    content: str
+class LLMResponse(ABC):
+    def __init__(self, role: str, content: str):
+        self.role = role
+        self.content = content
 
 
 class LLMExchange(ABC):
-    def __init__(self, prompt: str):
+    def __init__(self, prompt: str, responses: list[LLMResponse], response_duration_seconds: float, problems: dict[int, str]):
         self.prompt = prompt
-
-    @abstractmethod
-    def responses(self) -> list[LLMResponse]:
-        pass
+        self.responses = responses
+        self.response_duration_secs = response_duration_seconds
+        self.problems = problems  # [response-idx, problem-description]
