@@ -22,6 +22,8 @@ class LLMOaiExchange(LLMExchange):
                          model_name=model_name,
                          settings=settings,
                          responses=[LLMResponse(choice.message.role, choice.message.content) for choice in chat_completion.choices],
+                         input_tokens=chat_completion.usage.prompt_tokens,
+                         output_tokens=chat_completion.usage.completion_tokens,
                          response_duration_seconds=response_duration_seconds,
                          problems={idx: choice.finish_reason for idx, choice in enumerate(chat_completion.choices) if choice.finish_reason in stop_problem_reasons})
         self.cc = chat_completion

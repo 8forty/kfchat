@@ -16,7 +16,8 @@ from nicegui.events import Handler, ValueChangeEventArguments
 import config
 import frame
 import logstuff
-from chatexchanges import ChatExchange, VectorStoreResponse, LLMOaiResponse
+from chatexchanges import ChatExchange, VectorStoreResponse
+from llmconfig.llmexchange import LLMExchange
 from llmconfig.llmoaiconfig import LLMOaiExchange, LLMOaiConfig
 from vectorstore.vsapi import VSAPI
 from .instancedata import InstanceData
@@ -111,17 +112,17 @@ class ChatPage:
                     rtext: ResponseText = ResponseText(exchange.response_duration_secs, exchange.prompt)
 
                     # llm response
-                    if exchange.llm_response is not None:
-                        ex_resp = exchange.llm_response
-                        for choice in ex_resp.chat_completion.choices:
-                            rtext.results.append(f'{choice.message.content}')  # .classes(response_text_classes)
-                            rtext.result_subscripts.append([f'logprobs: {choice.logprobs}'])
-                        rtext.response_context += f'{exchange.mode},{ex_resp.provider}:{ex_resp.model_name},{ex_resp.settings.numbers_oneline_logging_str()}'
-                        rtext.response_subscripts.append(f'tokens:{ex_resp.chat_completion.usage.prompt_tokens}->{ex_resp.chat_completion.usage.completion_tokens}')
-                        rtext.response_subscripts.append(f'{ex_resp.settings.texts_oneline_logging_str()}')
+                    if exchange.llm_exchange is not None:
+                        llm_exchange = exchange.llm_exchange
+                        for response in llm_exchange.responses:
+                            rtext.results.append(f'{response.content}')  # .classes(response_text_classes)
+                            rtext.result_subscripts.append([f'logprobs: {"TBD"}'])
+                        rtext.response_context += f'{exchange.mode},{llm_exchange.provider}:{llm_exchange.model_name},{llm_exchange.settings.numbers_oneline_logging_str()}'
+                        rtext.response_subscripts.append(f'tokens:{llm_exchange.input_tokens}->{llm_exchange.output_tokens}')
+                        rtext.response_subscripts.append(f'{llm_exchange.settings.texts_oneline_logging_str()}')
 
                         # stop problems
-                        for choice_idx, stop_problem in exchange.stop_problems().items():
+                        for choice_idx, stop_problem in exchange.problems().items():
                             rtext.response_problems.append(f'stop[{choice_idx}]:{stop_problem}')
 
                         # exchange problems
@@ -152,9 +153,9 @@ class ChatPage:
 
             scroller.scroll_to(percent=1e6)  # 1e6 works around quasar scroll-area bug
 
-        def do_llm(prompt: str, idata: InstanceData) -> LLMOaiExchange:
+        def do_llm(prompt: str, idata: InstanceData) -> LLMExchange:
             # todo: count tokens, etc.
-            convo = [LLMOaiExchange(ex.prompt, ex.llm_response.chat_completion) for ex in idata.exchanges.list() if ex.llm_response is not None]
+            convo = [ex.llm_exchange for ex in idata.exchanges.list() if ex.llm_exchange is not None]
             exchange: LLMOaiExchange = idata.llm_config.chat_convo(convo=convo, prompt=prompt)
             return exchange
 
@@ -194,9 +195,7 @@ class ChatPage:
                 f'(exchanges[{idata.exchanges.id()}]) prompt({idata.mode}:{idata.llm_config.provider()}:{idata.llm_config.model_name},'
                 f'{idata.llm_config.settings.temp},{idata.llm_config.settings.top_p},{idata.llm_config.settings.max_tokens}): "{prompt}"')
 
-            start = timeit.default_timer()
-
-            exchange: LLMOaiExchange | None = None
+            exchange: LLMExchange | None = None
             try:
                 exchange = await run.io_bound(lambda: do_llm(prompt, idata))
             except (Exception,) as e:
@@ -206,11 +205,11 @@ class ChatPage:
                 ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
 
             if exchange is not None:
-                log.debug(f'chat completion: {exchange.completion}')
-                ce = ChatExchange(exchange.prompt, response_duration_secs=timeit.default_timer() - start,
-                                  llm_response=LLMOaiResponse(exchange.completion, idata.llm_config), vector_store_response=None,
+                log.debug(f'llm exchange responses: {exchange.responses}')
+                ce = ChatExchange(exchange.prompt, response_duration_secs=exchange.response_duration_secs,
+                                  llm_exchange=exchange, vector_store_response=None,
                                   source=idata.source, mode=idata.mode)
-                for choice_idx, sp_text in ce.stop_problems().items():
+                for choice_idx, sp_text in ce.problems().items():
                     log.warning(f'stop problem from prompt {prompt} choice[{choice_idx}]: {sp_text}')
                 idata.exchanges.append(ce)
 
@@ -230,7 +229,7 @@ class ChatPage:
                 ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
 
             if vsresponse is not None:
-                ce = ChatExchange(prompt, response_duration_secs=timeit.default_timer() - start, llm_response=None, vector_store_response=vsresponse,
+                ce = ChatExchange(prompt, response_duration_secs=timeit.default_timer() - start, llm_exchange=None, vector_store_response=vsresponse,
                                   source=idata.source, mode=idata.mode)
                 idata.exchanges.append(ce)
 

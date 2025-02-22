@@ -65,13 +65,13 @@ def run(provider_name: str, model_set_name: str, settings_set_name: str, message
                 ms_end = timeit.default_timer()
 
                 print(f'{config.secs_string(all_start)}: [{cfg.provider()}:{model}] [{settings_set['temp']}] [{settings_set['max_tokens']}] [{message_set["name"]}]: '
-                      f'[{exchange.completion.usage.prompt_tokens}+{exchange.completion.usage.completion_tokens}] '
+                      f'[{exchange.input_tokens}+{exchange.output_tokens}] '
                       f'[{ms_end - ms_start:.0f}]s')
-                response_1line = str(exchange.completion.choices[0].message.content).replace("\n", "  ").replace('"', '""')
+                response_1line = str(exchange.responses[0].content).replace("\n", "  ").replace('"', '""')
                 print(f'{config.secs_string(all_start)}:     {response_1line}')
                 csv_data.append([cfg.provider(), model, str(settings_set['temp']), str(settings_set['max_tokens']),
                                  message_set["name"],
-                                 str(exchange.completion.usage.prompt_tokens), str(exchange.completion.usage.completion_tokens),
+                                 str(exchange.input_tokens), str(exchange.output_tokens),
                                  str(int(ms_end - ms_start)),
                                  '"' + response_1line + '"'],
                                 )

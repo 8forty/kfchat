@@ -25,10 +25,10 @@ def run(provider_name: str, model_name: str):
                     cfg=cfg)
     end = timeit.default_timer()
 
-    print(exchange.completion.choices[0].message.content)
+    print(exchange.responses[0].content)
 
     print(f'\n{cfg.provider()}:{model_name} '
-          f'responded with {exchange.completion.usage.prompt_tokens}+{exchange.completion.usage.completion_tokens} tokens '
+          f'responded with {exchange.input_tokens}+{exchange.output_tokens} tokens '
           f'in {end - start:.0f} seconds')
 
 

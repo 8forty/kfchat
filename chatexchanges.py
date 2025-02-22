@@ -1,23 +1,11 @@
 import logging
 
-from openai.types.chat import ChatCompletion
-
 import logstuff
-from llmconfig.llmconfig import LLMConfig
+from llmconfig.llmexchange import LLMExchange
+from llmconfig.llmoaiexchange import LLMOaiExchange
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
-
-
-class LLMOaiResponse:
-    def __init__(self, chat_completion: ChatCompletion, llm_config: LLMConfig):
-        self.chat_completion: ChatCompletion = chat_completion
-        self.provider: str = llm_config.provider()
-        self.model_name: str = llm_config.model_name
-        self.settings = llm_config.copy_settings()
-
-    def __repr__(self) -> str:
-        return f'[{self.__class__!s}:{self.__dict__!r}]'
 
 
 class VectorStoreResult:
@@ -51,42 +39,22 @@ class ChatExchange:
     #     usage: Optional[CompletionUsage] = None  Usage statistics for the completion request.
 
     def __init__(self, prompt: str, response_duration_secs: float, source: str, mode: str,
-                 llm_response: LLMOaiResponse | None, vector_store_response: VectorStoreResponse | None):
+                 llm_exchange: LLMExchange | None, vector_store_response: VectorStoreResponse | None):
         self.prompt: str = prompt
         self.response_duration_secs: float = response_duration_secs
         self.source: str = source
         self.mode: str = mode
 
-        self.llm_response: LLMOaiResponse | None = llm_response
+        self.llm_exchange = llm_exchange
         self.vector_store_response: VectorStoreResponse | None = vector_store_response
 
-        self._stop_problems: dict[int, str] = {}
         self._overflowed = False
 
-        # calc stop_problems if there's an llm response
-        if self.llm_response is not None:
-            for i in range(0, len(llm_response.chat_completion.choices)):
-                choice = llm_response.chat_completion.choices[i]
-                stop_problem = ''
-                match choice.finish_reason:
-                    case 'length':
-                        stop_problem = 'too many tokens'
-                    case 'content_filter':
-                        stop_problem = 'flagged by content filter'
-                    case 'tool_calls':
-                        stop_problem = 'called a tool'
-                    case 'function_call':
-                        stop_problem = 'called a function'
-
-                if len(stop_problem) > 0:
-                    self._stop_problems[i] = stop_problem  # add problem to the dict
-
-    def stop_problems(self) -> dict[int, str]:
+    def problems(self) -> dict[int, str]:
         """
-        get stop problems reported in ChatCompletion
-        :return: dict of choice-idx -> text of stop problem
+        :return: dict of [response-idx -> text of problem]
         """
-        return self._stop_problems
+        return self.llm_exchange.problems
 
     def overflowed(self) -> bool:
         return self._overflowed

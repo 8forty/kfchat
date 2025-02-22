@@ -1,6 +1,6 @@
 import logging
 import time
-from dataclasses import dataclass
+import timeit
 from typing import Iterable
 
 import dotenv
@@ -11,6 +11,8 @@ import data
 import logstuff
 from config import redact
 from llmconfig.llmconfig import LLMConfig, LLMSettings
+from llmconfig.llmexchange import LLMResponse, LLMExchange
+from llmconfig.llmoaiexchange import LLMOaiExchange
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -48,12 +50,6 @@ providers_config = {
         'GITHUB_ENDPOINT': env.get('GITHUB_ENDPOINT'),
     },
 }
-
-
-@dataclass
-class LLMOaiExchange:
-    prompt: str
-    completion: ChatCompletion
 
 
 class LLMOaiSettings(LLMSettings):
@@ -187,6 +183,7 @@ class LLMOaiConfig(LLMConfig):
         retry_wait_secs = 1.0
         while True:
             try:
+                start = timeit.default_timer()
                 # todo: seed, etc. (by actual llm?)
                 chat_completion: ChatCompletion = self._client().chat.completions.create(
                     model=self.model_name,
@@ -203,7 +200,8 @@ class LLMOaiConfig(LLMConfig):
                     # presence_penalty=1,  # default 0, -2.0->2.0
                     # stop=[],
                 )
-                return LLMOaiExchange(prompt, chat_completion)
+                return LLMOaiExchange(prompt, chat_completion=chat_completion, model_name=self.model_name, provider=self.provider_name,
+                                      response_duration_seconds=timeit.default_timer() - start, settings=self.settings)
             except openai.RateLimitError as e:
                 quota_retries += 1
                 log.warning(f'{self.provider_name}:{self.model_name}: rate limit exceeded attempt {quota_retries}/{max_quota_retries}, '
@@ -227,7 +225,7 @@ class LLMOaiConfig(LLMConfig):
         msgs_list = [{t[0]: t[1]} if isinstance(t, tuple) else t for t in messages]
         return self._do_chat(msgs_list)
 
-    def chat_convo(self, convo: Iterable[LLMOaiExchange], prompt: str) -> LLMOaiExchange:
+    def chat_convo(self, convo: Iterable[LLMExchange], prompt: str) -> LLMOaiExchange:
         """
         run chat-completion
         :param convo: properly ordered list of LLMOpenaiExchange's
@@ -241,8 +239,8 @@ class LLMOaiConfig(LLMConfig):
         for exchange in convo:
             # todo: what about previous vector-store responses?
             messages.append({'role': 'user', 'content': exchange.prompt})
-            for choice in exchange.completion.choices:
-                messages.append({'role': choice.message.role, 'content': choice.message.content})
+            for response in exchange.responses:
+                messages.append({'role': response.role, 'content': response.content})
 
         # add the prompt
         messages.append({'role': 'user', 'content': prompt})
