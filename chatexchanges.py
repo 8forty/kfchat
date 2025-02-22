@@ -10,7 +10,7 @@ log.setLevel(logstuff.logging_level)
 
 
 class LLMOaiResponse:
-    def __init__(self, chat_completion: ChatCompletion, llm_config: LLMOaiConfig, source_name: str, source_type: str):
+    def __init__(self, chat_completion: ChatCompletion, llm_config: LLMOaiConfig, source_name: str, mode: str):
         self.chat_completion: ChatCompletion = chat_completion
         self.provider: str = llm_config.provider()
         self.model_name: str = llm_config.model_name
@@ -20,7 +20,7 @@ class LLMOaiResponse:
         self.max_tokens: int = llm_config.settings.max_tokens
         self.system_message: str = llm_config.settings.system_message
         self.source_name: str = source_name
-        self.source_type: str = source_type
+        self.mode: str = mode
 
     def __repr__(self) -> str:
         return f'[{self.__class__!s}:{self.__dict__!r}]'
@@ -38,10 +38,10 @@ class VectorStoreResult:
 
 
 class VectorStoreResponse:
-    def __init__(self, results: list[VectorStoreResult], source_name: str, source_type: str):
+    def __init__(self, results: list[VectorStoreResult], source_name: str, mode: str):
         self.results = results
         self.source_name: str = source_name
-        self.source_type: str = source_type
+        self.mode: str = mode
 
     def __repr__(self) -> str:
         return self.results.__repr__()

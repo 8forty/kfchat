@@ -27,14 +27,14 @@ class InstanceData:
 
         # llm stuff
         self.llm_mode_name: str = 'llm'
-        self.llm_name_prefix: str = 'llm: '
+        self.llm_mode_prefix: str = 'llm: '
         self.llm_configs = llm_configs
         self.llm_config = llm_config
         self.source_llm_name: str = self.llm_source_name(self.llm_config)
 
         # vs stuff
         self.vs_mode_name: str = 'vs'
-        self.vs_name_prefix: str = 'vs: '
+        self.vs_mode_prefix: str = 'vs: '
         self.vectorstore = vectorstore
 
         self.source_selected_name: str = self.source_llm_name  # start with llm
@@ -50,7 +50,7 @@ class InstanceData:
         return self.current_mode == self.vs_mode_name
 
     def llm_source_name(self, llm_config: LLMOaiConfig) -> str:
-        return f'{self.llm_name_prefix}{llm_config.provider()}.{llm_config.model_name}'
+        return f'{self.llm_mode_prefix}{llm_config.provider()}.{llm_config.model_name}'
 
     def forget(self):
         self.exchanges.clear()
@@ -58,16 +58,16 @@ class InstanceData:
     async def change_model(self, selected_name: str):
         log.info(f'Changing model to: {selected_name}')
 
-        if selected_name.startswith(self.llm_name_prefix):
+        if selected_name.startswith(self.llm_mode_prefix):
             self.current_mode = self.llm_mode_name
-            long_name = selected_name.removeprefix(self.llm_name_prefix)  # removes "llm: "
+            long_name = selected_name.removeprefix(self.llm_mode_prefix)  # removes "llm: "
             self.current_source = selected_name  # ':'.join(long_name.split(':')[1:])  # removes e.g. "groq:"
             self.llm_config = self.llm_configs[long_name]
             log.debug(f'new llm name: {self.current_source} (provider: {self.llm_config.provider()})')
         else:
             self.current_source = selected_name  # .removeprefix(self.vs_name_prefix)
             self.current_mode = self.vs_mode_name
-            await run.io_bound(lambda: self.vectorstore.switch_index(self.current_source.removeprefix(self.vs_name_prefix)))
+            await run.io_bound(lambda: self.vectorstore.switch_index(self.current_source.removeprefix(self.vs_mode_prefix)))
             log.debug(f'new vs name: {self.current_source}')
 
         self.source_selected_name = selected_name
@@ -94,6 +94,6 @@ class InstanceData:
 
     def all_source_names(self) -> list[str]:
         source_names: list[str] = [self.llm_source_name(llm_config) for llm_config in self.llm_configs.values()]
-        source_names.extend([f'{self.vs_name_prefix}{name}' for name in self.vectorstore.list_index_names()])
-        source_names.sort(key=lambda k: 'zzz' + k if k.startswith(self.vs_name_prefix) else k)  # sort with the vs sources after the llm sources
+        source_names.extend([f'{self.vs_mode_prefix}{name}' for name in self.vectorstore.list_index_names()])
+        source_names.sort(key=lambda k: 'zzz' + k if k.startswith(self.vs_mode_prefix) else k)  # sort with the vs sources after the llm sources
         return source_names

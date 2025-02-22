@@ -116,7 +116,7 @@ class ChatPage:
                         for choice in ex_resp.chat_completion.choices:
                             rtext.results.append(f'{choice.message.content}')  # .classes(response_text_classes)
                             rtext.result_subscripts.append([f'logprobs: {choice.logprobs}'])
-                        rtext.response_context += f'{ex_resp.source_type},{ex_resp.provider}:{ex_resp.model_name},n:{ex_resp.n},temp:{ex_resp.temp},top_p:{ex_resp.top_p},max_tokens:{ex_resp.max_tokens}'
+                        rtext.response_context += f'{ex_resp.mode},{ex_resp.provider}:{ex_resp.model_name},n:{ex_resp.n},temp:{ex_resp.temp},top_p:{ex_resp.top_p},max_tokens:{ex_resp.max_tokens}'
                         rtext.response_subscripts.append(f'tokens:{ex_resp.chat_completion.usage.prompt_tokens}->{ex_resp.chat_completion.usage.completion_tokens}')
                         rtext.response_subscripts.append(f'{ex_resp.system_message}')
 
@@ -131,9 +131,9 @@ class ChatPage:
                     # vector store response
                     elif exchange.vector_store_response is not None:
                         vs_resp = exchange.vector_store_response
-                        rtext.response_context += f'{vs_resp.source_type},{vs_resp.source_name}'
+                        rtext.response_context += f'{vs_resp.mode},{vs_resp.source_name}'
                         for result in exchange.vector_store_response.results:
-                            rtext.results.append(f'[{vs_resp.source_type}]: {result.content}')  # .classes(response_text_classes)
+                            rtext.results.append(f'[{vs_resp.mode}]: {result.content}')  # .classes(response_text_classes)
 
                             metric_list = []
                             for metric in result.metrics:
@@ -221,7 +221,7 @@ class ChatPage:
             vsresponse: VectorStoreResponse | None = None
             try:
                 vsresponse = await run.io_bound(lambda: idata.vectorstore.search(prompt, howmany=idata.llm_config.settings.n,
-                                                                                 source_name=idata.current_source, source_type=idata.current_mode))
+                                                                                 source_name=idata.current_source, mode=idata.current_mode))
                 log.debug(f'vector-search response: {vsresponse}')
             except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)
