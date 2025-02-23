@@ -1,40 +1,14 @@
 import logging
 from abc import ABC, abstractmethod
 from collections import OrderedDict
+from typing import Iterable
 
 import logstuff
+from llmconfig.llmexchange import LLMExchange
+from llmconfig.llmsettings import LLMSettings
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
-
-
-class LLMSettings(ABC):
-    def __init__(self, init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int, init_system_message_name: str):
-        """
-        (almost) standard set of settings for LLMs
-        todo: some LLMs/providers don't support n
-        :param init_n:
-        :param init_temp:
-        :param init_top_p:
-        :param init_max_tokens:
-        :param init_system_message_name:
-
-        """
-        super().__init__()
-        self.n = init_n
-        self.temp = init_temp
-        self.top_p = init_top_p
-        self.max_tokens = init_max_tokens
-        self.system_message_name = init_system_message_name
-        self.system_message = LLMConfig.sysmsg_all[init_system_message_name]
-
-    @abstractmethod
-    def numbers_oneline_logging_str(self) -> str:
-        pass
-
-    @abstractmethod
-    def texts_oneline_logging_str(self) -> str:
-        pass
 
 
 class LLMConfig(ABC):
@@ -79,10 +53,10 @@ class LLMConfig(ABC):
         :param provider_name
         """
         self.model_name = model_name
-        self.provider_name = provider_name
+        self._provider = provider_name
 
     def provider(self) -> str:
-        return self.provider_name
+        return self._provider
 
     @abstractmethod
     async def change_n(self, new_n: int):
@@ -105,5 +79,13 @@ class LLMConfig(ABC):
         pass
 
     @abstractmethod
+    def settings(self) -> LLMSettings:
+        pass
+
+    @abstractmethod
     def copy_settings(self) -> LLMSettings:
+        pass
+
+    @abstractmethod
+    def chat_convo(self, convo: Iterable[LLMExchange], prompt: str) -> LLMExchange:
         pass

@@ -52,7 +52,7 @@ class LLMAnthropicConfig(LLMConfig):
 
         self.settings = settings
 
-        if self.provider_name not in list(providers_config.keys()):
+        if self._provider not in list(providers_config.keys()):
             raise ValueError(f'{__class__.__name__}: invalid provider! {provider_name}')
         self._api_client = None
 
@@ -89,14 +89,14 @@ class LLMAnthropicConfig(LLMConfig):
             return self._api_client
 
         # todo: this is a 2nd place that lists providers :(, for now to highlight any diffs in client-setup api's
-        if self.provider_name == 'anthropic':
+        if self._provider == 'anthropic':
             # endpoint = providers_config[self.provider_name]['OLLAMA_ENDPOINT']
             endpoint = 'huh?'
-            key = providers_config[self.provider_name]['key']
-            log.info(f'building ANTHROPIC LLM API for [{self.provider_name}]: {endpoint=} key={redact(key)}')
+            key = providers_config[self._provider]['key']
+            log.info(f'building ANTHROPIC LLM API for [{self._provider}]: {endpoint=} key={redact(key)}')
             self._api_client = anthropic.Anthropic(api_key=key)
         else:
-            raise ValueError(f'invalid provider! {self.provider_name}')
+            raise ValueError(f'invalid provider! {self._provider}')
 
         return self._api_client
 
@@ -132,14 +132,14 @@ class LLMAnthropicConfig(LLMConfig):
                 return LLMAnthropicExchange(prompt, chat_completion)
             except openai.RateLimitError as e:
                 quota_retries += 1
-                log.warning(f'{self.provider_name}:{self.model_name}: rate limit exceeded attempt {quota_retries}/{max_quota_retries}, '
+                log.warning(f'{self._provider}:{self.model_name}: rate limit exceeded attempt {quota_retries}/{max_quota_retries}, '
                             f'{(f"will retry in {retry_wait_secs}s" if quota_retries <= max_quota_retries else "")}')
                 if quota_retries > max_quota_retries:
-                    log.warning(f'chat quota exceeded! {self.provider_name}:{self.model_name}: rate limit exceeded all {quota_retries} retries')
+                    log.warning(f'chat quota exceeded! {self._provider}:{self.model_name}: rate limit exceeded all {quota_retries} retries')
                     raise e
                 else:
                     time.sleep(retry_wait_secs)  # todo: progressive backoff?
                     retry_wait_secs = quota_retries * quota_retries
             except (Exception,) as e:
-                log.warning(f'chat error! {self.provider_name}:{self.model_name}: {e.__class__.__name__}: {e}')
+                log.warning(f'chat error! {self._provider}:{self.model_name}: {e.__class__.__name__}: {e}')
                 raise e

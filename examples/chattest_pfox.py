@@ -20,7 +20,7 @@ def run(provider_name: str, model_name: str):
                        LLMOaiSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=80, init_system_message_name="carl-sagan"))
 
     print(f'---- generating response from {cfg.provider()}:{model_name}')
-    exchange = chat(sysmsg=cfg.settings.system_message,
+    exchange = chat(sysmsg=cfg._settings.system_message,
                     prompt="How many galaxies are there?",
                     cfg=cfg)
     end = timeit.default_timer()

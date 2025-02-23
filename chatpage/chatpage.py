@@ -17,8 +17,8 @@ import config
 import frame
 import logstuff
 from chatexchanges import ChatExchange, VectorStoreResponse
+from llmconfig.llmconfig import LLMConfig
 from llmconfig.llmexchange import LLMExchange
-from llmconfig.llmoaiconfig import LLMOaiExchange, LLMOaiConfig
 from vectorstore.vsapi import VSAPI
 from .instancedata import InstanceData
 
@@ -39,7 +39,7 @@ class ResponseText:
 
 class ChatPage:
 
-    def __init__(self, llm_configs: dict[str, LLMOaiConfig], init_llm: str, vectorstore: VSAPI, parms: dict[str, str]):
+    def __init__(self, llm_configs: dict[str, LLMConfig], init_llm: str, vectorstore: VSAPI, parms: dict[str, str]):
         # anything in here is shared by all instances of ChatPage
         self.llm_configs = llm_configs
         self.llm_config = llm_configs[init_llm]
@@ -156,7 +156,7 @@ class ChatPage:
         def do_llm(prompt: str, idata: InstanceData) -> LLMExchange:
             # todo: count tokens, etc.
             convo = [ex.llm_exchange for ex in idata.exchanges.list() if ex.llm_exchange is not None]
-            exchange: LLMOaiExchange = idata.llm_config.chat_convo(convo=convo, prompt=prompt)
+            exchange: LLMExchange = idata.llm_config.chat_convo(convo=convo, prompt=prompt)
             return exchange
 
         async def handle_special_prompt(prompt: str, settings_select: dict[str, Select], idata: InstanceData) -> None:
@@ -193,7 +193,7 @@ class ChatPage:
         async def handle_llm_prompt(prompt: str, idata: InstanceData) -> None:
             log.info(
                 f'(exchanges[{idata.exchanges.id()}]) prompt({idata.mode}:{idata.llm_config.provider()}:{idata.llm_config.model_name},'
-                f'{idata.llm_config.settings.temp},{idata.llm_config.settings.top_p},{idata.llm_config.settings.max_tokens}): "{prompt}"')
+                f'{idata.llm_config.settings().temp},{idata.llm_config.settings().top_p},{idata.llm_config.settings().max_tokens}): "{prompt}"')
 
             exchange: LLMExchange | None = None
             try:
@@ -220,7 +220,7 @@ class ChatPage:
 
             vsresponse: VectorStoreResponse | None = None
             try:
-                vsresponse = await run.io_bound(lambda: idata.vectorstore.search(prompt, howmany=idata.llm_config.settings.n))
+                vsresponse = await run.io_bound(lambda: idata.vectorstore.search(prompt, howmany=idata.llm_config.settings().n))
                 log.debug(f'vector-search response: {vsresponse}')
             except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)
@@ -296,28 +296,28 @@ class ChatPage:
                                                                ).tooltip('vs=vector search, llm=lang model chat').props('square outlined label-color=green').classes('min-w-30')
                         seln = ui.select(label='n:',
                                          options=[i for i in range(1, 10)],
-                                         value=settings.n,
+                                         value=settings().n,
                                          ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_n(vc.value), pinput, spinner)
                                                            ).tooltip('number of results per query').props('square outlined label-color=green').classes('min-w-20')
                         seltemp = ui.select(label='Temp:',
                                             options=[float(t) / 10.0 for t in range(0, 21)],
-                                            value=settings.temp,
+                                            value=settings().temp,
                                             ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_temp(vc.value), pinput, spinner)
                                                               ).tooltip('responses: 0=very predictable, 2=very random/creative').props('square outlined label-color=green').classes('min-w-40')
                         seltopp = ui.select(label='Top_p:',
                                             options=[float(t) / 10.0 for t in range(0, 11)],
-                                            value=settings.top_p,
+                                            value=settings().top_p,
                                             ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_top_p(vc.value), pinput, spinner)
                                                               ).tooltip('responses: 0=less random, 1 more random').props('square outlined label-color=green').classes('min-w-40')
                         selmaxtok = ui.select(label='Max Tokens:',
                                               options=[80, 200, 400, 800, 1000, 1500, 2000],
-                                              value=settings.max_tokens,
+                                              value=settings().max_tokens,
                                               ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_max_tokens(vc.value), pinput, spinner)
                                                                 ).tooltip('max tokens in response').props('square outlined label-color=green').classes('min-w-40')
                         sysmsg_names = [key for key in idata.llm_config.sysmsg_all]
                         selsysmsg = ui.select(label='Sys Msg:',
                                               options=sysmsg_names,
-                                              value=settings.system_message_name
+                                              value=settings().system_message_name
                                               ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_sysmsg(vc.value), pinput, spinner)
                                                                 ).tooltip('system/setup text sent with each prompt').props('square outlined label-color=green').classes('min-w-50')
 

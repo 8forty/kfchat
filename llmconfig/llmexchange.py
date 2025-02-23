@@ -2,7 +2,7 @@ import logging
 from abc import ABC
 
 import logstuff
-from llmconfig.llmconfig import LLMSettings
+from llmconfig.llmsettings import LLMSettings
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
