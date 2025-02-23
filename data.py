@@ -126,35 +126,33 @@ rag_lc_rlm_prompt = ("You are an assistant for question-answering tasks. Use the
                      " to answer the question. If you don't know the answer, just say that you don't know. Use three "
                      "sentences maximum and keep the answer concise.  \nQuestion: {question}  \nContext: {context}  \nAnswer:")
 
-dummy_llm_config = LLMConfig('no-model', 'no-provider')
-
 csagan_galaxies = {
     'name': 'csagan_galaxies',
-    'messages': [('system', dummy_llm_config.csagan_sysmsg), ('user', galaxies_prompt)]
+    'messages': [('system', LLMConfig.csagan_sysmsg), ('user', galaxies_prompt)]
 }
 explain_antibiotics = {
     'name': 'explain_antibiotics',
-    'messages': [('system', dummy_llm_config.conversational_sysmsg), ('user', explain_prompt)]
+    'messages': [('system', LLMConfig.conversational_sysmsg), ('user', explain_prompt)]
 }
 one_sentence = {
     'name': 'one_sentence',
-    'messages': [('system', dummy_llm_config.conversational_sysmsg), ('user', onesent_prompt)]
+    'messages': [('system', LLMConfig.conversational_sysmsg), ('user', onesent_prompt)]
 }
 info_extract = {
     'name': 'info_extract',
-    'messages': [('system', dummy_llm_config.conversational_sysmsg), ('user', info_prompt)]
+    'messages': [('system', LLMConfig.conversational_sysmsg), ('user', info_prompt)]
 }
 qa = {
     'name': 'qa',
-    'messages': [('system', dummy_llm_config.answer_sysmsg), ('user', teplizumab_prompt)]
+    'messages': [('system', LLMConfig.answer_sysmsg), ('user', teplizumab_prompt)]
 }
 text_classification = {
     'name': 'text_classification',
-    'messages': [('system', dummy_llm_config.textclass_sysmsg), ('user', neutralfood_prompt)]
+    'messages': [('system', LLMConfig.textclass_sysmsg), ('user', neutralfood_prompt)]
 }
 technical = {
     'name': 'technical',
-    'messages': [('system', dummy_llm_config.technical_sysmsg), ('user', blackholes_prompt)]
+    'messages': [('system', LLMConfig.technical_sysmsg), ('user', blackholes_prompt)]
 }
 
 message_sets: dict[str, list] = {
