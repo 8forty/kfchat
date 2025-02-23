@@ -85,5 +85,25 @@ class LLMConfig(ABC):
         return self.provider_name
 
     @abstractmethod
+    async def change_n(self, new_n: int):
+        pass
+
+    @abstractmethod
+    async def change_temp(self, new_temp: float):
+        pass
+
+    @abstractmethod
+    async def change_top_p(self, new_top_p: float):
+        pass
+
+    @abstractmethod
+    async def change_max_tokens(self, new_max_tokens: int):
+        pass
+
+    @abstractmethod
+    async def change_sysmsg(self, new_system_message_name: str):
+        pass
+
+    @abstractmethod
     def copy_settings(self) -> LLMSettings:
         pass

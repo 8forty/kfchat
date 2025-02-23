@@ -5,7 +5,7 @@ from nicegui import run
 import config
 import logstuff
 from chatexchanges import ChatExchanges
-from llmconfig.llmoaiconfig import LLMOaiConfig
+from llmconfig.llmconfig import LLMConfig
 from vectorstore.vsapi import VSAPI
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ log.setLevel(logstuff.logging_level)
 class InstanceData:
     _next_id: int = 1
 
-    def __init__(self, llm_configs: dict[str, LLMOaiConfig], llm_config: LLMOaiConfig, vectorstore: VSAPI, parms: dict[str, str]):
+    def __init__(self, llm_configs: dict[str, LLMConfig], llm_config: LLMConfig, vectorstore: VSAPI, parms: dict[str, str]):
         self._id = InstanceData._next_id
         InstanceData._next_id += 1
         self.parms: dict[str, str] = parms
@@ -49,7 +49,7 @@ class InstanceData:
     def mode_is_vs(self) -> bool:
         return self.mode == self.vs_mode_name
 
-    def llm_source(self, llm_config: LLMOaiConfig) -> str:
+    def llm_source(self, llm_config: LLMConfig) -> str:
         return f'{self.llm_mode_prefix}{llm_config.provider()}.{llm_config.model_name}'
 
     def forget(self):
