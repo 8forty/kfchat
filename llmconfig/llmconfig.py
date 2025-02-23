@@ -87,5 +87,18 @@ class LLMConfig(ABC):
         pass
 
     @abstractmethod
+    def chat_messages(self, messages: Iterable[tuple[str, str] | dict]) -> LLMExchange:
+        """
+        run chat-completion from a list of messages
+        :param messages: properly ordered list of either tuples of (role, value) or dicts; must include system message and prompt
+        """
+    pass
+
+    @abstractmethod
     def chat_convo(self, convo: Iterable[LLMExchange], prompt: str) -> LLMExchange:
+        """
+        run chat-completion
+        :param convo: properly ordered list of LLMOpenaiExchange's
+        :param prompt: the prompt duh
+        """
         pass

@@ -204,7 +204,7 @@ class LLMOaiConfig(LLMConfig):
                 log.warning(f'chat error! {self._provider}:{self.model_name}: {e.__class__.__name__}: {e}')
                 raise e
 
-    def chat_messages(self, messages: Iterable[tuple[str, str] | dict]) -> LLMOaiExchange:
+    def chat_messages(self, messages: Iterable[tuple[str, str] | dict]) -> LLMExchange:
         """
         run chat-completion from a list of messages
         :param messages: properly ordered list of either tuples of (role, value) or dicts; must include system message and prompt
