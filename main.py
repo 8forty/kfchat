@@ -9,7 +9,7 @@ from typing_extensions import OrderedDict
 import chromadbpage
 import config
 import logstuff
-from llmconfig.llm_anthropic_config import LLMAnthropicSettings
+from llmconfig.llm_anthropic_config import LLMAnthropicSettings, LLMAnthropicConfig
 from vectorstore import vsapi_factory
 from chatpage import chatpage
 from llmconfig.llmoaiconfig import LLMOaiConfig, LLMOaiSettings
@@ -76,8 +76,8 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         LLMOaiConfig(model_name='RFI-Automate-GPT-4o-mini-2000k',  # really the deployment name for azure
                      provider='azure', settings=settings_openai),
 
-        # LLMAnthropicConfig(model_name='claude-3-5-haiku-20241022', provider_name='anthropic', settings=settings_anthropic),
-        # LLMAnthropicConfig(model_name='claude-3-5-sonnet-20241022', provider_name='anthropic', settings=settings_anthropic),
+        LLMAnthropicConfig(model_name='claude-3-5-haiku-20241022', provider_name='anthropic', settings=settings_anthropic),
+        LLMAnthropicConfig(model_name='claude-3-5-sonnet-20241022', provider_name='anthropic', settings=settings_anthropic),
     ]
     llm_configs = OrderedDict({f'{lc._provider}.{lc.model_name}': lc for lc in llm_configs_list})
     init_llm = 'github.gpt-4o'

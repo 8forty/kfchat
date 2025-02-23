@@ -93,16 +93,19 @@ class LLMConfig(ABC):
         return [mp for mp in messages if mp.role != 'system']
 
     @abstractmethod
+    def do_chat(self, messages: list[LLMMessagePair], max_quota_retries: int = 10) -> LLMExchange:
+        pass
+
     def chat_messages(self, messages: list[LLMMessagePair]) -> LLMExchange:
         """
         run chat-completion from a list of messages that includes the prompt as a final dict: {role': 'user', 'content': '...'}
         NOTE: this configuration's system message will be used instead of any supplied in messages
         :param messages:
         """
+        messages = LLMConfig._clean_messages(messages)
+        log.debug(f'{messages=}')
+        return self.do_chat(messages)
 
-    pass
-
-    @abstractmethod
     def chat_convo(self, convo: list[LLMExchange], prompt: str) -> LLMExchange:
         """
         run chat-completion
@@ -110,4 +113,14 @@ class LLMConfig(ABC):
         :param convo: properly ordered list of LLMOpenaiExchange's
         :param prompt: the prompt duh
         """
-        pass
+        messages: list[LLMMessagePair] = []
+
+        # add the convo
+        for exchange in convo:
+            # todo: what about previous vector-store responses?
+            messages.append(LLMMessagePair('user', exchange.prompt))
+            messages.extend(exchange.responses)
+
+        # add the prompt
+        messages.append(LLMMessagePair('user', prompt))
+        return self.chat_messages(messages)

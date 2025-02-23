@@ -1,16 +1,15 @@
 import logging
 import time
 import timeit
-from typing import Iterable
 
 import dotenv
 import openai
-from openai.types.chat import ChatCompletion, ChatCompletionUserMessageParam
+from openai.types.chat import ChatCompletion
 
 import logstuff
 from config import redact
 from llmconfig.llmconfig import LLMConfig, LLMSettings
-from llmconfig.llmexchange import LLMExchange, LLMMessagePair
+from llmconfig.llmexchange import LLMMessagePair
 from llmconfig.llmoaiexchange import LLMOaiExchange
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -161,7 +160,7 @@ class LLMOaiConfig(LLMConfig):
         return self._api_client
 
     # todo: configure max_quota_retries
-    def _do_chat(self, messages: list[LLMMessagePair], max_quota_retries: int = 10) -> LLMOaiExchange:
+    def do_chat(self, messages: list[LLMMessagePair], max_quota_retries: int = 10) -> LLMOaiExchange:
         # prompt is the last dict in the list
         prompt = messages[-1].content
         log.debug(f'{self.model_name=}, {self._settings.temp=}, {self._settings.top_p=}, {self._settings.max_tokens=}, {self._settings.n=}, '
@@ -206,20 +205,3 @@ class LLMOaiConfig(LLMConfig):
             except (Exception,) as e:
                 log.warning(f'chat error! {self._provider}:{self.model_name}: {e.__class__.__name__}: {e}')
                 raise e
-
-    def chat_messages(self, messages: list[LLMMessagePair]) -> LLMExchange:
-        messages = LLMConfig._clean_messages(messages)
-        return self._do_chat(messages)
-
-    def chat_convo(self, convo: list[LLMExchange], prompt: str) -> LLMExchange:
-        messages: list[LLMMessagePair] = []
-
-        # add the convo
-        for exchange in convo:
-            # todo: what about previous vector-store responses?
-            messages.append(LLMMessagePair('user', exchange.prompt))
-            messages.extend(exchange.responses)
-
-        # add the prompt
-        messages.append(LLMMessagePair('user', prompt))
-        return self.chat_messages(messages)

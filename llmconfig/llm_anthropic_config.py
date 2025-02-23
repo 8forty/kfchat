@@ -108,28 +108,29 @@ class LLMAnthropicConfig(LLMConfig):
         return self._api_client
 
     # todo: configure max_quota_retries
-    def _do_chat(self, messages: list[dict], max_quota_retries: int = 10) -> LLMAnthropicExchange:
+    def do_chat(self, messages: list[LLMMessagePair], max_quota_retries: int = 10) -> LLMAnthropicExchange:
         # todo: this is clumsy
         # prompt is the last dict in the list
-        prompt = messages[-1]['content']
-        log.debug(f'{self.model_name=}, {self._settings.n=}, {self._settings.temp=}, {self._settings.top_p=}, {self._settings.max_tokens=}, {self._settings.n=}, '
+        prompt = messages[-1].content
+        log.debug(f'{self.model_name=}, {self._settings.temp=}, {self._settings.top_p=}, {self._settings.max_tokens=}, {self._settings.n=}, '
                   f'{self._settings.system_message=} {prompt=}')
 
         quota_retries = 0
         retry_wait_secs = 1.0
         while True:
             try:
+                messages_list: list[dict] = [{'role': pair.role, 'content': pair.content} for pair in messages]
                 start = timeit.default_timer()
                 # todo: seed, etc. (by actual llm?)
                 message: Message = self._client().messages.create(
                     model=self.model_name,
                     temperature=self._settings.temp,  # todo: default 1.0, 0.0->1.0
                     top_p=self._settings.top_p,  # todo: default 1, ~0.01->1.0
-                    messages=messages,
+                    messages=messages_list,
                     max_tokens=self._settings.max_tokens,  # default 16?
                     system=self._settings.system_message
 
-                    # n=self.settings.n,  # todo: openai,azure,gemini:any(?) value works; ollama: only 1 resp for any value; groq: requires 1;
+                    # n=self.settings.n,  # todo: not in anthropic's api
 
                     # stream=False,  # todo: allow streaming
 
@@ -140,7 +141,7 @@ class LLMAnthropicConfig(LLMConfig):
                 )
                 return LLMAnthropicExchange(prompt=prompt, message=message, provider=self._provider, model_name=self.model_name,
                                             settings=self._settings, response_duration_seconds=timeit.default_timer() - start)
-            except openai.RateLimitError as e:
+            except anthropic.RateLimitError as e:
                 quota_retries += 1
                 log.warning(f'{self._provider}:{self.model_name}: rate limit exceeded attempt {quota_retries}/{max_quota_retries}, '
                             f'{(f"will retry in {retry_wait_secs}s" if quota_retries <= max_quota_retries else "")}')
@@ -153,24 +154,3 @@ class LLMAnthropicConfig(LLMConfig):
             except (Exception,) as e:
                 log.warning(f'chat error! {self._provider}:{self.model_name}: {e.__class__.__name__}: {e}')
                 raise e
-
-    def chat_messages(self, messages: list[LLMMessagePair]) -> LLMExchange:
-        msgs_list = [{t[0]: t[1]} if isinstance(t, tuple) else t for t in messages]
-        return self._do_chat(msgs_list)
-
-    def chat_convo(self, convo: list[LLMExchange], prompt: str) -> LLMExchange:
-        messages: list[dict] = []
-        if self._settings.system_message is not None and len(self._settings.system_message) > 0:
-            messages.append({'role': 'system', 'content': self._settings.system_message})
-
-        # add the convo
-        for exchange in convo:
-            # todo: what about previous vector-store responses?
-            messages.append({'role': 'user', 'content': exchange.prompt})
-            response: LLMMessagePair
-            for response in exchange.responses:
-                messages.append({'role': response.role, 'content': response.content})
-
-        # add the prompt
-        messages.append({'role': 'user', 'content': prompt})
-        return self._do_chat(messages)

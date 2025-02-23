@@ -23,7 +23,7 @@ class LLMAnthropicExchange(LLMExchange):
                          model_name=model_name,
                          settings=settings,
                          responses=[LLMMessagePair(message.role, tblock.text) for tblock in message.content if tblock.type == 'text'],
-                         input_tokens=message.usage.prompt_tokens,
-                         output_tokens=message.usage.completion_tokens,
+                         input_tokens=message.usage.input_tokens,
+                         output_tokens=message.usage.output_tokens,
                          response_duration_seconds=response_duration_seconds,
                          problems={-1: message.stop_reason} if message.stop_reason in stop_problem_reasons else {})
