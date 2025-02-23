@@ -10,7 +10,7 @@ import logstuff
 from config import redact
 from llmconfig.llmconfig import LLMConfig, LLMSettings
 from llmconfig.llmexchange import LLMMessagePair
-from llmconfig.llmoaiexchange import LLMOaiExchange
+from llmconfig.llm_openai_exchange import LLMOpenAIExchange
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -50,7 +50,7 @@ providers_config = {
 }
 
 
-class LLMOaiSettings(LLMSettings):
+class LLMOpenAISettings(LLMSettings):
     def __init__(self, init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int, init_system_message_name: str):
         super().__init__(init_n, init_temp, init_top_p, init_max_tokens, init_system_message_name)
         self.system_message = LLMConfig.sysmsg_all[init_system_message_name]
@@ -62,8 +62,8 @@ class LLMOaiSettings(LLMSettings):
         return f'sysmsg:{self.system_message}'
 
 
-class LLMOaiConfig(LLMConfig):
-    def __init__(self, model_name: str, provider: str, settings: LLMOaiSettings):
+class LLMOpenAIConfig(LLMConfig):
+    def __init__(self, model_name: str, provider: str, settings: LLMOpenAISettings):
         """
 
         :param model_name:
@@ -86,7 +86,7 @@ class LLMOaiConfig(LLMConfig):
         return self._settings
 
     def copy_settings(self) -> LLMSettings:
-        return LLMOaiSettings(self._settings.n, self._settings.temp, self._settings.top_p, self._settings.max_tokens, self._settings.system_message_name)
+        return LLMOpenAISettings(self._settings.n, self._settings.temp, self._settings.top_p, self._settings.max_tokens, self._settings.system_message_name)
 
     async def change_n(self, new_n: int):
         log.info(f'{self.model_name} changing n to: {new_n}')
@@ -160,7 +160,7 @@ class LLMOaiConfig(LLMConfig):
         return self._api_client
 
     # todo: configure max_quota_retries
-    def do_chat(self, messages: list[LLMMessagePair], max_quota_retries: int = 10) -> LLMOaiExchange:
+    def do_chat(self, messages: list[LLMMessagePair], max_quota_retries: int = 10) -> LLMOpenAIExchange:
         # prompt is the last dict in the list
         prompt = messages[-1].content
         log.debug(f'{self.model_name=}, {self._settings.temp=}, {self._settings.top_p=}, {self._settings.max_tokens=}, {self._settings.n=}, '
@@ -190,8 +190,8 @@ class LLMOaiConfig(LLMConfig):
                     # presence_penalty=1,  # default 0, -2.0->2.0
                     # stop=[],
                 )
-                return LLMOaiExchange(prompt, chat_completion=chat_completion, model_name=self.model_name, provider=self._provider,
-                                      response_duration_seconds=timeit.default_timer() - start, settings=self._settings)
+                return LLMOpenAIExchange(prompt, chat_completion=chat_completion, model_name=self.model_name, provider=self._provider,
+                                         response_duration_seconds=timeit.default_timer() - start, settings=self._settings)
             except openai.RateLimitError as e:
                 quota_retries += 1
                 log.warning(f'{self._provider}:{self.model_name}: rate limit exceeded attempt {quota_retries}/{max_quota_retries}, '

@@ -10,7 +10,7 @@ log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
 
-class LLMOaiExchange(LLMExchange):
+class LLMOpenAIExchange(LLMExchange):
     def __init__(self, prompt: str, chat_completion: ChatCompletion,
                  provider: str,
                  model_name: str,

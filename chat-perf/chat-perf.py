@@ -4,7 +4,7 @@ import config
 import data
 from llmconfig.llm_anthropic_config import LLMAnthropicSettings
 from llmconfig.llmconfig import LLMConfig
-from llmconfig.llmoaiconfig import LLMOaiSettings, LLMOaiConfig
+from llmconfig.llm_openai_config import LLMOpenAISettings, LLMOpenAIConfig
 
 
 def model_warmup(cfg: LLMConfig, model: str):
@@ -75,10 +75,10 @@ def run(cfgs: [LLMConfig], message_sets_name: str):
         print(','.join(line))
 
 
-settings_openai = LLMOaiSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=80, init_system_message_name='carl-sagan')
+settings_openai = LLMOpenAISettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=80, init_system_message_name='carl-sagan')
 settings_anthropic = LLMAnthropicSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=80, init_system_message_name='carl-sagan')
 
-run([LLMOaiConfig(model_name='llama3.2:1b', provider='ollama', settings=settings_openai)], message_sets_name='space')
+run([LLMOpenAIConfig(model_name='llama3.2:1b', provider='ollama', settings=settings_openai)], message_sets_name='space')
 # run(provider_name='ollama', model_set_name='mistral7b', settings_set_name='1:800', message_sets_name='space')
 # run(provider_name='groq', model_set_name='ll33', settings_set_name='1:800', message_sets_name='text')
 

@@ -2,7 +2,7 @@ from langchain_experimental.text_splitter import SemanticChunker
 from langchain_openai import OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter, NLTKTextSplitter, SpacyTextSplitter
 
-from llmconfig.llmoaiconfig import providers_config
+from llmconfig.llm_openai_config import providers_config
 
 chunkers = {
     f'{RecursiveCharacterTextSplitter.__name__}:1000/200': {'function': RecursiveCharacterTextSplitter, 'args': {'chunk_size': 1000, 'chunk_overlap': 200}},

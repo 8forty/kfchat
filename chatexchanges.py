@@ -2,7 +2,6 @@ import logging
 
 import logstuff
 from llmconfig.llmexchange import LLMExchange
-from llmconfig.llmoaiexchange import LLMOaiExchange
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)

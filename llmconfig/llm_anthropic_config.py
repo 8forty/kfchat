@@ -71,25 +71,25 @@ class LLMAnthropicConfig(LLMConfig):
 
     async def change_n(self, new_n: int):
         log.info(f'{self.model_name} changing n to: {new_n}')
-        self.settings.n = new_n
+        self._settings.n = new_n
 
     async def change_temp(self, new_temp: float):
         log.info(f'{self.model_name} changing temp to: {new_temp}')
-        self.settings.temp = new_temp
+        self._settings.temp = new_temp
 
     async def change_top_p(self, new_top_p: float):
         log.info(f'{self.model_name} changing top_p to: {new_top_p}')
-        self.settings.temp = new_top_p
+        self._settings.temp = new_top_p
 
     async def change_max_tokens(self, new_max_tokens: int):
         log.info(f'{self.model_name} changing max_tokens to: {new_max_tokens}')
-        self.settings.max_tokens = new_max_tokens
+        self._settings.max_tokens = new_max_tokens
 
     async def change_sysmsg(self, new_system_message_name: str):
         new_system_message = self.sysmsg_all[new_system_message_name]
         log.info(f'{self.model_name} changing system message to: {new_system_message_name}:{new_system_message}')
-        self.settings.system_message_name = new_system_message_name
-        self.settings.system_message = new_system_message
+        self._settings.system_message_name = new_system_message_name
+        self._settings.system_message = new_system_message
 
     def _client(self) -> anthropic.Anthropic:
         if self._api_client is not None:
@@ -130,7 +130,7 @@ class LLMAnthropicConfig(LLMConfig):
                     max_tokens=self._settings.max_tokens,  # default 16?
                     system=self._settings.system_message
 
-                    # n=self.settings.n,  # todo: not in anthropic's api
+                    # n=self._settings.n,  # todo: not in anthropic's api
 
                     # stream=False,  # todo: allow streaming
 

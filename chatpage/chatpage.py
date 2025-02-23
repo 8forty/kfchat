@@ -262,6 +262,7 @@ class ChatPage:
             except (Exception,) as e:
                 errmsg = f'change failed! {e.__class__.__name__}: {e}'
                 log.warning(errmsg)
+                traceback.print_exc(file=sys.stderr)
                 ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
             finally:
                 prompt_input.enable()
