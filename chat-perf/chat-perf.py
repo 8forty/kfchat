@@ -51,13 +51,13 @@ def run(cfgs: [LLMConfig], message_sets_name: str):
             print(f'{config.secs_string(all_start)}: [{llm_config.provider()}:{llm_config.model_name}] [{llm_config.settings().temp}] [{llm_config.settings().max_tokens}]: '
                   f'[{exchange.input_tokens}+{exchange.output_tokens}] '
                   f'[{ms_end - ms_start:.0f}]s')
-            response_1line = str(exchange.responses[0].content).replace("\n", "  ").replace('"', '""')
-            print(f'{config.secs_string(all_start)}:     {response_1line}')
+            response_line = str(exchange.responses[0].content).replace("\n", "  ").replace('"', '""')
+            print(f'{config.secs_string(all_start)}:     {response_line}')
             csv_data.append([llm_config.provider(), llm_config.model_name, str(llm_config.settings().temp), str(llm_config.settings().max_tokens),
                              message_set["name"],
                              str(exchange.input_tokens), str(exchange.output_tokens),
                              str(int(ms_end - ms_start)),
-                             '"' + response_1line + '"'],
+                             '"' + response_line + '"'],
                             )
 
         model_end = timeit.default_timer()

@@ -1,5 +1,7 @@
 import logging
 import time
+import timeit
+from typing import Iterable
 
 import anthropic
 import dotenv
@@ -11,6 +13,7 @@ import logstuff
 from config import redact
 from llmconfig.llm_anthropic_exchange import LLMAnthropicExchange
 from llmconfig.llmconfig import LLMConfig, LLMSettings
+from llmconfig.llmexchange import LLMExchange, LLMResponse
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -28,9 +31,10 @@ providers_config = {
 
 
 class LLMAnthropicSettings(LLMSettings):
-    # todo: all of these?
+    # todo: doesn't support n
     def __init__(self, init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int, init_system_message_name: str):
         super().__init__(init_n, init_temp, init_top_p, init_max_tokens, init_system_message_name)
+        self.system_message = LLMConfig.sysmsg_all[init_system_message_name]
 
     def numbers_oneline_logging_str(self) -> str:
         return f'temp:{self.temp},top_p:{self.top_p},max_tokens:{self.max_tokens}'
@@ -50,7 +54,7 @@ class LLMAnthropicConfig(LLMConfig):
         """
         super().__init__(model_name, provider_name)
 
-        self.settings = settings
+        self._settings = settings
 
         if self._provider not in list(providers_config.keys()):
             raise ValueError(f'{__class__.__name__}: invalid provider! {provider_name}')
@@ -59,8 +63,11 @@ class LLMAnthropicConfig(LLMConfig):
     def __repr__(self) -> str:
         return f'[{self.__class__!s}:{self.__dict__!r}]'
 
+    def settings(self) -> LLMSettings:
+        return self._settings
+
     def copy_settings(self) -> LLMSettings:
-        return LLMAnthropicSettings(self.settings.temp, self.settings.top_p, self.settings.max_tokens, self.settings.system_message_name)
+        return LLMAnthropicSettings(self._settings.n, self._settings.temp, self._settings.top_p, self._settings.max_tokens, self._settings.system_message_name)
 
     async def change_n(self, new_n: int):
         log.info(f'{self.model_name} changing n to: {new_n}')
@@ -102,22 +109,24 @@ class LLMAnthropicConfig(LLMConfig):
 
     # todo: configure max_quota_retries
     def _do_chat(self, messages: list[dict], sysmsg: str, max_quota_retries: int = 10) -> LLMAnthropicExchange:
+        # todo: this is clumsy
         # prompt is the last dict in the list
         prompt = messages[-1]['content']
-        log.debug(f'{self.model_name=}, {self.settings.temp=}, {self.settings.top_p=}, {self.settings.max_tokens=}, {self.settings.n=}, '
-                  f'{self.settings.system_message=} {prompt=}')
+        log.debug(f'{self.model_name=}, {self._settings.n=}, {self._settings.temp=}, {self._settings.top_p=}, {self._settings.max_tokens=}, {self._settings.n=}, '
+                  f'{self._settings.system_message=} {prompt=}')
 
         quota_retries = 0
         retry_wait_secs = 1.0
         while True:
             try:
+                start = timeit.default_timer()
                 # todo: seed, etc. (by actual llm?)
-                chat_completion: Message = self._client().messages.create(
+                message: Message = self._client().messages.create(
                     model=self.model_name,
-                    temperature=self.settings.temp,  # todo: default 1.0, 0.0->1.0
-                    top_p=self.settings.top_p,  # todo: default 1, ~0.01->1.0
+                    temperature=self._settings.temp,  # todo: default 1.0, 0.0->1.0
+                    top_p=self._settings.top_p,  # todo: default 1, ~0.01->1.0
                     messages=messages,
-                    max_tokens=self.settings.max_tokens,  # default 16?
+                    max_tokens=self._settings.max_tokens,  # default 16?
                     system=sysmsg,
 
                     # n=self.settings.n,  # todo: openai,azure,gemini:any(?) value works; ollama: only 1 resp for any value; groq: requires 1;
@@ -129,7 +138,8 @@ class LLMAnthropicConfig(LLMConfig):
                     # presence_penalty=1,  # default 0, -2.0->2.0
                     # stop=[],
                 )
-                return LLMAnthropicExchange(prompt, chat_completion)
+                return LLMAnthropicExchange(prompt=prompt, message=message, provider=self._provider, model_name=self.model_name,
+                                            settings=self._settings, response_duration_seconds=timeit.default_timer() - start)
             except openai.RateLimitError as e:
                 quota_retries += 1
                 log.warning(f'{self._provider}:{self.model_name}: rate limit exceeded attempt {quota_retries}/{max_quota_retries}, '
@@ -143,3 +153,34 @@ class LLMAnthropicConfig(LLMConfig):
             except (Exception,) as e:
                 log.warning(f'chat error! {self._provider}:{self.model_name}: {e.__class__.__name__}: {e}')
                 raise e
+
+    def chat_messages(self, messages: Iterable[tuple[str, str] | dict]) -> LLMExchange:
+        """
+        run chat-completion from a list of messages
+        :param messages: properly ordered list of either tuples of (role, value) or dicts; must include system message and prompt
+        """
+        # transform convo to list-of-dicts, elements are either tuples or already dicts (and I guess a mix of each, why not?)
+        msgs_list = [{t[0]: t[1]} if isinstance(t, tuple) else t for t in messages]
+        return self._do_chat(msgs_list)
+
+    def chat_convo(self, convo: Iterable[LLMExchange], prompt: str) -> LLMExchange:
+        """
+        run chat-completion
+        :param convo: properly ordered list of LLMOpenaiExchange's
+        :param prompt: the prompt duh
+        """
+        messages: list[dict] = []
+        if self._settings.system_message is not None and len(self._settings.system_message) > 0:
+            messages.append({'role': 'system', 'content': self._settings.system_message})
+
+        # add the convo
+        for exchange in convo:
+            # todo: what about previous vector-store responses?
+            messages.append({'role': 'user', 'content': exchange.prompt})
+            response: LLMResponse
+            for response in exchange.responses:
+                messages.append({'role': response.role, 'content': response.content})
+
+        # add the prompt
+        messages.append({'role': 'user', 'content': prompt})
+        return self._do_chat(messages)
