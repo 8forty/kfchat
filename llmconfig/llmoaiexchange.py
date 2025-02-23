@@ -4,7 +4,7 @@ from openai.types.chat import ChatCompletion
 
 import logstuff
 from llmconfig.llmconfig import LLMSettings
-from llmconfig.llmexchange import LLMExchange, LLMResponse
+from llmconfig.llmexchange import LLMExchange, LLMMessagePair
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -21,7 +21,7 @@ class LLMOaiExchange(LLMExchange):
                          provider=provider,
                          model_name=model_name,
                          settings=settings,
-                         responses=[LLMResponse(choice.message.role, choice.message.content) for choice in chat_completion.choices],
+                         responses=[LLMMessagePair(choice.message.role, choice.message.content) for choice in chat_completion.choices],
                          input_tokens=chat_completion.usage.prompt_tokens,
                          output_tokens=chat_completion.usage.completion_tokens,
                          response_duration_seconds=response_duration_seconds,

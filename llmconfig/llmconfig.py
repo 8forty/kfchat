@@ -1,10 +1,9 @@
 import logging
 from abc import ABC, abstractmethod
 from collections import OrderedDict
-from typing import Iterable
 
 import logstuff
-from llmconfig.llmexchange import LLMExchange
+from llmconfig.llmexchange import LLMExchange, LLMMessagePair
 from llmconfig.llmsettings import LLMSettings
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -86,18 +85,28 @@ class LLMConfig(ABC):
     def copy_settings(self) -> LLMSettings:
         pass
 
+    @staticmethod
+    def _clean_messages(messages: list[LLMMessagePair]) -> list[LLMMessagePair]:
+        for message in messages:
+            if message.role == 'system':
+                log.warning(f"'system' message removed from messages! {message}")
+        return [mp for mp in messages if mp.role != 'system']
+
     @abstractmethod
-    def chat_messages(self, messages: Iterable[tuple[str, str] | dict]) -> LLMExchange:
+    def chat_messages(self, messages: list[LLMMessagePair]) -> LLMExchange:
         """
-        run chat-completion from a list of messages
-        :param messages: properly ordered list of either tuples of (role, value) or dicts; must include system message and prompt
+        run chat-completion from a list of messages that includes the prompt as a final dict: {role': 'user', 'content': '...'}
+        NOTE: this configuration's system message will be used instead of any supplied in messages
+        :param messages:
         """
+
     pass
 
     @abstractmethod
-    def chat_convo(self, convo: Iterable[LLMExchange], prompt: str) -> LLMExchange:
+    def chat_convo(self, convo: list[LLMExchange], prompt: str) -> LLMExchange:
         """
         run chat-completion
+        NOTE: this configuration's system message will be used instead of any supplied in convo
         :param convo: properly ordered list of LLMOpenaiExchange's
         :param prompt: the prompt duh
         """

@@ -3,7 +3,7 @@ import logging
 from anthropic.types import Message
 
 import logstuff
-from llmconfig.llmexchange import LLMExchange, LLMResponse
+from llmconfig.llmexchange import LLMExchange, LLMMessagePair
 from llmconfig.llmsettings import LLMSettings
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ class LLMAnthropicExchange(LLMExchange):
                          provider=provider,
                          model_name=model_name,
                          settings=settings,
-                         responses=[LLMResponse(message.role, tblock.text) for tblock in message.content if tblock.type == 'text'],
+                         responses=[LLMMessagePair(message.role, tblock.text) for tblock in message.content if tblock.type == 'text'],
                          input_tokens=message.usage.prompt_tokens,
                          output_tokens=message.usage.completion_tokens,
                          response_duration_seconds=response_duration_seconds,

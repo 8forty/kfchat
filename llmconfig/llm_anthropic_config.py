@@ -13,7 +13,7 @@ import logstuff
 from config import redact
 from llmconfig.llm_anthropic_exchange import LLMAnthropicExchange
 from llmconfig.llmconfig import LLMConfig, LLMSettings
-from llmconfig.llmexchange import LLMExchange, LLMResponse
+from llmconfig.llmexchange import LLMExchange, LLMMessagePair
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -108,7 +108,7 @@ class LLMAnthropicConfig(LLMConfig):
         return self._api_client
 
     # todo: configure max_quota_retries
-    def _do_chat(self, messages: list[dict], sysmsg: str, max_quota_retries: int = 10) -> LLMAnthropicExchange:
+    def _do_chat(self, messages: list[dict], max_quota_retries: int = 10) -> LLMAnthropicExchange:
         # todo: this is clumsy
         # prompt is the last dict in the list
         prompt = messages[-1]['content']
@@ -127,7 +127,7 @@ class LLMAnthropicConfig(LLMConfig):
                     top_p=self._settings.top_p,  # todo: default 1, ~0.01->1.0
                     messages=messages,
                     max_tokens=self._settings.max_tokens,  # default 16?
-                    system=sysmsg,
+                    system=self._settings.system_message
 
                     # n=self.settings.n,  # todo: openai,azure,gemini:any(?) value works; ollama: only 1 resp for any value; groq: requires 1;
 
@@ -154,21 +154,11 @@ class LLMAnthropicConfig(LLMConfig):
                 log.warning(f'chat error! {self._provider}:{self.model_name}: {e.__class__.__name__}: {e}')
                 raise e
 
-    def chat_messages(self, messages: Iterable[tuple[str, str] | dict]) -> LLMExchange:
-        """
-        run chat-completion from a list of messages
-        :param messages: properly ordered list of either tuples of (role, value) or dicts; must include system message and prompt
-        """
-        # transform convo to list-of-dicts, elements are either tuples or already dicts (and I guess a mix of each, why not?)
+    def chat_messages(self, messages: list[LLMMessagePair]) -> LLMExchange:
         msgs_list = [{t[0]: t[1]} if isinstance(t, tuple) else t for t in messages]
         return self._do_chat(msgs_list)
 
-    def chat_convo(self, convo: Iterable[LLMExchange], prompt: str) -> LLMExchange:
-        """
-        run chat-completion
-        :param convo: properly ordered list of LLMOpenaiExchange's
-        :param prompt: the prompt duh
-        """
+    def chat_convo(self, convo: list[LLMExchange], prompt: str) -> LLMExchange:
         messages: list[dict] = []
         if self._settings.system_message is not None and len(self._settings.system_message) > 0:
             messages.append({'role': 'system', 'content': self._settings.system_message})
@@ -177,7 +167,7 @@ class LLMAnthropicConfig(LLMConfig):
         for exchange in convo:
             # todo: what about previous vector-store responses?
             messages.append({'role': 'user', 'content': exchange.prompt})
-            response: LLMResponse
+            response: LLMMessagePair
             for response in exchange.responses:
                 messages.append({'role': response.role, 'content': response.content})
 

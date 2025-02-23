@@ -8,7 +8,7 @@ log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
 
-class LLMResponse(ABC):
+class LLMMessagePair:
     def __init__(self, role: str, content: str):
         self.role = role
         self.content = content
@@ -19,7 +19,7 @@ class LLMResponse(ABC):
 
 class LLMExchange(ABC):
     def __init__(self, prompt: str, provider: str, model_name: str, settings: LLMSettings,
-                 responses: list[LLMResponse], input_tokens: int, output_tokens: int,
+                 responses: list[LLMMessagePair], input_tokens: int, output_tokens: int,
                  response_duration_seconds: float, problems: dict[int, str]):
         self.prompt = prompt
         self.provider = provider
@@ -33,4 +33,3 @@ class LLMExchange(ABC):
 
     def __repr__(self) -> str:
         return f'[{self.__class__!s}:{self.__dict__!r}]'
-
