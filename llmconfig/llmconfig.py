@@ -37,7 +37,7 @@ class LLMSettings(ABC):
         pass
 
 
-class LLMConfig:
+class LLMConfig(ABC):
     conversational_sysmsg = 'You are a helpful chatbot that talks in a conversational manner.'
     conversational80_sysmsg = ('You are a helpful chatbot that talks in a conversational manner. '
                                'Your responses must always be less than 80 tokens.')
@@ -84,5 +84,6 @@ class LLMConfig:
     def provider(self) -> str:
         return self.provider_name
 
+    @abstractmethod
     def copy_settings(self) -> LLMSettings:
         pass
