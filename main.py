@@ -76,10 +76,10 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         LLMOpenAIConfig(model_name='RFI-Automate-GPT-4o-mini-2000k',  # really the deployment name for azure
                         provider='azure', settings=settings_openai),
 
-        LLMAnthropicConfig(model_name='claude-3-5-haiku-20241022', provider_name='anthropic', settings=settings_anthropic),
-        LLMAnthropicConfig(model_name='claude-3-5-sonnet-20241022', provider_name='anthropic', settings=settings_anthropic),
+        LLMAnthropicConfig(model_name='claude-3-5-haiku-20241022', provider='anthropic', settings=settings_anthropic),
+        LLMAnthropicConfig(model_name='claude-3-5-sonnet-20241022', provider='anthropic', settings=settings_anthropic),
     ]
-    llm_configs = OrderedDict({f'{lc._provider}.{lc.model_name}': lc for lc in llm_configs_list})
+    llm_configs = OrderedDict({f'{lc.provider()}.{lc.model_name}': lc for lc in llm_configs_list})
     init_llm = 'github.gpt-4o'
 
     # setup vs

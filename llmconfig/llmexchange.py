@@ -14,7 +14,7 @@ class LLMMessagePair:
         self.content = content
 
     def __repr__(self) -> str:
-        return f'[{self.__dict__!r}]'
+        return f'{self.__dict__!r}'
 
 
 class LLMExchange(ABC):
@@ -32,4 +32,4 @@ class LLMExchange(ABC):
         self.problems = problems  # [response-idx, problem-description]
 
     def __repr__(self) -> str:
-        return f'[{self.__class__!s}:{self.__dict__!r}]'
+        return f'{self.__class__!s}:{self.__dict__!r}'

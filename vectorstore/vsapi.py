@@ -37,7 +37,7 @@ class VSAPI(ABC):
         pass
 
     def __repr__(self) -> str:
-        return f'[{self.__class__!s}:{self.__dict__!r}]'
+        return f'{self.__class__!s}:{self.__dict__!r}'
 
     @abstractmethod
     def warmup(self):

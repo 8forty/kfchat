@@ -1,19 +1,16 @@
 import logging
 import time
 import timeit
-from typing import Iterable
 
 import anthropic
 import dotenv
-import openai
 from anthropic.types import Message
 
-import data
 import logstuff
 from config import redact
 from llmconfig.llm_anthropic_exchange import LLMAnthropicExchange
 from llmconfig.llmconfig import LLMConfig, LLMSettings
-from llmconfig.llmexchange import LLMExchange, LLMMessagePair
+from llmconfig.llmexchange import LLMMessagePair
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -34,62 +31,52 @@ class LLMAnthropicSettings(LLMSettings):
     # todo: doesn't support n
     def __init__(self, init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int, init_system_message_name: str):
         super().__init__(init_n, init_temp, init_top_p, init_max_tokens, init_system_message_name)
-        self.system_message = LLMConfig.sysmsg_all[init_system_message_name]
+
+    def __repr__(self) -> str:
+        return f'{self.__class__!s}:{self.__dict__!r}'
+        # return f'{self.__class__!s}:{self.result_id=!r},{self.metrics=!r},self.content="{self.content[0:20]}{"..." if len(self.content) > 20 else ""}"'
+
+    @classmethod
+    def from_settings(cls, rhs):
+        return cls(init_n=rhs.n, init_temp=rhs.temp, init_top_p=rhs.top_p, init_max_tokens=rhs.max_tokens, init_system_message_name=rhs.system_message_name)
 
     def numbers_oneline_logging_str(self) -> str:
-        return f'temp:{self.temp},top_p:{self.top_p},max_tokens:{self.max_tokens}'
+        return f'n?:{self.n},temp:{self.temp},top_p:{self.top_p},max_tokens:{self.max_tokens}'
 
     def texts_oneline_logging_str(self) -> str:
         return f'sysmsg:{self.system_message}'
 
 
 class LLMAnthropicConfig(LLMConfig):
-    def __init__(self, model_name: str, provider_name: str, settings: LLMAnthropicSettings):
+    def __init__(self, model_name: str, provider: str, settings: LLMAnthropicSettings):
         """
 
         :param model_name:
-        :param provider_name
+        :param provider
         :param settings:
 
         """
-        super().__init__(model_name, provider_name)
+        super().__init__(model_name, provider)
 
         self._settings = settings
 
         if self._provider not in list(providers_config.keys()):
-            raise ValueError(f'{__class__.__name__}: invalid provider! {provider_name}')
+            raise ValueError(f'{__class__.__name__}: invalid provider! {provider}')
         self._api_client = None
 
     def __repr__(self) -> str:
-        return f'[{self.__class__!s}:{self.__dict__!r}]'
+        return f'{self.__class__!s}:{self.__dict__!r}'
+
+    def change_settings(self, new_settings: LLMSettings) -> LLMSettings:
+        old = self._settings
+        self._settings = new_settings
+        return old
 
     def settings(self) -> LLMSettings:
         return self._settings
 
     def copy_settings(self) -> LLMSettings:
         return LLMAnthropicSettings(self._settings.n, self._settings.temp, self._settings.top_p, self._settings.max_tokens, self._settings.system_message_name)
-
-    async def change_n(self, new_n: int):
-        log.info(f'{self.model_name} changing n to: {new_n}')
-        self._settings.n = new_n
-
-    async def change_temp(self, new_temp: float):
-        log.info(f'{self.model_name} changing temp to: {new_temp}')
-        self._settings.temp = new_temp
-
-    async def change_top_p(self, new_top_p: float):
-        log.info(f'{self.model_name} changing top_p to: {new_top_p}')
-        self._settings.temp = new_top_p
-
-    async def change_max_tokens(self, new_max_tokens: int):
-        log.info(f'{self.model_name} changing max_tokens to: {new_max_tokens}')
-        self._settings.max_tokens = new_max_tokens
-
-    async def change_sysmsg(self, new_system_message_name: str):
-        new_system_message = self.sysmsg_all[new_system_message_name]
-        log.info(f'{self.model_name} changing system message to: {new_system_message_name}:{new_system_message}')
-        self._settings.system_message_name = new_system_message_name
-        self._settings.system_message = new_system_message
 
     def _client(self) -> anthropic.Anthropic:
         if self._api_client is not None:
@@ -112,14 +99,15 @@ class LLMAnthropicConfig(LLMConfig):
         # todo: this is clumsy
         # prompt is the last dict in the list
         prompt = messages[-1].content
-        log.debug(f'{self.model_name=}, {self._settings.temp=}, {self._settings.top_p=}, {self._settings.max_tokens=}, {self._settings.n=}, '
-                  f'{self._settings.system_message=} {prompt=}')
 
         quota_retries = 0
         retry_wait_secs = 1.0
         while True:
             try:
                 messages_list: list[dict] = [{'role': pair.role, 'content': pair.content} for pair in messages]
+                log.debug(f'model: {self.model_name}  prompt: {prompt}')
+                log.debug(f'messages: {messages_list}')
+                log.debug(f'{self._settings.n=}, {self._settings.temp=}, {self._settings.top_p=}, {self._settings.max_tokens=}')
                 start = timeit.default_timer()
                 # todo: seed, etc. (by actual llm?)
                 message: Message = self._client().messages.create(
