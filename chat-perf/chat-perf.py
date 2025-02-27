@@ -95,8 +95,6 @@ def run(model_sets_name: str, settings_sets_name: str, message_set_name: str, cs
                 traceback.print_exc(file=sys.stderr)
                 break
 
-        model_start = timeit.default_timer()
-
         # llm_settings_sets
         for settings in Data.llm_settings_sets[settings_sets_name]:
             if model_spec.api == 'openai':
@@ -134,42 +132,22 @@ def run(model_sets_name: str, settings_sets_name: str, message_set_name: str, cs
                              str(ms_end - ms_start)]
                             )
 
-        model_end = timeit.default_timer()
-        print(f'{config.secs_string(all_start)}: [{model_spec.provider}:{model_spec.name}] {model_end - model_start:.1f}s')
-        csv_data.append([model_spec.provider, model_spec.name, '', '', '', '', '', str(model_end - model_start)])
-
     run_end_time = timeit.default_timer()
     print(f'{config.secs_string(all_start)}: finished run {model_sets_name}/{settings_sets_name}/{message_set_name}: {run_end_time - run_start_time:.1f}s')
-    print('\n')
 
 
 def main():
     csv_data = []
 
     run(model_sets_name='base', settings_sets_name='quick', message_set_name='space', csv_data=csv_data)
-    run(model_sets_name='base2', settings_sets_name='quick', message_set_name='explain', csv_data=csv_data)
-    # run(provider_name='ollama', model_set_name='mistral7b', settings_set_name='1:800', message_sets_name='space')
-    # run(provider_name='groq', model_set_name='ll33', settings_set_name='1:800', message_sets_name='text')
+    # run(model_sets_name='base2', settings_sets_name='quick', message_set_name='explain', csv_data=csv_data)
 
-    # run(provider_name='ollama', model_set_name='mistral7b', settings_set_name='std4', message_sets_name='std7')
-
-    # run(provider_name='ollama', model_set_name='ll33', settings_set_name='1:800', message_sets_name='std7')
-    # run(provider_name='groq', model_set_name='ll33', settings_set_name='1:800', message_sets_name='std7')
-
-    # run(provider_name='ollama', model_set_name='std8', settings_set_name='1:800', message_sets_name='text')
-    # run(provider_name='ollama', model_set_name='std8', settings_set_name='std4', message_sets_name='std7')
-
-    # run(provider_name='ollama', model_set_name='ll1b', settings_set_name='1:800', message_sets_name='carl')
-
-    # run(provider_name='openai', model_set_name='std3', settings_set_name='1:800', message_sets_name='carl')
-    # run(provider_name='openai', model_set_name='4omini', settings_set_name='std4', message_sets_name='std7')
-
-    # run(provider_name='azure', model_set_name='4omini', settings_set_name='1:800', message_sets_name='carl')
-    # run(provider_name='azure', model_set_name='4omini', settings_set_name='std4', message_sets_name='std7')
+    run(model_sets_name='groq-base', settings_sets_name='quick', message_set_name='space', csv_data=csv_data)
 
     print(f'{config.secs_string(all_start)}: finished all runs: {timeit.default_timer() - all_start:.1f}s')
 
     # now make CSV lines from results
+    print('\n\n')
     for line in csv_data:
         print(','.join(line))
 
