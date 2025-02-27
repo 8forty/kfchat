@@ -90,7 +90,7 @@ class ChatPage:
                     for problem in rtext.response_problems:
                         ui.label(f'{problem}').classes(problem_classes)
 
-        async def refresh(idata: InstanceData, scroller: ScrollArea) -> None:
+        async def refresh(prompt: str, idata: InstanceData, scroller: ScrollArea) -> None:
             # todo: local-storage-session to separate messages
 
             # todo: increaase encapsulation of InstanceData for some/all idata.<whatever> usages below
@@ -102,7 +102,7 @@ class ChatPage:
 
             if len(idata.info_messages) > 0:
                 # info-messages are not exchanges/responses, e.g. they come from special commands
-                rtext = ResponseText(response_duration_seconds=0.0, prompt=idata.last_prompt)
+                rtext = ResponseText(response_duration_seconds=0.0, prompt=prompt)
                 for im in idata.info_messages:
                     rtext.results.append(im)
                 idata.info_messages.clear()
@@ -251,7 +251,7 @@ class ChatPage:
             prompt_input.value = ''
             prompt_input.enable()
 
-            await refresh(idata, scroller)
+            await refresh(prompt, idata, scroller)
             await prompt_input.run_method('focus')
 
         async def call_and_focus(callback: Handler[ValueChangeEventArguments], prompt_input: Input, spinner: Spinner):
@@ -275,7 +275,11 @@ class ChatPage:
             log.info(f'route triggered')
 
             # this page sometimes take a bit of time to load (per: https://github.com/zauberzeug/nicegui/discussions/2429)
-            await client.connected(timeout=3.0)
+            try:
+                # initial startup can be slow.....
+                await client.connected(timeout=60.0)
+            except builtins.TimeoutError:
+                log.warning(f'TimeoutError waiting for client connection, ignored')
 
             idata = InstanceData(self.llm_configs, self.llm_config, self.vectorstore, self.parms)
 
@@ -284,6 +288,14 @@ class ChatPage:
 
                 # this suppresses the enormous default(?) 8px top/bottom margins on every line of markdown
                 ui.add_css('div.nicegui-markdown p { margin-top: 0px; margin-bottom: 0px; }')
+
+                # the footer is a "top-level" element in nicegui, so need not be setup in visual page order
+                with ui.footer(bordered=True).classes('bg-black h-24'):
+                    with ui.row().classes('w-full'):
+                        spinner = ui.spinner(size='xl')
+                        spinner.set_visibility(False)
+                        pinput = ui.input(placeholder="Enter prompt").classes('flex-grow').props('rounded outlined color=primary bg-color=black')
+                        pinput.on('keydown.enter', lambda req=request, i=idata: handle_enter(req, pinput, spinner, scroller, settings_selects, i))
 
                 with (ui.column().classes('w-full flex-grow border-solid border border-black')):  # place-content-center')):
                     # the settings selection row
@@ -326,15 +338,7 @@ class ChatPage:
 
                     # with ui.scroll_area(on_scroll=lambda e: print(f'~~~~ e: {e}')).classes('w-full flex-grow border border-solid border-black') as scroller:
                     with ui.scroll_area().classes('w-full flex-grow border border-solid border-black') as scroller:
-                        await refresh(idata, scroller)
-
-            # the footer is a "top-level" element in nicegui, so need not be setup in visual page order
-            with ui.footer(bordered=True).classes('bg-black h-24'):
-                with ui.row().classes('w-full'):
-                    spinner = ui.spinner(size='xl')
-                    spinner.set_visibility(False)
-                    pinput = ui.input(placeholder="Enter prompt").classes('flex-grow').props('rounded outlined color=primary bg-color=black')
-                    pinput.on('keydown.enter', lambda req=request, i=idata: handle_enter(req, pinput, spinner, scroller, settings_selects, i))
+                        await refresh(pinput.value.strip(), idata, scroller)
 
             try:
                 await ui.context.client.connected()
