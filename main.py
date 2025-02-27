@@ -10,6 +10,7 @@ import chromadbpage
 import config
 import logstuff
 from llmconfig.llm_anthropic_config import LLMAnthropicSettings, LLMAnthropicConfig
+from llmconfig.llmconfig import LLMConfig
 from vectorstore import vsapi_factory
 from chatpage import chatpage
 from llmconfig.llm_openai_config import LLMOpenAIConfig, LLMOpenAISettings
@@ -33,52 +34,12 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
     # todo: these should come from somewhere, e.g. pref screen
     settings_openai = LLMOpenAISettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_system_message_name='professional800')
     settings_anthropic = LLMAnthropicSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_system_message_name='professional800')
-    llm_configs_list = [
-
-        LLMOpenAIConfig(model_name='gpt-4o-mini', provider='github', settings=settings_openai),
-        LLMOpenAIConfig(model_name='gpt-4o', provider='github', settings=settings_openai),
-        LLMOpenAIConfig(model_name='deepseek-r1', provider='github', settings=settings_openai),
-        LLMOpenAIConfig(model_name='Phi-4', provider='github', settings=settings_openai),
-        LLMOpenAIConfig(model_name='AI21-Jamba-1.5-Large', provider='github', settings=settings_openai),
-        LLMOpenAIConfig(model_name='Cohere-command-r-08-2024', provider='github', settings=settings_openai),
-        LLMOpenAIConfig(model_name='Cohere-command-r-plus-08-2024', provider='github', settings=settings_openai),
-        LLMOpenAIConfig(model_name='Llama-3.3-70B-Instruct', provider='github', settings=settings_openai),
-        LLMOpenAIConfig(model_name='Mistral-Large-2411', provider='github', settings=settings_openai),
-
-        LLMOpenAIConfig(model_name='llama-3.3-70b-versatile', provider='groq', settings=settings_openai),
-        LLMOpenAIConfig(model_name='deepseek-r1-distill-llama-70b', provider='groq', settings=settings_openai),
-        LLMOpenAIConfig(model_name='gemma2-9b-it', provider='groq', settings=settings_openai),
-        LLMOpenAIConfig(model_name='mixtral-8x7b-32768', provider='groq', settings=settings_openai),
-
-        LLMOpenAIConfig(model_name='llama3.2:1b', provider='ollama', settings=settings_openai),
-        LLMOpenAIConfig(model_name='llama3.2:3b', provider='ollama', settings=settings_openai),
-        LLMOpenAIConfig(model_name='mistral-nemo:12b', provider='ollama', settings=settings_openai),
-        LLMOpenAIConfig(model_name='gemma2:2b', provider='ollama', settings=settings_openai),
-        LLMOpenAIConfig(model_name='gemma2:9b', provider='ollama', settings=settings_openai),
-        LLMOpenAIConfig(model_name='llama3.3:70b-instruct-q2_K', provider='ollama', settings=settings_openai),
-        LLMOpenAIConfig(model_name='deepseek-r1:1.5b', provider='ollama', settings=settings_openai),
-        LLMOpenAIConfig(model_name='deepseek-r1:8b', provider='ollama', settings=settings_openai),
-        LLMOpenAIConfig(model_name='deepseek-r1:14b', provider='ollama', settings=settings_openai),
-        LLMOpenAIConfig(model_name='deepseek-v2:16b', provider='ollama', settings=settings_openai),
-        LLMOpenAIConfig(model_name='phi4:14b', provider='ollama', settings=settings_openai),
-
-        LLMOpenAIConfig(model_name='gemini-1.5-flash', provider='gemini', settings=settings_openai),
-        LLMOpenAIConfig(model_name='gemini-1.5-flash-8b', provider='gemini', settings=settings_openai),
-        LLMOpenAIConfig(model_name='gemini-1.5-pro', provider='gemini', settings=settings_openai),
-        LLMOpenAIConfig(model_name='gemini-2.0-flash-001', provider='gemini', settings=settings_openai),
-        LLMOpenAIConfig(model_name='gemini-2.0-flash-lite-preview-02-05', provider='gemini', settings=settings_openai),
-        LLMOpenAIConfig(model_name='gemini-2.0-pro-exp-02-05', provider='gemini', settings=settings_openai),
-        LLMOpenAIConfig(model_name='gemini-2.0-flash-thinking-exp-01-21', provider='gemini', settings=settings_openai),
-
-        LLMOpenAIConfig(model_name='gpt-4o-mini', provider='openai', settings=settings_openai),
-        LLMOpenAIConfig(model_name='gpt-4o', provider='openai', settings=settings_openai),
-
-        LLMOpenAIConfig(model_name='RFI-Automate-GPT-4o-mini-2000k',  # really the deployment name for azure
-                        provider='azure', settings=settings_openai),
-
-        LLMAnthropicConfig(model_name='claude-3-5-haiku-20241022', provider='anthropic', settings=settings_anthropic),
-        LLMAnthropicConfig(model_name='claude-3-5-sonnet-20241022', provider='anthropic', settings=settings_anthropic),
-    ]
+    llm_configs_list: list[LLMConfig] = []
+    for model_spec in config.LLMData.models:
+        if model_spec.api.lower() == 'openai':
+            llm_configs_list.append(LLMOpenAIConfig(model_name=model_spec.name, provider=model_spec.provider, settings=settings_openai))
+        elif model_spec.api.lower() == 'anthropic':
+            llm_configs_list.append(LLMAnthropicConfig(model_name=model_spec.name, provider=model_spec.provider, settings=settings_anthropic))
     llm_configs = OrderedDict({f'{lc.provider()}.{lc.model_name}': lc for lc in llm_configs_list})
     init_llm = 'github.gpt-4o'
 

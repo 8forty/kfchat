@@ -105,9 +105,8 @@ class LLMAnthropicConfig(LLMConfig):
         while True:
             try:
                 messages_list: list[dict] = [{'role': pair.role, 'content': pair.content} for pair in messages]
-                log.debug(f'model: {self.model_name}  prompt: {prompt}')
-                log.debug(f'messages: {messages_list}')
-                log.debug(f'{self._settings.n=}, {self._settings.temp=}, {self._settings.top_p=}, {self._settings.max_tokens=}')
+                log.debug(f'{self.model_name} n:{self._settings.n} temp:{self._settings.temp} top_p:{self._settings.top_p}, max_tok:{self._settings.max_tokens} prompt:"{prompt}" msgs:{messages_list}')
+
                 start = timeit.default_timer()
                 # todo: seed, etc. (by actual llm?)
                 message: Message = self._client().messages.create(

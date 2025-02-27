@@ -102,7 +102,7 @@ class ChatPage:
 
             if len(idata.info_messages) > 0:
                 # info-messages are not exchanges/responses, e.g. they come from special commands
-                rtext = ResponseText(response_duration_seconds=0.0, prompt="*")
+                rtext = ResponseText(response_duration_seconds=0.0, prompt=idata.last_prompt)
                 for im in idata.info_messages:
                     rtext.results.append(im)
                 idata.info_messages.clear()
