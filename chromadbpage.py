@@ -40,7 +40,7 @@ class CreateDialog(Dialog):
                                        validation={'Too short!': lambda value: len(value) >= 3,
                                                    'Too long!': lambda value: len(value) <= 63,
                                                    'No Spaces!': lambda value: str(value).find(' ') == -1},
-                                       ).classes('flex-grow min-w-80').props('outlined').props('color=primary').props('bg-color=white')
+                                       ).classes('flex-grow min-w-80').props('outlined')
                 embedding_types = VSChroma.embedding_types_list()
                 et_start_value = embedding_types[0]
                 etype = ui.select(label='Embedding Type:', options=embedding_types, value=et_start_value).props('square outlined label-color=green').classes('w-full')

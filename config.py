@@ -23,6 +23,10 @@ name = 'kfchat'
 
 chat_exchanges_circular_list_count = 10
 
+sql_path = 'c:\\sqlite\\kfchat\\kfchat.sqlite3'
+sql_chunks_table_name = 'chunks'
+sql_chunks_fts5_table_name = 'chunks_fts5'
+
 
 class LLMData:
     # models

@@ -1,5 +1,6 @@
 import json
 import logging
+import sqlite3
 import timeit
 
 import chromadb
@@ -17,8 +18,6 @@ import config
 from langchain import lc_docloaders, lc_chunkers
 import logstuff
 from chatexchanges import VectorStoreResponse, VectorStoreResult
-from langchain.lc_chunkers import chunkers
-from langchain.lc_docloaders import docloaders
 from vectorstore.vsapi import VSAPI
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -107,6 +106,10 @@ chroma_embedding_types: dict[str, dict[str, dict[str, any]]] = {
         },
     },
 }
+
+
+def _fix(s: str) -> str:
+    return s.replace('\'', '\'\'')
 
 
 class VSChroma(VSAPI):
@@ -239,6 +242,7 @@ class VSChroma(VSAPI):
         )
 
     def search(self, prompt: str, howmany: int) -> VectorStoreResponse:
+
         sresp: VSAPI.SearchResponse = self.raw_search(prompt, howmany)
 
         vs_results: list[VectorStoreResult] = []
@@ -252,11 +256,57 @@ class VSChroma(VSAPI):
             }
             vs_results.append(VectorStoreResult(sresp.results_raw[result_idx]['ids'], metrics,
                                                 sresp.results_raw[result_idx]['documents']))
+
+        #  select substr(content, 1, 40), bm25(chunks_fts5, 0, 1, 0, 0) bm25 from chunks_fts5 where chunks_fts5 match 'ducks';
+        log.debug(f'connecting to sql: {config.sql_path}.{config.sql_chunks_table_name}')
+        sql = None
+        try:
+            # todo: fresh connection every time
+            sql = sqlite3.connect(config.sql_path)
+            cursor = sql.cursor()
+
+            query = f"select substr(content, 1, 40), bm25({config.sql_chunks_fts5_table_name}, 0, 1, 0, 0) bm25 from {config.sql_chunks_fts5_table_name} where {config.sql_chunks_fts5_table_name} match '{prompt}';"
+            log.debug(f'query {config.sql_chunks_table_name}: {query}')
+            cursor.execute(query)
+            for row in cursor.fetchall():
+                print(f'~~~~ row: {row}')
+
+        except (Exception,) as e:
+            log.warning(f'SQL error! {e}')
+            raise e
+        finally:
+            if sql is not None:
+                sql.close()
+
         return VectorStoreResponse(vs_results)
 
     def delete_index(self, index_name: str):
         self._build_clients()
         self._client.delete_collection(index_name)
+
+        log.debug(f'connecting to sql: {config.sql_path}.{config.sql_chunks_table_name}')
+        sql = None
+        try:
+            # todo: fresh connection every time
+            sql = sqlite3.connect(config.sql_path)
+            cursor = sql.cursor()
+
+            delete = f"delete from {config.sql_chunks_table_name} where collection ='{index_name}';"
+            log.debug(f'delete {config.sql_chunks_table_name}: {delete}')
+            cursor.execute(delete)
+
+            delete = f"delete from {config.sql_chunks_fts5_table_name} where collection ='{index_name}';"
+            log.debug(f'delete {config.sql_chunks_fts5_table_name}: {delete}')
+            cursor.execute(delete)
+
+            sql.commit()
+
+        except (Exception,) as e:
+            log.warning(f'SQL error! {e}')
+            raise e
+        finally:
+            if sql is not None:
+                sql.close()
 
     def count(self):
         """
@@ -437,18 +487,18 @@ class VSChroma(VSAPI):
         return retval
 
     def ingest(self, collection: Collection, server_file_path: str, org_filename: str, doc_type: str, chunker_type: str) -> Collection:
-        if doc_type in docloaders:
+        if doc_type in lc_docloaders.docloaders:
             log.debug(f'loading {org_filename} for {collection.name} with {doc_type}')
-            docs: list[Document] = docloaders[doc_type]['function'](file_path=server_file_path).load()
+            docs: list[Document] = lc_docloaders.docloaders[doc_type]['function'](file_path=server_file_path).load()
         else:
             raise ValueError(f'unknown doc loader/type [{doc_type}]')
 
         # chunking
-        if chunker_type in chunkers:
+        if chunker_type in lc_chunkers.chunkers:
             log.debug(f'chunking {len(docs)} documents for {collection.name} with {chunker_type}')
-            chunker_func = chunkers[chunker_type]['function']
-            chunker_args = chunkers[chunker_type]['args']
-            chunks = self.filter_metadata_docs(chunker_func(**chunker_args).split_documents(docs), org_filename)
+            chunker_func = lc_chunkers.chunkers[chunker_type]['function']
+            chunker_args = lc_chunkers.chunkers[chunker_type]['args']
+            chunks: list[Document] = self.filter_metadata_docs(chunker_func(**chunker_args).split_documents(docs), org_filename)
         else:
             raise ValueError(f'unknown chunker type [{chunker_type}]')
 
@@ -458,9 +508,9 @@ class VSChroma(VSAPI):
         # update collection metadata
         now = config.now_datetime()
         collection.metadata[f'file:{org_filename}:upload time'] = now
-        collection.metadata[f'file:{org_filename}:doc_type'] = f'{doc_type}: {docloaders[doc_type]['function'].__name__}/{docloaders[doc_type]['filetypes']}'
+        collection.metadata[f'file:{org_filename}:doc_type'] = f'{doc_type}: {lc_docloaders.docloaders[doc_type]['function'].__name__}/{lc_docloaders.docloaders[doc_type]['filetypes']}'
         collection.metadata[f'file:{org_filename}:doc/chunk counts'] = f'{len(docs)}/{len(chunks)}'
-        collection.metadata[f'file:{org_filename}:chunker_type'] = f'{chunker_type}: {chunkers[chunker_type]['function'].__name__}'
+        collection.metadata[f'file:{org_filename}:chunker_type'] = f'{chunker_type}: {lc_chunkers.chunkers[chunker_type]['function'].__name__}'
         for key, value in chunker_args.items():
             if isinstance(value, OpenAIEmbeddings):  # if it's an oai function, pull out known fields for metadata
                 oaie: OpenAIEmbeddings = value
@@ -474,10 +524,45 @@ class VSChroma(VSAPI):
         #  add documents + ids + metadata to the collection
         log.debug(f'adding embeddings for {len(chunks)} chunks [{chunker_type}] to collection {collection.name}')
         try:
-            collection.add(documents=[c.page_content for c in chunks],
-                           ids=[f'{org_filename}-{i}' for i in range(0, len(chunks))],  # use name:count for chunk-ids
-                           metadatas=[c.metadata for c in chunks],
-                           )
+            chunks_content = [c.page_content for c in chunks]
+            ids = [f'{org_filename}-{i}' for i in range(0, len(chunks))]  # use name:count for chunk-ids
+            metadata = [c.metadata for c in chunks]
+
+            collection.add(documents=chunks_content, ids=ids, metadatas=metadata)
+
+            log.debug(f'adding full-text for {len(chunks)} chunks [{chunker_type}] to tables: {config.sql_chunks_table_name}, {config.sql_chunks_fts5_table_name}')
+            log.debug(f'connecting to sql: {config.sql_path}.{config.sql_chunks_table_name}')
+            sql = None
+            try:
+                # todo: fresh connection every time
+                sql = sqlite3.connect(config.sql_path)
+                cursor = sql.cursor()
+
+                create = f"create table if not exists {config.sql_chunks_table_name} (collection text, content text, id text, metadata text, primary key(collection, id));"
+                log.debug(f'create {config.sql_chunks_table_name}: {create}')
+                cursor.execute(create)
+
+                create = f"create virtual table if not exists {config.sql_chunks_fts5_table_name} using fts5(collection, content, id, metadata);"
+                log.debug(f'create fts5 {config.sql_chunks_fts5_table_name}: {create}')
+                cursor.execute(create)
+
+                for i, chunk_content in enumerate(chunks_content):
+                    insert = f"insert into {config.sql_chunks_table_name} values ('{_fix(collection.name)}', '{_fix(chunk_content)}', '{_fix(ids[i])}', '{_fix(str(metadata[i]))}')"
+                    # log.debug(f'insert: {insert.replace("\n", "[\\n]")}')
+                    cursor.execute(insert)
+
+                    insert = f"insert into {config.sql_chunks_fts5_table_name} values ('{_fix(collection.name)}', '{_fix(chunk_content)}', '{_fix(ids[i])}', '{_fix(str(metadata[i]))}')"
+                    # log.debug(f'insert fts5: {insert.replace("\n", "[\\n]")}')
+                    cursor.execute(insert)
+
+                sql.commit()
+            except (Exception,) as e:
+                log.warning(f'SQL error! {e}')
+                raise e
+            finally:
+                if sql is not None:
+                    sql.close()
+
         except (Exception,) as e:
             collection_md = collection.metadata
             e_type: str = collection_md['embedding_type'] if 'embedding_type' in collection_md else 'unknown'
