@@ -55,6 +55,7 @@ class FTSType(Enum):
     SQLITE3_UNICODE = 'sqlite3_unicode61_defaults'
     SQLITE3_UNICODE_IMPROVED = 'sqlite3_unicode61_improved'
     SQLITE3_PORTER_IMPROVED = 'sqlite3_porter_improved'
+    SQLITE3_TRIGRAM_IMPROVED = 'sqlite3_trigram_improved'
 
     @classmethod
     def members(cls) -> list:
@@ -165,6 +166,38 @@ sql_chunks_fts5 = {
                 insert into {tn(FTSType.SQLITE3_PORTER_IMPROVED)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
         """,
         search=f"select substr(content, 1, 40), bm25({tn(FTSType.SQLITE3_PORTER_IMPROVED)}, 0, 1, 0, 0) bm25 from {tn(FTSType.SQLITE3_PORTER_IMPROVED)} where content match '%s';"
+    ),
+
+    FTSType.SQLITE3_TRIGRAM_IMPROVED: FTSSpec(
+        table_name=tn(FTSType.SQLITE3_TRIGRAM_IMPROVED),
+        create=
+        f"""
+        create virtual table if not exists {tn(FTSType.SQLITE3_TRIGRAM_IMPROVED)}
+            using fts5 (
+            collection unindexed,
+            content,
+            id unindexed,
+            metadata,
+            content='{sql_chunks_table_name}',
+            content_rowid='sqlid',
+            tokenize = "trigram remove_diacritics 1 case_sensitive 0", -- we use remove_diacritics 2 as the default b/c greenfield
+        );
+        """,
+        insert_trigger=
+        f"""
+            insert into {tn(FTSType.SQLITE3_TRIGRAM_IMPROVED)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
+        """,
+        delete_trigger=
+        f"""
+            -- this is the fancy delete command for contentless external content tables: https://www.sqlite.org/fts5.html#the_delete_command 
+            insert into {tn(FTSType.SQLITE3_TRIGRAM_IMPROVED)}({tn(FTSType.SQLITE3_TRIGRAM_IMPROVED)}, rowid, collection, content, id, metadata) values ('delete', old.sqlid, old.collection, old.content, old.id, old.metadata);
+        """,
+        update_trigger=
+        f"""
+            insert into {tn(FTSType.SQLITE3_TRIGRAM_IMPROVED)}({tn(FTSType.SQLITE3_TRIGRAM_IMPROVED)}, rowid, collection, content, id, metadata) values ('delete', old.sqlid, old.collection, old.content, old.id, old.metadata);
+            insert into {tn(FTSType.SQLITE3_TRIGRAM_IMPROVED)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
+        """,
+        search=f"select substr(content, 1, 40), bm25({tn(FTSType.SQLITE3_TRIGRAM_IMPROVED)}, 0, 1, 0, 0) bm25 from {tn(FTSType.SQLITE3_TRIGRAM_IMPROVED)} where content match '%s';"
     ),
 }
 
