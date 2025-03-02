@@ -402,7 +402,7 @@ class VSChroma(VSAPI):
         collection: Collection = self._client.create_collection(
             name=name,
             metadata={
-                'fts_types': f'{str(FTSType.names())}',
+                'fts_types': f'{json.dumps(FTSType.names())}',
 
                 'embedding_type': embedding_type,
                 'embedding_function_name': embedding_function_info['function'].__name__,
@@ -492,7 +492,7 @@ class VSChroma(VSAPI):
             retval[key] = value
         return retval
 
-    def ingest(self, collection: Collection, server_file_path: str, org_filename: str, docloader_type: str, chunker_type: str, fts_types: list[FTSType]) -> Collection:
+    def ingest(self, collection: Collection, server_file_path: str, org_filename: str, docloader_type: str, chunker_type: str) -> Collection:
         if docloader_type in lc_docloaders.docloaders:
             log.debug(f'loading {org_filename} for {collection.name} with {docloader_type}')
             docs: list[Document] = lc_docloaders.docloaders[docloader_type]['function'](file_path=server_file_path).load()
@@ -511,10 +511,9 @@ class VSChroma(VSAPI):
         if len(chunks) == 0:
             raise VSChroma.EmptyIngestError(f'no usable chunks (empty file?)')
 
-        # update collection metadata
+        # add file-level metadata
         now = config.now_datetime()
         collection.metadata[f'file:{org_filename}:upload time'] = now
-        collection.metadata[f'file:{org_filename}:fts_types'] = str(fts_types)
         collection.metadata[f'file:{org_filename}:docloader_type'] = f'{docloader_type}: {lc_docloaders.docloaders[docloader_type]['function'].__name__}/{lc_docloaders.docloaders[docloader_type]['filetypes']}'
         collection.metadata[f'file:{org_filename}:doc/chunk counts'] = f'{len(docs)}/{len(chunks)}'
         collection.metadata[f'file:{org_filename}:chunker_type'] = f'{chunker_type}: {lc_chunkers.chunkers[chunker_type]['function'].__name__}'
@@ -528,7 +527,10 @@ class VSChroma(VSAPI):
                 collection.metadata[f'file:{org_filename}:chunker.{key}'] = value
         collection.modify(metadata=self.fix_metadata_for_modify(self.filter_metadata(collection.metadata)))
 
-        #  add documents + ids + metadata to the collection
+        # get needed info from collection-level metadata
+        fts_types = [FTSType[ftype] for ftype in json.loads(collection.metadata.get('fts_types'))]
+
+        #  add chunks + ids + metadata to the collection
         log.debug(f'adding embeddings for {len(chunks)} chunks [{chunker_type}] to collection {collection.name}')
         try:
             chunks_content = [c.page_content for c in chunks]
@@ -544,18 +546,31 @@ class VSChroma(VSAPI):
                 sql = sqlite3.connect(config.sql_path)
                 cursor = sql.cursor()
 
-                # create tables
-                for create in config.sql_chunks_create:
-                    # the content table(s)
-                    log.debug(f'create {config.sql_chunks_table_name}: {create}')
-                    cursor.execute(create)
+                # create tables needed for full-text search
+                # the content table
+                log.debug(f'create {config.sql_chunks_table_name}: {config.sql_chunks_create}')
+                cursor.execute(config.sql_chunks_create)
+
+                # need to combine statements for each trigger type (i/d/u) from every fts_type
+                insert_trigger_stmts = []
+                delete_trigger_stmts = []
+                update_trigger_stmts = []
                 for fts_type in fts_types:
                     # full-text search tables/indexes
-                    sql_chunks_fts5_table_name = config.sql_chunks_fts5[fts_type].table_name
-                    log.debug(f'adding full-text for {len(chunks)} chunks [{chunker_type}] to [{fts_type}] tables: {config.sql_chunks_table_name}, {sql_chunks_fts5_table_name}')
-                    for create in config.sql_chunks_fts5[fts_type].create:
-                        log.debug(f'create fts5 {sql_chunks_fts5_table_name}: {create}')
-                        cursor.execute(create)
+                    log.debug(f'create fts5 {config.sql_chunks_fts5[fts_type].table_name}: {config.sql_chunks_fts5[fts_type].create}')
+                    insert_trigger_stmts.append(config.sql_chunks_fts5[fts_type].insert_trigger)
+                    delete_trigger_stmts.append(config.sql_chunks_fts5[fts_type].delete_trigger)
+                    update_trigger_stmts.append(config.sql_chunks_fts5[fts_type].update_trigger)
+                    cursor.execute(config.sql_chunks_fts5[fts_type].create)
+                itrigger = f"{config.sql_chunks_insert_trigger_create} begin\n{'\n'.join(insert_trigger_stmts)}\nend;"
+                log.debug(f'add insert trigger: {itrigger}')
+                cursor.execute(itrigger)
+                dtrigger = f"{config.sql_chunks_delete_trigger_create} begin\n{'\n'.join(delete_trigger_stmts)}\nend;"
+                log.debug(f'add delete trigger: {dtrigger}')
+                cursor.execute(dtrigger)
+                utrigger = f"{config.sql_chunks_update_trigger_create} begin\n{'\n'.join(update_trigger_stmts)}\nend;"
+                log.debug(f'add update trigger: {utrigger}')
+                cursor.execute(utrigger)
 
                 # insert the chunks
                 log.debug(f'inserting {len(chunks)} chunks into {config.sql_chunks_table_name}')

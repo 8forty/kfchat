@@ -26,8 +26,7 @@ chat_exchanges_circular_list_count = 10
 
 sql_path = 'c:\\sqlite\\kfchat\\kfchat.sqlite3'
 sql_chunks_table_name = 'chunks'
-sql_chunks_create = [
-    f"""
+sql_chunks_create = f"""
         create table if not exists {sql_chunks_table_name} (
             collection text,
             content    text,
@@ -36,29 +35,34 @@ sql_chunks_create = [
             sqlid      integer primary key, -- becomes the rowid
             unique (collection, id)
         );
-    """,
-]
+    """
+sql_chunks_insert_trigger_create = f"create trigger if not exists {sql_chunks_table_name}_ai after insert on {sql_chunks_table_name}"
+sql_chunks_delete_trigger_create = f"create trigger if not exists {sql_chunks_table_name}_ad after delete on {sql_chunks_table_name}"
+sql_chunks_update_trigger_create = f"create trigger if not exists {sql_chunks_table_name}_au after update on {sql_chunks_table_name}"
 
 
 @dataclass
 class FTSSpec:
     table_name: str
-    create: list[str]
+    create: str
+    insert_trigger: str
+    delete_trigger: str
+    update_trigger: str
     search: str
 
 
 class FTSType(Enum):
-    UNICODE = 'unicode61_defaults'
-    UNICODE_IMPROVED = 'unicode61_improved'
-    PORTER_IMPROVED = 'porter_improved'
+    SQLITE3_UNICODE = 'sqlite3_unicode61_defaults'
+    SQLITE3_UNICODE_IMPROVED = 'sqlite3_unicode61_improved'
+    SQLITE3_PORTER_IMPROVED = 'sqlite3_porter_improved'
 
-    @staticmethod
-    def members() -> list:
-        return [f for f in FTSType]
+    @classmethod
+    def members(cls) -> list:
+        return list(cls.__members__.values())
 
-    @staticmethod
-    def names() -> list[str]:
-        return [f for f in FTSType.__members__]
+    @classmethod
+    def names(cls) -> list[str]:
+        return list(cls.__members__.keys())
 
 
 def tn(fts_type: FTSType) -> str:
@@ -67,11 +71,11 @@ def tn(fts_type: FTSType) -> str:
 
 # these include all the contentless table stuff, including the necessary triggers
 sql_chunks_fts5 = {
-    FTSType.UNICODE: FTSSpec(
-        table_name=tn(FTSType.UNICODE),
-        create=[
-            f"""
-            create virtual table if not exists {tn(FTSType.UNICODE)}
+    FTSType.SQLITE3_UNICODE: FTSSpec(
+        table_name=tn(FTSType.SQLITE3_UNICODE),
+        create=
+        f"""
+            create virtual table if not exists {tn(FTSType.SQLITE3_UNICODE)}
                 using fts5 (
                 collection unindexed,
                 content,
@@ -81,32 +85,29 @@ sql_chunks_fts5 = {
                 content_rowid='sqlid',
                 tokenize = "unicode61 remove_diacritics 2", -- we use remove_diacritics 2 as the default b/c greenfield
             );
-            """,
-            f"""
-            create trigger if not exists {sql_chunks_table_name}_ai after insert on {sql_chunks_table_name} begin
-                insert into {tn(FTSType.UNICODE)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
-            end;
-            """,
-            f"""
-            create trigger if not exists {sql_chunks_table_name}_ad after delete on {sql_chunks_table_name} begin
+        """,
+        insert_trigger=
+        f"""
+                insert into {tn(FTSType.SQLITE3_UNICODE)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
+        """,
+        delete_trigger=
+        f"""
                 -- this is the fancy delete command for contentless external content tables: https://www.sqlite.org/fts5.html#the_delete_command 
-                insert into {tn(FTSType.UNICODE)}({tn(FTSType.UNICODE)}, rowid, collection, content, id, metadata) values ('delete', old.sqlid, old.collection, old.content, old.id, old.metadata);
-            end;
-            """,
-            f"""
-            create trigger if not exists {sql_chunks_table_name}_au after update on {sql_chunks_table_name} begin
-                insert into {tn(FTSType.UNICODE)}({tn(FTSType.UNICODE_IMPROVED)}, rowid, collection, content, id, metadata) values ('delete', old.sqlid, old.collection, old.content, old.id, old.metadata);
-                insert into {tn(FTSType.UNICODE)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
-            end;
-            """,
-        ],
-        search=f"select substr(content, 1, 40), bm25({tn(FTSType.UNICODE_IMPROVED)}, 0, 1, 0, 0) bm25 from {tn(FTSType.UNICODE_IMPROVED)} where content match '%s';"
+                insert into {tn(FTSType.SQLITE3_UNICODE)}({tn(FTSType.SQLITE3_UNICODE)}, rowid, collection, content, id, metadata) values ('delete', old.sqlid, old.collection, old.content, old.id, old.metadata);
+        """,
+        update_trigger=
+        f"""
+                insert into {tn(FTSType.SQLITE3_UNICODE)}({tn(FTSType.SQLITE3_UNICODE)}, rowid, collection, content, id, metadata) values ('delete', old.sqlid, old.collection, old.content, old.id, old.metadata);
+                insert into {tn(FTSType.SQLITE3_UNICODE)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
+        """,
+        search=f"select substr(content, 1, 40), bm25({tn(FTSType.SQLITE3_UNICODE)}, 0, 1, 0, 0) bm25 from {tn(FTSType.SQLITE3_UNICODE)} where content match '%s';"
     ),
-    FTSType.UNICODE_IMPROVED: FTSSpec(
-        table_name=tn(FTSType.UNICODE_IMPROVED),
-        create=[
-            f"""
-            create virtual table if not exists {tn(FTSType.UNICODE_IMPROVED)}
+
+    FTSType.SQLITE3_UNICODE_IMPROVED: FTSSpec(
+        table_name=tn(FTSType.SQLITE3_UNICODE_IMPROVED),
+        create=
+        f"""
+            create virtual table if not exists {tn(FTSType.SQLITE3_UNICODE_IMPROVED)}
                 using fts5 (
                 collection unindexed,
                 content,
@@ -116,32 +117,29 @@ sql_chunks_fts5 = {
                 content_rowid='sqlid',
                 tokenize = "unicode61 remove_diacritics 2 tokenchars '-_'", -- we use remove_diacritics 2 as the default b/c greenfield
             );
-            """,
-            f"""
-            create trigger if not exists {sql_chunks_table_name}_ai after insert on {sql_chunks_table_name} begin
-                insert into {tn(FTSType.UNICODE_IMPROVED)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
-            end;
-            """,
-            f"""
-            create trigger if not exists {sql_chunks_table_name}_ad after delete on {sql_chunks_table_name} begin
+        """,
+        insert_trigger=
+        f"""
+                insert into {tn(FTSType.SQLITE3_UNICODE_IMPROVED)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
+        """,
+        delete_trigger=
+        f"""
                 -- this is the fancy delete command for contentless external content tables: https://www.sqlite.org/fts5.html#the_delete_command 
-                insert into {tn(FTSType.UNICODE_IMPROVED)}({tn(FTSType.UNICODE_IMPROVED)}, rowid, collection, content, id, metadata) values ('delete', old.sqlid, old.collection, old.content, old.id, old.metadata);
-            end;
-            """,
-            f"""
-            create trigger if not exists {sql_chunks_table_name}_au after update on {sql_chunks_table_name} begin
-                insert into {tn(FTSType.UNICODE_IMPROVED)}({tn(FTSType.UNICODE_IMPROVED)}, rowid, collection, content, id, metadata) values ('delete', old.sqlid, old.collection, old.content, old.id, old.metadata);
-                insert into {tn(FTSType.UNICODE_IMPROVED)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
-            end;
-            """,
-        ],
-        search=f"select substr(content, 1, 40), bm25({tn(FTSType.UNICODE_IMPROVED)}, 0, 1, 0, 0) bm25 from {tn(FTSType.UNICODE_IMPROVED)} where content match '%s';"
+                insert into {tn(FTSType.SQLITE3_UNICODE_IMPROVED)}({tn(FTSType.SQLITE3_UNICODE_IMPROVED)}, rowid, collection, content, id, metadata) values ('delete', old.sqlid, old.collection, old.content, old.id, old.metadata);
+        """,
+        update_trigger=
+        f"""
+                insert into {tn(FTSType.SQLITE3_UNICODE_IMPROVED)}({tn(FTSType.SQLITE3_UNICODE_IMPROVED)}, rowid, collection, content, id, metadata) values ('delete', old.sqlid, old.collection, old.content, old.id, old.metadata);
+                insert into {tn(FTSType.SQLITE3_UNICODE_IMPROVED)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
+        """,
+        search=f"select substr(content, 1, 40), bm25({tn(FTSType.SQLITE3_UNICODE_IMPROVED)}, 0, 1, 0, 0) bm25 from {tn(FTSType.SQLITE3_UNICODE_IMPROVED)} where content match '%s';"
     ),
-    FTSType.PORTER_IMPROVED: FTSSpec(
-        table_name=tn(FTSType.PORTER_IMPROVED),
-        create=[
-            f"""
-            create virtual table if not exists {tn(FTSType.PORTER_IMPROVED)}
+
+    FTSType.SQLITE3_PORTER_IMPROVED: FTSSpec(
+        table_name=tn(FTSType.SQLITE3_PORTER_IMPROVED),
+        create=
+        f"""
+            create virtual table if not exists {tn(FTSType.SQLITE3_PORTER_IMPROVED)}
                 using fts5 (
                 collection unindexed,
                 content,
@@ -151,26 +149,22 @@ sql_chunks_fts5 = {
                 content_rowid='sqlid',
                 tokenize = "porter unicode61 remove_diacritics 2 tokenchars '-_'", -- we use remove_diacritics 2 as the default b/c greenfield
             );
-            """,
-            f"""
-            create trigger if not exists {sql_chunks_table_name}_ai after insert on {sql_chunks_table_name} begin
-                insert into {tn(FTSType.PORTER_IMPROVED)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
-            end;
-            """,
-            f"""
-            create trigger if not exists {sql_chunks_table_name}_ad after delete on {sql_chunks_table_name} begin
+        """,
+        insert_trigger=
+        f"""
+                insert into {tn(FTSType.SQLITE3_PORTER_IMPROVED)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
+        """,
+        delete_trigger=
+        f"""
                 -- this is the fancy delete command for contentless external content tables: https://www.sqlite.org/fts5.html#the_delete_command 
-                insert into {tn(FTSType.PORTER_IMPROVED)}({tn(FTSType.PORTER_IMPROVED)}, rowid, collection, content, id, metadata) values ('delete', old.sqlid, old.collection, old.content, old.id, old.metadata);
-            end;
-            """,
-            f"""
-            create trigger if not exists {sql_chunks_table_name}_au after update on {sql_chunks_table_name} begin
-                insert into {tn(FTSType.PORTER_IMPROVED)}({tn(FTSType.PORTER_IMPROVED)}, rowid, collection, content, id, metadata) values ('delete', old.sqlid, old.collection, old.content, old.id, old.metadata);
-                insert into {tn(FTSType.PORTER_IMPROVED)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
-            end;
-            """,
-        ],
-        search=f"select substr(content, 1, 40), bm25({tn(FTSType.PORTER_IMPROVED)}, 0, 1, 0, 0) bm25 from {tn(FTSType.PORTER_IMPROVED)} where content match '%s';"
+                insert into {tn(FTSType.SQLITE3_PORTER_IMPROVED)}({tn(FTSType.SQLITE3_PORTER_IMPROVED)}, rowid, collection, content, id, metadata) values ('delete', old.sqlid, old.collection, old.content, old.id, old.metadata);
+        """,
+        update_trigger=
+        f"""
+                insert into {tn(FTSType.SQLITE3_PORTER_IMPROVED)}({tn(FTSType.SQLITE3_PORTER_IMPROVED)}, rowid, collection, content, id, metadata) values ('delete', old.sqlid, old.collection, old.content, old.id, old.metadata);
+                insert into {tn(FTSType.SQLITE3_PORTER_IMPROVED)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
+        """,
+        search=f"select substr(content, 1, 40), bm25({tn(FTSType.SQLITE3_PORTER_IMPROVED)}, 0, 1, 0, 0) bm25 from {tn(FTSType.SQLITE3_PORTER_IMPROVED)} where content match '%s';"
     ),
 }
 

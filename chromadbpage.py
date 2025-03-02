@@ -98,7 +98,7 @@ class UploadFileDialog(Dialog):
             errmsg = None
             try:
                 log.debug(f'chunking ({chunker_type}) server file {tmpfile.name}...')
-                await run.io_bound(lambda: vectorstore.ingest(self.collection, tmpfile.name, local_file_name, docloader_type, chunker_type, fts_types))
+                await run.io_bound(lambda: vectorstore.ingest(self.collection, tmpfile.name, local_file_name, docloader_type, chunker_type))
             except (Exception,) as e:
                 errmsg = f'Error ingesting {local_file_name}: {e.__class__.__name__}: {e}'
                 if not isinstance(e, VSChroma.EmptyIngestError) and not isinstance(e, VSChroma.OllamaEmbeddingsError):
