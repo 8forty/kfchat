@@ -21,6 +21,7 @@ import config
 import frame
 import logstuff
 import rbui
+from config import FTSType
 from langchain.lc_docloaders import docloaders
 from vectorstore.vschroma import VSChroma
 
@@ -41,21 +42,27 @@ class CreateDialog(Dialog):
                                                    'Too long!': lambda value: len(value) <= 63,
                                                    'No Spaces!': lambda value: str(value).find(' ') == -1},
                                        ).classes('flex-grow min-w-80').props('outlined')
+
+                # todo: allow diff't selections
+                fts_types_all = 'All'  # f'All ({', '.join(FTSType.names())})'
+                fts_types = ui.select(label='FTS Types:', options=[fts_types_all], value=fts_types_all).props('square outlined label-color=green').classes('w-full')
+
                 embedding_types = VSChroma.embedding_types_list()
                 et_start_value = embedding_types[0]
-                etype = ui.select(label='Embedding Type:', options=embedding_types, value=et_start_value).props('square outlined label-color=green').classes('w-full')
-                etype.on_value_change(lambda vc: self.select_embedding_subtype(vc.value, subtype_select))
+                embedding_type = ui.select(label='Embedding Type:', options=embedding_types, value=et_start_value).props('square outlined label-color=green').classes('w-full')
+                embedding_type.on_value_change(lambda vc: self.select_embedding_subtype(vc.value, subtype_select))
                 subtype_select = ui.select(label='Subtype:', options=[]).props('square outlined label-color=green').classes('w-full')
                 self.select_embedding_subtype(et_start_value, subtype_select)
                 ui.separator()
-                ui.button('Create', on_click=lambda: self.create_collection_submit(self.cinput.value, etype.value, subtype_select.value)).props('no-caps').classes('self-center')
+                ui.button('Create',
+                          on_click=lambda: self.create_collection_submit(self.cinput.value, FTSType.members(), embedding_type.value, subtype_select.value)).props('no-caps').classes('self-center')
 
-    async def create_collection_submit(self, collection_name: str, embedding_type: str, subtype: str):
+    async def create_collection_submit(self, collection_name: str, fts_types: list[FTSType], embedding_type: str, subtype: str):
         if len(collection_name.strip()) < 3 or len(collection_name.strip()) > 63 or len(collection_name.strip()) != len(collection_name):
             ui.notify(message='Invalid collection name', position='top', type='negative', close_button='Dismiss')
         else:
             log.info(f'creating collection {collection_name}: {embedding_type=} {subtype=}')
-            self.submit((collection_name, embedding_type, subtype))
+            self.submit((collection_name, fts_types, embedding_type, subtype))
 
     @staticmethod
     def select_embedding_subtype(embedding_type: str, subtype_select: Select):
@@ -74,7 +81,8 @@ class UploadFileDialog(Dialog):
         Dialog.__init__(self)
         self.collection = collection
 
-    async def handle_upload(self, ulargs: events.UploadEventArguments, doc_type: str, chunker_type: str, vectorstore: VSChroma, done_button: Button, upld_spinner: Spinner):
+    async def handle_upload(self, ulargs: events.UploadEventArguments, docloader_type: str, chunker_type: str, vectorstore: VSChroma,
+                            done_button: Button, upld_spinner: Spinner):
         done_button.set_visibility(False)
         done_button.disable()
         upld_spinner.set_visibility(True)
@@ -90,7 +98,7 @@ class UploadFileDialog(Dialog):
             errmsg = None
             try:
                 log.debug(f'chunking ({chunker_type}) server file {tmpfile.name}...')
-                await run.io_bound(lambda: vectorstore.ingest(self.collection, tmpfile.name, local_file_name, doc_type, chunker_type))
+                await run.io_bound(lambda: vectorstore.ingest(self.collection, tmpfile.name, local_file_name, docloader_type, chunker_type, fts_types))
             except (Exception,) as e:
                 errmsg = f'Error ingesting {local_file_name}: {e.__class__.__name__}: {e}'
                 if not isinstance(e, VSChroma.EmptyIngestError) and not isinstance(e, VSChroma.OllamaEmbeddingsError):
@@ -119,8 +127,8 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
             page_spinner.set_visibility(True)
             try:
                 if result is not None:
-                    (collection_name, embedding_type, subtype) = result
-                    await run.io_bound(lambda: vectorstore.create_collection(collection_name, embedding_type, subtype))
+                    (collection_name, fts_types, embedding_type, subtype) = result
+                    await run.io_bound(lambda: vectorstore.create_collection(collection_name, fts_types, embedding_type, subtype))
             except (Exception,) as e:
                 page_spinner.set_visibility(False)
                 raise e
@@ -208,20 +216,24 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         with UploadFileDialog(collection) as upload_file_dialog, ui.card():
             with ui.column().classes('w-full'):
                 ui.label(f'Add File to {collection_name}').classes('text-xl self-center')
-                doc_types = VSChroma.doc_loaders_list()
+                docloaders_list = VSChroma.doc_loaders_list()
                 chunker_types = VSChroma.chunkers_list()
-                dtype = ui.select(label='Doc Reader:', options=doc_types,
-                                  on_change=lambda vcargs: set_filetype_props(upld, vcargs.value), value=doc_types[0]).props('square outlined label-color=green')
-                ctype = ui.select(label='Chunker:', options=chunker_types, value=chunker_types[0]).props('square outlined label-color=green')
+                docreader_type = ui.select(label='Doc Reader:', options=docloaders_list,
+                                           on_change=lambda vcargs: set_filetype_props(upld, vcargs.value), value=docloaders_list[0]).props('square outlined label-color=green')
+                chunker_type = ui.select(label='Chunker:', options=chunker_types, value=chunker_types[0]).props('square outlined label-color=green')
+                ui.label('FTS Types: all').classes('italic')
                 ui.separator()
                 ui.label('Choose a file:').classes('text-quasargreen')
                 upld = ui.upload(auto_upload=True)
-                set_filetype_props(upld, dtype.value)
+                set_filetype_props(upld, docreader_type.value)
                 with ui.row().classes('w-full place-content-center'):
                     done_button = ui.button(text='Done', on_click=lambda: upload_file_dialog.submit(None)).props('no-caps')
                     upld_spinner = ui.spinner(size='3em', type='default')
                     upld_spinner.set_visibility(False)
-                    upld.on_upload(lambda ulargs, db=done_button: upload_file_dialog.handle_upload(ulargs, dtype.value, ctype.value, vectorstore, done_button, upld_spinner))
+                    # todo: push fts_types value up to config/settings
+                    upld.on_upload(lambda ulargs, db=done_button: upload_file_dialog.handle_upload(ulargs,
+                                                                                                   docreader_type.value, chunker_type.value,
+                                                                                                   vectorstore, done_button, upld_spinner))
 
         await upload_file_dialog
         upload_file_dialog.close()
@@ -236,7 +248,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         colls_with_md = []
         for collection_name in await run.io_bound(vectorstore.list_index_names):
             try:
-                colls_with_md.append(await run.io_bound(lambda: vectorstore.get_collection_metadata(collection_name)))
+                colls_with_md.append(await run.io_bound(lambda: vectorstore.get_partial_collection(collection_name)))
             except (Exception,) as e:
                 errmsg = f'Error loading metadata for collection {collection_name}: {e.__class__.__name__}: {e} (skipping)'
                 log.warning(errmsg)
@@ -247,7 +259,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         colls_with_md = sorted(colls_with_md, key=lambda coll: coll.metadata['created'] if 'created' in coll.metadata else ancient, reverse=True)  # newest on top
 
         for collection_md in colls_with_md:
-            with ui.expansion().classes('w-full border-solid border border-black') as expansion:
+            with ui.expansion().classes('w-full border-solid border border-white') as expansion:
                 with expansion.add_slot('header'):
                     with ui.column().classes('w-full gap-y-0'):
                         with ui.row().classes('w-full grid grid-cols-6 grid-rows-1'):
@@ -325,7 +337,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
 
         with frame.frame(f'{config.name} {pagename}'):
             with ui.column().classes('w-full'):  # .classes('w-full max-w-2xl mx-auto items-stretch'):
-                with ui.row().classes('w-full border-solid border border-black items-center'):
+                with ui.row().classes('w-full border-solid border border-white items-center'):
                     ui.button('Refresh', on_click=lambda: chroma_ui.refresh()).props('no-caps')
                     ui.button('Create...', on_click=lambda: do_create_dialog(create_dialog, page_spinner)).props('no-caps')
 

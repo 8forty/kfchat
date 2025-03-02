@@ -297,9 +297,9 @@ class ChatPage:
                         pinput = ui.input(placeholder="Enter prompt").classes('flex-grow').props('rounded outlined color=primary bg-color=black')
                         pinput.on('keydown.enter', lambda req=request, i=idata: handle_enter(req, pinput, spinner, scroller, settings_selects, i))
 
-                with (ui.column().classes('w-full flex-grow border-solid border border-black')):  # place-content-center')):
+                with (ui.column().classes('w-full flex-grow border-solid border border-white')):  # place-content-center')):
                     # the settings selection row
-                    with (ui.row().classes('w-full border-solid border border-black')):  # place-content-center')):
+                    with (ui.row().classes('w-full border-solid border border-white')):  # place-content-center')):
                         sources = idata.all_sources()
                         settings = self.llm_config.settings
                         selmodel = ui.select(label='Source:',
@@ -336,8 +336,8 @@ class ChatPage:
 
                         settings_selects = {'model': selmodel, 'n': seln, 'temp': seltemp, 'top_p': seltopp, 'maxtokens': selmaxtok, 'sysmsg': selsysmsg}
 
-                    # with ui.scroll_area(on_scroll=lambda e: print(f'~~~~ e: {e}')).classes('w-full flex-grow border border-solid border-black') as scroller:
-                    with ui.scroll_area().classes('w-full flex-grow border border-solid border-black') as scroller:
+                    # with ui.scroll_area(on_scroll=lambda e: print(f'~~~~ e: {e}')).classes('w-full flex-grow border border-solid border-white') as scroller:
+                    with ui.scroll_area().classes('w-full flex-grow border border-solid border-white') as scroller:
                         await refresh(pinput.value.strip(), idata, scroller)
 
             try:

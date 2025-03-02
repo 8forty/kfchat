@@ -15,6 +15,7 @@ from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 
 import config
+from config import FTSType
 from langchain import lc_docloaders, lc_chunkers
 import logstuff
 from chatexchanges import VectorStoreResponse, VectorStoreResult
@@ -148,7 +149,7 @@ class VSChroma(VSAPI):
     def create(vs_type_name: str, parms: dict[str, str]):
         return VSChroma(vs_type_name, parms)
 
-    def get_collection_metadata(self, collection_name: str) -> Collection:
+    def get_partial_collection(self, collection_name: str) -> Collection:
         """
         gets a PARTIALLY complete collection, has all metadata BUT can't be used to add data!
         :param collection_name:
@@ -265,7 +266,7 @@ class VSChroma(VSAPI):
             sql = sqlite3.connect(config.sql_path)
             cursor = sql.cursor()
 
-            query = f"select substr(content, 1, 40), bm25({config.sql_chunks_fts5_table_name}, 0, 1, 0, 0) bm25 from {config.sql_chunks_fts5_table_name} where {config.sql_chunks_fts5_table_name} match '{prompt}';"
+            query = f"select substr(content, 1, 40), bm25({config.sql_chunks_fts5_table_name}, 0, 1, 0, 0) bm25 from {config.sql_chunks_fts5_table_name} where content match '{prompt}';"
             log.debug(f'query {config.sql_chunks_table_name}: {query}')
             cursor.execute(query)
             for row in cursor.fetchall():
@@ -282,7 +283,9 @@ class VSChroma(VSAPI):
 
     def delete_index(self, index_name: str):
         self._build_clients()
+
         self._client.delete_collection(index_name)
+        self._collection = None
 
         log.debug(f'connecting to sql: {config.sql_path}.{config.sql_chunks_table_name}')
         sql = None
@@ -366,7 +369,7 @@ class VSChroma(VSAPI):
 
         return collection_name
 
-    def create_collection(self, name: str, embedding_type: str, subtype: str) -> Collection:
+    def create_collection(self, name: str, fts_types: list[FTSType], embedding_type: str, subtype: str) -> Collection:
         """
         chroma collection name requirements:
         (1) contains 3-63 characters,
@@ -377,6 +380,7 @@ class VSChroma(VSAPI):
         (*) unique per... tenant? database? all?
 
         :param name:
+        :param fts_types
         :param embedding_type:
         :param subtype:
         """
@@ -398,6 +402,8 @@ class VSChroma(VSAPI):
         collection: Collection = self._client.create_collection(
             name=name,
             metadata={
+                'fts_types': f'{str(FTSType.names())}',
+
                 'embedding_type': embedding_type,
                 'embedding_function_name': embedding_function_info['function'].__name__,
                 'embedding_function_parms': json.dumps(self.filter_metadata(embedding_function_info['create_parms']), ensure_ascii=False),
@@ -486,12 +492,12 @@ class VSChroma(VSAPI):
             retval[key] = value
         return retval
 
-    def ingest(self, collection: Collection, server_file_path: str, org_filename: str, doc_type: str, chunker_type: str) -> Collection:
-        if doc_type in lc_docloaders.docloaders:
-            log.debug(f'loading {org_filename} for {collection.name} with {doc_type}')
-            docs: list[Document] = lc_docloaders.docloaders[doc_type]['function'](file_path=server_file_path).load()
+    def ingest(self, collection: Collection, server_file_path: str, org_filename: str, docloader_type: str, chunker_type: str, fts_types: list[FTSType]) -> Collection:
+        if docloader_type in lc_docloaders.docloaders:
+            log.debug(f'loading {org_filename} for {collection.name} with {docloader_type}')
+            docs: list[Document] = lc_docloaders.docloaders[docloader_type]['function'](file_path=server_file_path).load()
         else:
-            raise ValueError(f'unknown doc loader/type [{doc_type}]')
+            raise ValueError(f'unknown doc loader/type [{docloader_type}]')
 
         # chunking
         if chunker_type in lc_chunkers.chunkers:
@@ -508,7 +514,8 @@ class VSChroma(VSAPI):
         # update collection metadata
         now = config.now_datetime()
         collection.metadata[f'file:{org_filename}:upload time'] = now
-        collection.metadata[f'file:{org_filename}:doc_type'] = f'{doc_type}: {lc_docloaders.docloaders[doc_type]['function'].__name__}/{lc_docloaders.docloaders[doc_type]['filetypes']}'
+        collection.metadata[f'file:{org_filename}:fts_types'] = str(fts_types)
+        collection.metadata[f'file:{org_filename}:docloader_type'] = f'{docloader_type}: {lc_docloaders.docloaders[docloader_type]['function'].__name__}/{lc_docloaders.docloaders[docloader_type]['filetypes']}'
         collection.metadata[f'file:{org_filename}:doc/chunk counts'] = f'{len(docs)}/{len(chunks)}'
         collection.metadata[f'file:{org_filename}:chunker_type'] = f'{chunker_type}: {lc_chunkers.chunkers[chunker_type]['function'].__name__}'
         for key, value in chunker_args.items():
@@ -530,29 +537,31 @@ class VSChroma(VSAPI):
 
             collection.add(documents=chunks_content, ids=ids, metadatas=metadata)
 
-            log.debug(f'adding full-text for {len(chunks)} chunks [{chunker_type}] to tables: {config.sql_chunks_table_name}, {config.sql_chunks_fts5_table_name}')
-            log.debug(f'connecting to sql: {config.sql_path}.{config.sql_chunks_table_name}')
             sql = None
             try:
                 # todo: fresh connection every time
+                log.debug(f'connecting to sql: {config.sql_path}.{config.sql_chunks_table_name}')
                 sql = sqlite3.connect(config.sql_path)
                 cursor = sql.cursor()
 
-                create = f"create table if not exists {config.sql_chunks_table_name} (collection text, content text, id text, metadata text, primary key(collection, id));"
-                log.debug(f'create {config.sql_chunks_table_name}: {create}')
-                cursor.execute(create)
+                # create tables
+                for create in config.sql_chunks_create:
+                    # the content table(s)
+                    log.debug(f'create {config.sql_chunks_table_name}: {create}')
+                    cursor.execute(create)
+                for fts_type in fts_types:
+                    # full-text search tables/indexes
+                    sql_chunks_fts5_table_name = config.sql_chunks_fts5[fts_type].table_name
+                    log.debug(f'adding full-text for {len(chunks)} chunks [{chunker_type}] to [{fts_type}] tables: {config.sql_chunks_table_name}, {sql_chunks_fts5_table_name}')
+                    for create in config.sql_chunks_fts5[fts_type].create:
+                        log.debug(f'create fts5 {sql_chunks_fts5_table_name}: {create}')
+                        cursor.execute(create)
 
-                create = f"create virtual table if not exists {config.sql_chunks_fts5_table_name} using fts5(collection, content, id, metadata);"
-                log.debug(f'create fts5 {config.sql_chunks_fts5_table_name}: {create}')
-                cursor.execute(create)
-
+                # insert the chunks
+                log.debug(f'inserting {len(chunks)} chunks into {config.sql_chunks_table_name}')
                 for i, chunk_content in enumerate(chunks_content):
-                    insert = f"insert into {config.sql_chunks_table_name} values ('{_fix(collection.name)}', '{_fix(chunk_content)}', '{_fix(ids[i])}', '{_fix(str(metadata[i]))}')"
-                    # log.debug(f'insert: {insert.replace("\n", "[\\n]")}')
-                    cursor.execute(insert)
-
-                    insert = f"insert into {config.sql_chunks_fts5_table_name} values ('{_fix(collection.name)}', '{_fix(chunk_content)}', '{_fix(ids[i])}', '{_fix(str(metadata[i]))}')"
-                    # log.debug(f'insert fts5: {insert.replace("\n", "[\\n]")}')
+                    insert = f"insert into {config.sql_chunks_table_name} values ('{_fix(collection.name)}', '{_fix(chunk_content)}', '{_fix(ids[i])}', '{_fix(str(metadata[i]))}', NULL)"
+                    log.debug(f'insert: {insert.replace("\n", "[\\n]")}')
                     cursor.execute(insert)
 
                 sql.commit()

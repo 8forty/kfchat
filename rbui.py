@@ -9,7 +9,7 @@ from nicegui import ui
 
 # noinspection PyPep8Naming
 class table(ui.element):
-    default_table_classes = 'border-solid border border-black w-11/12 table-fixed'
+    default_table_classes = 'border-solid border border-white w-11/12 table-fixed'
 
     def __init__(self, table_classes: str = None):
         super().__init__('table')
@@ -26,7 +26,7 @@ class tr(ui.element):
 
 # noinspection PyPep8Naming
 class th(ui.element):
-    th_base_classes = 'font-bold border-solid border border-black p-2'
+    th_base_classes = 'font-bold border-solid border border-white p-2'
     label_base_classes = 'text-base'
 
     def __init__(self, label: str, th_classes: str = None, label_classes: str = None, th_props: str = None):
@@ -40,9 +40,9 @@ class th(ui.element):
 
 # noinspection PyPep8Naming
 class td(ui.element):
-    td_base_classes = 'border-solid border border-black p-2'
+    td_base_classes = 'border-solid border border-white p-2'
     label_base_classes = 'text-base'
-    tt_base_classes = 'bg-white text-blue border border-black text-base max-w-80'
+    tt_base_classes = 'bg-white text-blue border border-white text-base max-w-80'
 
     def __init__(self, label: str, td_classes: str = None, label_classes: str = None, td_props: str = None, td_style: str = None, tt_text: str = None, tt_classes: str = None):
         super().__init__('td')
