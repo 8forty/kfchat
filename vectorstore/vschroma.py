@@ -593,7 +593,7 @@ class VSChroma(VSAPI):
             ef_name: str = collection_md['embedding_function_name'] if 'embedding_function_name' in collection_md else 'unknown'
             errmsg = f'Error adding embeddings to {collection.name} function:{ef_name} type:{e_type}: {e.__class__.__name__}: {e}'
             log.warning(errmsg)
-            if 'ollama' in e_type.lower():
+            if 'OLLAMA' in e_type.lower():
                 raise VSChroma.OllamaEmbeddingsError(errmsg + ' (is model loaded in ollama?)')
             else:
                 raise e

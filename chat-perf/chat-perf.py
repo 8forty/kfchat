@@ -76,7 +76,7 @@ def run(model_sets_name: str, settings_sets_name: str, message_set_name: str, cs
         print(f'{config.secs_string(all_start)}: running {model_spec.provider} {model_spec.name}...')
 
         # warmup the model if necessary
-        if model_spec.provider == 'ollama':
+        if model_spec.provider == 'OLLAMA':
             warmup_start = timeit.default_timer()
             try:
                 print(f'{config.secs_string(all_start)}: warmup {model_spec.provider} {model_spec.name}...')

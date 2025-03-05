@@ -19,10 +19,10 @@ dotenv.load_dotenv(override=True)
 env = dotenv.dotenv_values()
 
 providers_config = {
-    'anthropic': {
+    'ANTHROPIC': {
         'key': env.get('kfANTHROPIC_TOKEN'),
-        'ANTHROPIC_API_VERSION': env.get('ANTHROPIC_API_VERSION'),
-        'ANTHROPIC_ENDPOINT': env.get('ANTHROPIC_ENDPOINT'),
+        'ANTHROPIC_API_VERSION': env.get('kfANTHROPIC_API_VERSION'),
+        'ANTHROPIC_ENDPOINT': "doesn't need one!",
     },
 }
 
@@ -60,6 +60,7 @@ class LLMAnthropicConfig(LLMConfig):
 
         self._settings = settings
 
+        # todo: this is duplicated in openai config
         if self._provider not in list(providers_config.keys()):
             raise ValueError(f'{__class__.__name__}: invalid provider! {provider}')
         self._api_client = None
@@ -82,10 +83,9 @@ class LLMAnthropicConfig(LLMConfig):
         if self._api_client is not None:
             return self._api_client
 
-        # todo: this is a 2nd place that lists providers :(, for now to highlight any diffs in client-setup api's
-        if self._provider == 'anthropic':
+        if self._provider == 'ANTHROPIC':
             # endpoint = providers_config[self.provider_name]['OLLAMA_ENDPOINT']
-            endpoint = 'huh?'
+            endpoint = "doesn't need one!"
             key = providers_config[self._provider]['key']
             log.info(f'building ANTHROPIC LLM API for [{self._provider}]: {endpoint=} key={redact(key)}')
             self._api_client = anthropic.Anthropic(api_key=key)
@@ -94,13 +94,12 @@ class LLMAnthropicConfig(LLMConfig):
 
         return self._api_client
 
-    # todo: configure max_quota_retries
-    def do_chat(self, messages: list[LLMMessagePair], max_quota_retries: int = 10) -> LLMAnthropicExchange:
+    def do_chat(self, messages: list[LLMMessagePair], max_rate_limit_retries: int = 10) -> LLMAnthropicExchange:
         # todo: this is clumsy
-        # prompt is the last dict in the list
+        # prompt is the last dict in the list by openai's convention
         prompt = messages[-1].content
 
-        quota_retries = 0
+        rate_limit_retries = 0
         retry_wait_secs = 1.0
         while True:
             try:
@@ -108,18 +107,17 @@ class LLMAnthropicConfig(LLMConfig):
                 log.debug(f'{self.model_name} n:{self._settings.n} temp:{self._settings.temp} top_p:{self._settings.top_p}, max_tok:{self._settings.max_tokens} prompt:"{prompt}" msgs:{messages_list}')
 
                 start = timeit.default_timer()
-                # todo: seed, etc. (by actual llm?)
                 message: Message = self._client().messages.create(
                     model=self.model_name,
-                    temperature=self._settings.temp,  # todo: default 1.0, 0.0->1.0
-                    top_p=self._settings.top_p,  # todo: default 1, ~0.01->1.0
+                    temperature=self._settings.temp,  # default 1.0, 0.0->1.0
+                    top_p=self._settings.top_p,  # default 1, ~0.01->1.0
                     messages=messages_list,
                     max_tokens=self._settings.max_tokens,  # default 16?
-                    system=self._settings.system_message
+                    system=self._settings.system_message,
 
-                    # n=self._settings.n,  # todo: not in anthropic's api
+                    # n=self._settings.n,  # not in anthropic's api
 
-                    # stream=False,  # todo: allow streaming
+                    stream=False,  # todo: allow streaming
 
                     # seed=27,
                     # frequency_penalty=1,  # default 0, -2.0->2.0
@@ -129,15 +127,15 @@ class LLMAnthropicConfig(LLMConfig):
                 return LLMAnthropicExchange(prompt=prompt, message=message, provider=self._provider, model_name=self.model_name,
                                             settings=self._settings, response_duration_seconds=timeit.default_timer() - start)
             except anthropic.RateLimitError as e:
-                quota_retries += 1
-                log.warning(f'{self._provider}:{self.model_name}: rate limit exceeded attempt {quota_retries}/{max_quota_retries}, '
-                            f'{(f"will retry in {retry_wait_secs}s" if quota_retries <= max_quota_retries else "")}')
-                if quota_retries > max_quota_retries:
-                    log.warning(f'chat quota exceeded! {self._provider}:{self.model_name}: rate limit exceeded all {quota_retries} retries')
+                rate_limit_retries += 1
+                log.warning(f'{self._provider}:{self.model_name}: rate limit exceeded attempt {rate_limit_retries}/{max_rate_limit_retries}, '
+                            f'{(f"will retry in {retry_wait_secs}s" if rate_limit_retries <= max_rate_limit_retries else "")}')
+                if rate_limit_retries > max_rate_limit_retries:
+                    log.warning(f'chat {self._provider}:{self.model_name}: rate limit exceeded, all {rate_limit_retries} retries failed')
                     raise e
                 else:
-                    time.sleep(retry_wait_secs)  # todo: progressive backoff?
-                    retry_wait_secs = quota_retries * quota_retries
+                    time.sleep(retry_wait_secs)
+                    retry_wait_secs = rate_limit_retries * rate_limit_retries
             except (Exception,) as e:
                 log.warning(f'chat error! {self._provider}:{self.model_name}: {e.__class__.__name__}: {e}')
                 raise e

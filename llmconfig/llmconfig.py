@@ -75,25 +75,27 @@ class LLMConfig(ABC):
         return [mp for mp in messages if mp.role != 'system']
 
     @abstractmethod
-    def do_chat(self, messages: list[LLMMessagePair], max_quota_retries: int = 10) -> LLMExchange:
+    def do_chat(self, messages: list[LLMMessagePair], max_rate_limit_retries: int = 10) -> LLMExchange:
         pass
 
-    def chat_messages(self, messages: list[LLMMessagePair]) -> LLMExchange:
+    def chat_messages(self, messages: list[LLMMessagePair], max_rate_limit_retries: int = 10) -> LLMExchange:
         """
         run chat-completion from a list of messages that includes the prompt as a final dict: {role': 'user', 'content': '...'}
         NOTE: this configuration's system message will be used instead of any supplied in messages
         :param messages:
+        :param max_rate_limit_retries:
         """
         messages = LLMConfig._clean_messages(messages)
         log.debug(f'{messages=}')
-        return self.do_chat(messages)
+        return self.do_chat(messages, max_rate_limit_retries=max_rate_limit_retries)
 
-    def chat_convo(self, convo: list[LLMExchange], prompt: str) -> LLMExchange:
+    def chat_convo(self, convo: list[LLMExchange], prompt: str, max_rate_limit_retries: int = 10) -> LLMExchange:
         """
         run chat-completion
         NOTE: this configuration's system message will be used instead of any supplied in convo
         :param convo: properly ordered list of LLMOpenaiExchange's
         :param prompt: the prompt duh
+        :param max_rate_limit_retries:
         """
         messages: list[LLMMessagePair] = []
 
@@ -105,4 +107,4 @@ class LLMConfig(ABC):
 
         # add the prompt
         messages.append(LLMMessagePair('user', prompt))
-        return self.chat_messages(messages)
+        return self.chat_messages(messages, max_rate_limit_retries=max_rate_limit_retries)

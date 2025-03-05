@@ -32,6 +32,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
 
     # setup llm
     # todo: these should come from somewhere, e.g. pref screen
+    # todo: init_n: openai,azure,gemini:any(?) value works; ollama: only 1 resp for any value; groq: requires 1;
     settings_openai = LLMOpenAISettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_system_message_name='professional800')
     settings_anthropic = LLMAnthropicSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_system_message_name='professional800')
     llm_configs_list: list[LLMConfig] = []
@@ -41,7 +42,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         elif model_spec.api.lower() == 'anthropic':
             llm_configs_list.append(LLMAnthropicConfig(model_name=model_spec.name, provider=model_spec.provider, settings=settings_anthropic))
     llm_configs = OrderedDict({f'{lc.provider()}.{lc.model_name}': lc for lc in llm_configs_list})
-    init_llm = 'github.gpt-4o'
+    init_llm = 'GITHUB.gpt-4o'
 
     # setup vs
     try:
