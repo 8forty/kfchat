@@ -54,7 +54,6 @@ class ChatPage:
             subscript_classes = 'w-full italic text-xs text-slate-500 text-left px-10'
             problem_classes = 'w-full italic text-xs text-red text-left px-10'
 
-            scroller.clear()
             with scroller, ui.column().classes('w-full gap-y-0'):
                 for rtext in responses:
                     # the prompt
@@ -90,8 +89,9 @@ class ChatPage:
                     for problem in rtext.response_problems:
                         ui.label(f'{problem}').classes(problem_classes)
 
-        async def refresh(prompt: str, idata: InstanceData, scroller: ScrollArea) -> None:
+        async def refresh_chat(prompt: str, idata: InstanceData, scroller: ScrollArea) -> None:
             # todo: local-storage-session to separate messages
+            # todo: @refresh?
 
             # todo: increaase encapsulation of InstanceData for some/all idata.<whatever> usages below
             if idata.exchanges.len() > 0:
@@ -148,6 +148,8 @@ class ChatPage:
 
                     responses.append(rtext)
 
+            # since this is NOT @refresh, we have to manually clear the scroll area
+            scroller.clear()
             # display/render the various texts of the response
             render_response(responses, scroller)
 
@@ -251,7 +253,7 @@ class ChatPage:
             prompt_input.value = ''
             prompt_input.enable()
 
-            await refresh(prompt, idata, scroller)
+            await refresh_chat(prompt, idata, scroller)
             await prompt_input.run_method('focus')
 
         async def call_and_focus(callback: Handler[ValueChangeEventArguments], prompt_input: Input, spinner: Spinner):
@@ -301,12 +303,13 @@ class ChatPage:
                     # the settings selection row
                     with (ui.row().classes('w-full border-solid border border-white')):  # place-content-center')):
                         sources = idata.all_sources()
-                        settings = self.llm_config.settings
                         selmodel = ui.select(label='Source:',
                                              options=sources,
                                              value=idata.source,
                                              ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_source(vc.value), pinput, spinner)
                                                                ).tooltip('vs=vector search, llm=lang model chat').props('square outlined label-color=green').classes('min-w-30')
+
+                        settings = self.llm_config.settings
                         seln = ui.select(label='n:',
                                          options=[i for i in range(1, 10)],
                                          value=settings().n,
@@ -336,9 +339,8 @@ class ChatPage:
 
                         settings_selects = {'model': selmodel, 'n': seln, 'temp': seltemp, 'top_p': seltopp, 'maxtokens': selmaxtok, 'sysmsg': selsysmsg}
 
-                    # with ui.scroll_area(on_scroll=lambda e: print(f'~~~~ e: {e}')).classes('w-full flex-grow border border-solid border-white') as scroller:
                     with ui.scroll_area().classes('w-full flex-grow border border-solid border-white') as scroller:
-                        await refresh(pinput.value.strip(), idata, scroller)
+                        await refresh_chat(pinput.value.strip(), idata, scroller)
 
             try:
                 await ui.context.client.connected()
