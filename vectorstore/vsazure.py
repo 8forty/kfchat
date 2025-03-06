@@ -41,19 +41,19 @@ class VSAzure(VSAPI):
         #     azure.identity.DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
         # )
         # client = openai.AzureOpenAI(
-        #     api_version=self.parms.get("AZURE_OPENAI_API_VERSION"),
-        #     azure_endpoint=self.parms.get("AZURE_OPENAI_ENDPOINT"),
+        #     api_version=self.parms.get("AZURE_API_VERSION"),
+        #     azure_endpoint=self.parms.get("AZURE_ENDPOINT"),
         #     azure_ad_token_provider=token_provider,
         # )
 
-        log.info(f'building VS API for [{self._vs_type_name}]: {self.parms.get("AZURE_OPENAI_ENDPOINT")=}, '
-                 f'AZURE_OPENAI_API_KEY={redact(self.parms.get("AZURE_OPENAI_API_KEY"))}, '
-                 f'{self.parms.get("AZURE_OPENAI_API_VERSION")=}, {self.parms.get("AZURE_AI_SEARCH_ENDPOINT")=}, '
+        log.info(f'building VS API for [{self._vs_type_name}]: {self.parms.get("AZURE_ENDPOINT")=}, '
+                 f'AZURE_API_KEY={redact(self.parms.get("AZURE_API_KEY"))}, '
+                 f'{self.parms.get("AZURE_API_VERSION")=}, {self.parms.get("AZURE_AI_SEARCH_ENDPOINT")=}, '
                  f'AZURE_AI_SEARCH_API_KEY={redact(self.parms.get("AZURE_AI_SEARCH_API_KEY"))}, {self.parms.get("AZURE_AI_SEARCH_EMBEDDING_DEPLOYMENT")=}, '
                  f'{self.parms.get("AZURE_AI_SEARCH_EMBEDDING_DIMENSIONS")=}')
-        self._aoai_client = openai.AzureOpenAI(azure_endpoint=self.parms.get("AZURE_OPENAI_ENDPOINT"),
-                                               api_key=self.parms.get("AZURE_OPENAI_API_KEY"),
-                                               api_version=self.parms.get("AZURE_OPENAI_API_VERSION"))
+        self._aoai_client = openai.AzureOpenAI(azure_endpoint=self.parms.get("AZURE_ENDPOINT"),
+                                               api_key=self.parms.get("AZURE_API_KEY"),
+                                               api_version=self.parms.get("AZURE_API_VERSION"))
 
         aai_search_api_key: str = self.parms.get("AZURE_AI_SEARCH_API_KEY")
         if len(aai_search_api_key) > 0:

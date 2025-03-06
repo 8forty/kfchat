@@ -21,9 +21,9 @@ env = dotenv.dotenv_values()
 
 providers_config = {
     'AZURE': {
-        'key': env.get('kfAZURE_OPENAI_API_KEY'),
-        'AZURE_OPENAI_API_VERSION': env.get('AZURE_OPENAI_API_VERSION'),
-        'kfAZURE_OPENAI_ENDPOINT': env.get('kfAZURE_OPENAI_ENDPOINT'),
+        'key': env.get('kfAZURE_API_KEY'),
+        'kfAZURE_API_VERSION': env.get('kfAZURE_API_VERSION'),
+        'kfAZURE_ENDPOINT': env.get('kfAZURE_ENDPOINT'),
         'AZURE_AI_SEARCH_ENDPOINT': env.get('AZURE_AI_SEARCH_ENDPOINT'),
         'ai-search-api-key': env.get('AZURE_AI_SEARCH_API_KEY'),
     },
@@ -38,7 +38,7 @@ providers_config = {
     },
     'GROQ': {
         'key': env.get('kfGROQ_API_KEY'),
-        'kfGROQ_OPENAI_ENDPOINT': env.get('kfGROQ_OPENAI_ENDPOINT'),
+        'kfGROQ_ENDPOINT': env.get('kfGROQ_ENDPOINT'),
     },
     'GEMINI': {
         'key': env.get('kfGEMINI_API_KEY'),
@@ -109,8 +109,8 @@ class LLMOpenAIConfig(LLMConfig):
             #     azure.identity.DefaultAzureCredential(), 'https://cognitiveservices.azure.com/.default'
             # )
             # client = openai.AzureOpenAI(
-            #     api_version=self.parms.get('AZURE_OPENAI_API_VERSION'),
-            #     azure_endpoint=self.parms.get('AZURE_OPENAI_ENDPOINT'),
+            #     api_version=self.parms.get('AZURE_API_VERSION'),
+            #     azure_endpoint=self.parms.get('AZURE_ENDPOINT'),
             #     azure_ad_token_provider=token_provider,
             # )
             endpoint = providers_config[self._provider]['kfAZURE_ENDPOINT']
@@ -118,33 +118,33 @@ class LLMOpenAIConfig(LLMConfig):
             api_version = providers_config[self._provider]['kfAZURE_API_VERSION']
             log.info(f'building LLM API for [{self._provider}]: {endpoint=} key={redact(key)} {api_version=}')
             self._api_client = openai.AzureOpenAI(azure_endpoint=endpoint, api_key=key, api_version=api_version)
-        if self._provider in config.LLMData.providers:
+        elif self._provider in config.LLMData.providers:
             endpoint = providers_config[self._provider][f'kf{self._provider.upper()}_ENDPOINT']
             key = providers_config[self._provider]['key']
             log.info(f'building LLM API for [{self._provider}]: {endpoint=} key={redact(key)}')
             self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         # if self._provider == 'ollama':
-        #     endpoint = providers_config[self._provider]['OLLAMA_ENDPOINT']
+        #     endpoint = providers_config[self._provider]['kfOLLAMA_ENDPOINT']
         #     key = providers_config[self._provider]['key']
         #     log.info(f'building LLM API for [{self._provider}]: {endpoint=} key={redact(key)}')
         #     self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         # elif self._provider == 'openai':
-        #     endpoint = providers_config[self._provider]['OPENAI_ENDPOINT']
+        #     endpoint = providers_config[self._provider]['kfOPENAI_ENDPOINT']
         #     key = providers_config[self._provider]['key']
         #     log.info(f'building LLM API for [{self._provider}]: {endpoint=} key={redact(key)}')
         #     self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         # elif self._provider == 'groq':
-        #     endpoint = providers_config[self._provider]['GROQ_OPENAI_ENDPOINT']
+        #     endpoint = providers_config[self._provider]['kfGROQ_ENDPOINT']
         #     key = providers_config[self._provider]['key']
         #     log.info(f'building LLM API for [{self._provider}]: {endpoint=} key={redact(key)}')
         #     self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         # elif self._provider == 'gemini':
-        #     endpoint = providers_config[self._provider]['GEMINI_OPENAI_ENDPOINT']
+        #     endpoint = providers_config[self._provider]['kfGEMINI_ENDPOINT']
         #     key = providers_config[self._provider]['key']
         #     log.info(f'building LLM API for [{self._provider}]: {endpoint=} key={redact(key)}')
         #     self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         # elif self._provider == 'GITHUB':
-        #     endpoint = providers_config[self._provider]['GITHUB_ENDPOINT']
+        #     endpoint = providers_config[self._provider]['kfGITHUB_ENDPOINT']
         #     key = providers_config[self._provider]['key']
         #     log.info(f'building LLM API for [{self._provider}]: {endpoint=} key={redact(key)}')
         #     self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)

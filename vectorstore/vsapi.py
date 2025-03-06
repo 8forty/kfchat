@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 import logstuff
 from chatexchanges import VectorStoreResponse
+from config import FTSType
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -55,7 +56,7 @@ class VSAPI(ABC):
         pass
 
     @abstractmethod
-    def search(self, prompt: str, howmany: int) -> VectorStoreResponse:
+    def search(self, prompt: str, fts_type: FTSType, howmany: int) -> VectorStoreResponse:
         pass
 
     @abstractmethod

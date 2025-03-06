@@ -82,7 +82,7 @@ sql_chunks_fts5 = {
                 content,
                 id unindexed,
                 metadata,
-                content='{sql_chunks_table_name}',
+                content='{sql_chunks_table_name}', -- external content table
                 content_rowid='sqlid',
                 tokenize = "unicode61 remove_diacritics 2", -- we use remove_diacritics 2 as the default b/c greenfield
             );
@@ -114,7 +114,7 @@ sql_chunks_fts5 = {
                 content,
                 id unindexed,
                 metadata,
-                content='{sql_chunks_table_name}',
+                content='{sql_chunks_table_name}', -- external content table
                 content_rowid='sqlid',
                 tokenize = "unicode61 remove_diacritics 2 tokenchars '-_'", -- we use remove_diacritics 2 as the default b/c greenfield
             );
@@ -146,7 +146,7 @@ sql_chunks_fts5 = {
                 content,
                 id unindexed,
                 metadata,
-                content='{sql_chunks_table_name}',
+                content='{sql_chunks_table_name}', -- external content table
                 content_rowid='sqlid',
                 tokenize = "porter unicode61 remove_diacritics 2 tokenchars '-_'", -- we use remove_diacritics 2 as the default b/c greenfield
             );
@@ -178,7 +178,7 @@ sql_chunks_fts5 = {
             content,
             id unindexed,
             metadata,
-            content='{sql_chunks_table_name}',
+            content='{sql_chunks_table_name}', -- external content table
             content_rowid='sqlid',
             tokenize = "trigram remove_diacritics 1 case_sensitive 0", -- we use remove_diacritics 2 as the default b/c greenfield
         );
@@ -263,6 +263,8 @@ class LLMData:
 
         ModelSpec('gpt-4o-mini', provider='OPENAI', api='openai'),
         ModelSpec('gpt-4o', provider='OPENAI', api='openai'),
+        ModelSpec('o1', provider='OPENAI', api='openai'),
+        ModelSpec('o3-mini', provider='OPENAI', api='openai'),
 
         ModelSpec('RFI-Automate-GPT-4o-mini-2000k', provider='AZURE', api='openai'),
 

@@ -242,7 +242,7 @@ class VSChroma(VSAPI):
             results_raw=raw_results
         )
 
-    def search(self, prompt: str, howmany: int) -> VectorStoreResponse:
+    def search(self, prompt: str, fts_type: FTSType, howmany: int) -> VectorStoreResponse:
 
         sresp: VSAPI.SearchResponse = self.raw_search(prompt, howmany)
 
@@ -258,7 +258,6 @@ class VSChroma(VSAPI):
             vs_results.append(VectorStoreResult(sresp.results_raw[result_idx]['ids'], metrics,
                                                 sresp.results_raw[result_idx]['documents']))
 
-        #  select substr(content, 1, 40), bm25(chunks_fts5, 0, 1, 0, 0) bm25 from chunks_fts5 where chunks_fts5 match 'ducks';
         log.debug(f'connecting to sql: {config.sql_path}.{config.sql_chunks_table_name}')
         sql = None
         try:
@@ -266,7 +265,8 @@ class VSChroma(VSAPI):
             sql = sqlite3.connect(config.sql_path)
             cursor = sql.cursor()
 
-            query = f"select substr(content, 1, 40), bm25({config.sql_chunks_fts5_table_name}, 0, 1, 0, 0) bm25 from {config.sql_chunks_fts5_table_name} where content match '{prompt}';"
+            #  select substr(content, 1, 40), bm25(chunks_fts5, 0, 1, 0, 0) bm25 from chunks_fts5 where chunks_fts5 match 'ducks';
+            query = f"select substr(content, 1, 40), bm25({config.sql_chunks_fts5[fts_type].table_name}, 0, 1, 0, 0) bm25 from {config.sql_chunks_fts5[fts_type].table_name} where content match '{prompt}';"
             log.debug(f'query {config.sql_chunks_table_name}: {query}')
             cursor.execute(query)
             for row in cursor.fetchall():
@@ -298,9 +298,7 @@ class VSChroma(VSAPI):
             log.debug(f'delete {config.sql_chunks_table_name}: {delete}')
             cursor.execute(delete)
 
-            delete = f"delete from {config.sql_chunks_fts5_table_name} where collection ='{index_name}';"
-            log.debug(f'delete {config.sql_chunks_fts5_table_name}: {delete}')
-            cursor.execute(delete)
+            # NOTE: fts tables are "external content" with delete triggers so no need for explicit deletes
 
             sql.commit()
 
