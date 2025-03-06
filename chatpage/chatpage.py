@@ -180,9 +180,9 @@ class ChatPage:
                     await handle_llm_prompt(idata.last_prompt, idata)
                 else:
                     await handle_vector_search_prompt(idata.last_prompt, idata)
-            elif prompt.startswith('*forget'):
+            elif prompt.startswith('*clear'):
                 idata.forget()
-                idata.info_messages.append('conversation forgotten')
+                idata.info_messages.append('conversation cleared')
             elif digit1 > 0:
                 if 'n' in settings_select:
                     settings_select['n'].set_value(digit1)
@@ -304,7 +304,7 @@ class ChatPage:
                         settings = self.llm_config.settings
                         selmodel = ui.select(label='Source:',
                                              options=sources,
-                                             value=idata.source_selected,
+                                             value=idata.source,
                                              ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_source(vc.value), pinput, spinner)
                                                                ).tooltip('vs=vector search, llm=lang model chat').props('square outlined label-color=green').classes('min-w-30')
                         seln = ui.select(label='n:',

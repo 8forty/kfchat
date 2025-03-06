@@ -30,18 +30,16 @@ class InstanceData:
         self.llm_mode_prefix: str = 'llm: '
         self.llm_configs = llm_configs
         self.llm_config = llm_config
-        self.source_llm_name: str = self.llm_source(self.llm_config)
+        self.source_llm_name: str = self.llm_source(self.llm_config)  # (prefix: provider.model-name)
 
         # vs stuff
         self.vs_mode_name: str = 'vs'
         self.vs_mode_prefix: str = 'vs: '
         self.vectorstore = vectorstore
 
-        self.source_selected: str = self.source_llm_name  # start with llm
-
         # mode & source info
         self.mode: str = self.llm_mode_name
-        self.source: str = self.source_selected  # name of the source object (we want to start with the llm, so select-name and name are the same)
+        self.source: str = self.source_llm_name  # (prefix: provider.model-name) start with llm
 
     def mode_is_llm(self) -> bool:
         return self.mode == self.llm_mode_name
@@ -70,7 +68,7 @@ class InstanceData:
             await run.io_bound(lambda: self.vectorstore.switch_index(self.source.removeprefix(self.vs_mode_prefix)))
             log.debug(f'new vs name: {self.source}')
 
-        self.source_selected = selected_name
+        self.source = selected_name
 
     async def change_n(self, new_n: int):
         for llm_config in self.llm_configs.values():
