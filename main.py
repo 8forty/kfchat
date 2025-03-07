@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 import traceback
 
@@ -71,6 +72,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
 
 
 def run():
+    log.info(f'MATPLOTLIB is {os.getenv("MATPLOTLIB")}')
     init_with_fastapi(app)
 
 
