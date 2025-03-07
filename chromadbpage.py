@@ -142,7 +142,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
 
     async def do_delete_collection(coll_name: str) -> None:
         log.info(f'deleting collection {coll_name}')
-        await run.io_bound(lambda: vectorstore.delete_index(coll_name))
+        await run.io_bound(lambda: vectorstore.delete_collection(coll_name))
         chroma_ui.refresh()
 
     async def do_peek_dialog(coll_name: str) -> None:
@@ -246,7 +246,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         page_spinner.set_visibility(True)
 
         colls_with_md = []
-        for collection_name in await run.io_bound(vectorstore.list_index_names):
+        for collection_name in await run.io_bound(vectorstore.list_collection_names):
             try:
                 colls_with_md.append(await run.io_bound(lambda: vectorstore.get_partial_collection(collection_name)))
             except (Exception,) as e:

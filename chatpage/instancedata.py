@@ -48,7 +48,20 @@ class InstanceData:
         return self.mode == self.vs_mode_name
 
     def llm_source(self, llm_config: LLMConfig) -> str:
+        """
+        build full llm source name from an LLMConfig
+        :param llm_config:
+        :return: "<prefix>: <provider>.<model_name>"
+        """
         return f'{self.llm_mode_prefix}{llm_config.provider()}.{llm_config.model_name}'
+
+    def vs_source(self, collection_name: str) -> str:
+        """
+        build full vs source name from a collection name
+        :param collection_name:
+        :return: "<prefix>: <collection-name>"
+        """
+        return f'{self.vs_mode_prefix}{collection_name}'
 
     def forget(self):
         self.exchanges.clear()
@@ -65,8 +78,8 @@ class InstanceData:
         else:
             self.source = selected_name  # .removeprefix(self.vs_name_prefix)
             self.mode = self.vs_mode_name
-            await run.io_bound(lambda: self.vectorstore.switch_index(self.source.removeprefix(self.vs_mode_prefix)))
-            log.debug(f'new vs name: {self.source}')
+            await run.io_bound(lambda: self.vectorstore.switch_collection(new_collection_name=self.source.removeprefix(self.vs_mode_prefix)))
+            log.debug(f'new vectorstore name: {self.source}')
 
         self.source = selected_name
 
@@ -92,6 +105,8 @@ class InstanceData:
 
     def all_sources(self) -> list[str]:
         sources: list[str] = [self.llm_source(llm_config) for llm_config in self.llm_configs.values()]
-        sources.extend([f'{self.vs_mode_prefix}{name}' for name in self.vectorstore.list_index_names()])
-        sources.sort(key=lambda k: 'zzz' + k if k.startswith(self.vs_mode_prefix) else k)  # sort with the vs sources after the llm sources
+        sources.extend([f'{self.vs_source(name)}' for name in self.vectorstore.list_collection_names()])
+
+        # sort alpha but with the vs sources after the llm sources
+        sources.sort(key=lambda k: 'zzz' + k if k.startswith(self.vs_mode_prefix) else k)
         return sources

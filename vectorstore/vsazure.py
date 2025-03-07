@@ -66,7 +66,7 @@ class VSAzure(VSAPI):
     def warmup(self):
         self._build_clients()
 
-    def list_index_names(self) -> list[str]:
+    def list_collection_names(self) -> list[str]:
         self._build_clients()
         return [n for n in self._aais_index_client.list_index_names()]
 
@@ -119,10 +119,10 @@ class VSAzure(VSAPI):
                                                 sresp.results_raw[result_idx]['documents']))
         return VectorStoreResponse(vs_results)
 
-    def switch_index(self, new_index_name: str) -> None:
-        log.info(f'changing index to [{new_index_name}]')
+    def switch_collection(self, new_collection_name: str) -> None:
+        log.info(f'changing index to [{new_collection_name}]')
         self._build_clients()
-        self.index_name = new_index_name
+        self.index_name = new_collection_name
         self._aais_search_client = SearchClient(endpoint=self.parms.get("AZURE_AI_SEARCH_ENDPOINT"), index_name=self.index_name,
                                                 credential=self._search_credential)
         self._index = self._aais_index_client.get_index(self.index_name)

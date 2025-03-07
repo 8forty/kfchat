@@ -208,7 +208,7 @@ class VSChroma(VSAPI):
 
         self._client = chromadb.HttpClient(host=self.parms.get("CHROMA_HOST"), port=int(self.parms.get("CHROMA_PORT")))
 
-    def list_index_names(self) -> list[str]:
+    def list_collection_names(self) -> list[str]:
         self._build_clients()
         return [name for name in self._client.list_collections()]
 
@@ -281,10 +281,10 @@ class VSChroma(VSAPI):
 
         return VectorStoreResponse(vs_results)
 
-    def delete_index(self, index_name: str):
+    def delete_collection(self, collection_name: str):
         self._build_clients()
 
-        self._client.delete_collection(index_name)
+        self._client.delete_collection(collection_name)
         self._collection = None
 
         log.debug(f'connecting to sql: {config.sql_path}.{config.sql_chunks_table_name}')
@@ -294,7 +294,7 @@ class VSChroma(VSAPI):
             sql = sqlite3.connect(config.sql_path)
             cursor = sql.cursor()
 
-            delete = f"delete from {config.sql_chunks_table_name} where collection ='{index_name}';"
+            delete = f"delete from {config.sql_chunks_table_name} where collection ='{collection_name}';"
             log.debug(f'delete {config.sql_chunks_table_name}: {delete}')
             cursor.execute(delete)
 
@@ -554,7 +554,7 @@ class VSChroma(VSAPI):
                 delete_trigger_stmts = []
                 update_trigger_stmts = []
                 for fts_type in fts_types:
-                    # full-text search tables/indexes
+                    # full-text search tables/collections
                     log.debug(f'create fts5 {config.sql_chunks_fts5[fts_type].table_name}: {config.sql_chunks_fts5[fts_type].create}')
                     insert_trigger_stmts.append(config.sql_chunks_fts5[fts_type].insert_trigger)
                     delete_trigger_stmts.append(config.sql_chunks_fts5[fts_type].delete_trigger)
@@ -598,8 +598,8 @@ class VSChroma(VSAPI):
 
         return collection
 
-    def switch_index(self, new_index_name: str) -> None:
-        log.info(f'switching index to [{new_index_name}]')
+    def switch_collection(self, new_collection_name: str) -> None:
+        log.info(f'switching collection to [{new_collection_name}]')
         self._build_clients()
-        self.collection_name = new_index_name
+        self.collection_name = new_collection_name
         self._collection: Collection = self.get_collection(self.collection_name)

@@ -14,7 +14,7 @@ class VSAPI(ABC):
     @dataclass
     class SearchResponse:
         """
-        text, score, and raw results lists, matching indexes = matching results
+        text, score, and raw results lists, matching collections = matching results
         """
         results_text: list[str]
         results_score: list[float]
@@ -48,7 +48,7 @@ class VSAPI(ABC):
         return self._vs_type_name
 
     @abstractmethod
-    def list_index_names(self) -> list[str]:
+    def list_collection_names(self) -> list[str]:
         pass
 
     @abstractmethod
@@ -60,5 +60,5 @@ class VSAPI(ABC):
         pass
 
     @abstractmethod
-    def switch_index(self, new_index_name: str) -> None:
+    def switch_collection(self, new_collection_name: str) -> None:
         pass
