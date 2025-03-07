@@ -15,7 +15,7 @@ log.setLevel(logstuff.logging_level)
 class InstanceData:
     _next_id: int = 1
 
-    def __init__(self, all_llm_configs: dict[str, LLMConfig], llm_config: LLMConfig, vectorstore: VSAPI, parms: dict[str, str]):
+    def __init__(self, all_llm_configs: dict[str, LLMConfig], init_llm_name: str, vectorstore: VSAPI, parms: dict[str, str]):
         self._id = InstanceData._next_id
         InstanceData._next_id += 1
         self.parms: dict[str, str] = parms
@@ -31,7 +31,7 @@ class InstanceData:
         self.llm_mode: str = 'llm'
         self.llm_mode_prefix: str = 'llm: '
         self.all_llm_configs = all_llm_configs
-        self.llm_config = llm_config
+        self.llm_config = all_llm_configs[init_llm_name]
         self.source_llm_title: str = self.llm_source(self.llm_config)  # title is "prefix: provider.model-name"
 
         # vs stuff

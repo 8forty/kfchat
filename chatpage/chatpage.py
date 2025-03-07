@@ -41,7 +41,7 @@ class ChatPage:
     def __init__(self, all_llm_configs: dict[str, LLMConfig], init_llm_name: str, vectorstore: VSAPI, parms: dict[str, str]):
         # anything in here is shared by all instances of ChatPage
         self.all_llm_configs = all_llm_configs
-        self.llm_config = all_llm_configs[init_llm_name]
+        self.init_llm_name = init_llm_name
         self.vectorstore = vectorstore
         self.parms = parms
 
@@ -287,7 +287,7 @@ class ChatPage:
             except builtins.TimeoutError:
                 log.warning(f'TimeoutError waiting for client connection, ignored')
 
-            idata = InstanceData(self.all_llm_configs, self.llm_config, self.vectorstore, self.parms)
+            idata = InstanceData(self.all_llm_configs, self.init_llm_name, self.vectorstore, self.parms)
 
             # setup the standard "frame" for all pages
             with frame.frame(f'{config.name} {pagename}'):
@@ -313,7 +313,7 @@ class ChatPage:
                                              ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_source(vc.value), pinput, spinner)
                                                                ).tooltip('vs=vector search, llm=lang model chat').props('square outlined label-color=green').classes('min-w-30')
 
-                        settings = self.llm_config.settings
+                        settings = idata.llm_config.settings
                         seln = ui.select(label='n:',
                                          options=[i for i in range(1, 10)],
                                          value=settings().n,
