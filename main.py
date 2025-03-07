@@ -64,7 +64,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         raise
 
     # the chat page
-    cp = chatpage.ChatPage(llm_configs=llm_configs, init_llm=init_llm, vectorstore=vectorstore, parms=config.env)
+    cp = chatpage.ChatPage(all_llm_configs=llm_configs, init_llm_name=init_llm, vectorstore=vectorstore, parms=config.env)
     cp.setup('/', 'Chat')
 
     # the chromadb page

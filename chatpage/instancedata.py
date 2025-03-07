@@ -15,7 +15,7 @@ log.setLevel(logstuff.logging_level)
 class InstanceData:
     _next_id: int = 1
 
-    def __init__(self, llm_configs: dict[str, LLMConfig], llm_config: LLMConfig, vectorstore: VSAPI, parms: dict[str, str]):
+    def __init__(self, all_llm_configs: dict[str, LLMConfig], llm_config: LLMConfig, vectorstore: VSAPI, parms: dict[str, str]):
         self._id = InstanceData._next_id
         InstanceData._next_id += 1
         self.parms: dict[str, str] = parms
@@ -30,7 +30,7 @@ class InstanceData:
         # llm stuff
         self.llm_mode: str = 'llm'
         self.llm_mode_prefix: str = 'llm: '
-        self.llm_configs = llm_configs
+        self.all_llm_configs = all_llm_configs
         self.llm_config = llm_config
         self.source_llm_title: str = self.llm_source(self.llm_config)  # title is "prefix: provider.model-name"
 
@@ -74,7 +74,7 @@ class InstanceData:
         if selected_title.startswith(self.llm_mode_prefix):
             self.mode = self.llm_mode
             self.source = selected_title
-            self.llm_config = self.llm_configs[selected_title.removeprefix(self.llm_mode_prefix)]
+            self.llm_config = self.all_llm_configs[selected_title.removeprefix(self.llm_mode_prefix)]
             log.debug(f'new llm title: {self.source} (provider: {self.llm_config.provider()})')
         else:
             self.source = selected_title
@@ -85,27 +85,27 @@ class InstanceData:
         self.source = selected_title
 
     async def change_n(self, new_n: int):
-        for llm_config in self.llm_configs.values():
+        for llm_config in self.all_llm_configs.values():
             await llm_config.change_n(new_n)
 
     async def change_temp(self, new_temp: float):
-        for llm_config in self.llm_configs.values():
+        for llm_config in self.all_llm_configs.values():
             await llm_config.change_temp(new_temp)
 
     async def change_top_p(self, new_top_p: float):
-        for llm_config in self.llm_configs.values():
+        for llm_config in self.all_llm_configs.values():
             await llm_config.change_top_p(new_top_p)
 
     async def change_max_tokens(self, new_max_tokens: int):
-        for llm_config in self.llm_configs.values():
+        for llm_config in self.all_llm_configs.values():
             await llm_config.change_max_tokens(new_max_tokens)
 
     async def change_sysmsg(self, new_system_message_name: str):
-        for llm_config in self.llm_configs.values():
+        for llm_config in self.all_llm_configs.values():
             await llm_config.change_sysmsg(new_system_message_name)
 
     def all_sources(self) -> list[str]:
-        sources: list[str] = [self.llm_source(llm_config) for llm_config in self.llm_configs.values()]
+        sources: list[str] = [self.llm_source(llm_config) for llm_config in self.all_llm_configs.values()]
         sources.extend([f'{self.vs_source(cn)}' for cn in self.vectorstore.list_collection_names()])
 
         # sort alpha but with the vs sources after the llm sources

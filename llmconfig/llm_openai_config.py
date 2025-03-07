@@ -42,7 +42,7 @@ providers_config = {
     },
     'GEMINI': {
         'key': env.get('kfGEMINI_API_KEY'),
-        'kfGEMINI_OPENAI_ENDPOINT': env.get('kfGEMINI_OPENAI_ENDPOINT'),
+        'kfGEMINI_ENDPOINT': env.get('kfGEMINI_ENDPOINT'),
     },
     'GITHUB': {
         'key': env.get('kfGITHUB_TOKEN'),

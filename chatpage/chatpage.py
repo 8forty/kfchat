@@ -38,10 +38,10 @@ class ResponseText:
 
 
 class ChatPage:
-    def __init__(self, llm_configs: dict[str, LLMConfig], init_llm: str, vectorstore: VSAPI, parms: dict[str, str]):
+    def __init__(self, all_llm_configs: dict[str, LLMConfig], init_llm_name: str, vectorstore: VSAPI, parms: dict[str, str]):
         # anything in here is shared by all instances of ChatPage
-        self.llm_configs = llm_configs
-        self.llm_config = llm_configs[init_llm]
+        self.all_llm_configs = all_llm_configs
+        self.llm_config = all_llm_configs[init_llm_name]
         self.vectorstore = vectorstore
         self.parms = parms
 
@@ -165,9 +165,9 @@ class ChatPage:
             exchange: LLMExchange = idata.llm_config.chat_convo(convo=convo, prompt=prompt)
             return exchange
 
-        async def handle_special_prompt(prompt: str, settings_select: dict[str, Select], idata: InstanceData) -> None:
+        async def handle_special_prompt(prompt: str, settings_selects: dict[str, Select], idata: InstanceData) -> None:
             log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.mode}:{idata.llm_config.provider()}:{idata.llm_config.model_name}): "{prompt}"')
-            about = 'special commands: *, *info, *repeat, *clear, *n'
+            about = 'special commands: *, *info, *repeat, *clear, (n) *1/*2... '
 
             # extract *n, e.g. "*2", "*3"...
             digit1: int = 0 if len(prompt) < 2 or (not prompt[1].isdigit()) else int(prompt[1])
@@ -190,8 +190,8 @@ class ChatPage:
                 idata.clear()
                 idata.info_messages.append('conversation cleared')
             elif digit1 > 0:
-                if 'n' in settings_select:
-                    settings_select['n'].set_value(digit1)
+                if 'n' in settings_selects:
+                    settings_selects['n'].set_value(digit1)
                 await idata.change_n(digit1)
             else:
                 idata.unknown_special_message = f'{idata.unknown_special_prefix}: {prompt}; {about}'
@@ -239,7 +239,7 @@ class ChatPage:
                                   source=idata.source, mode=idata.mode)
                 idata.exchanges.append(ce)
 
-        async def handle_enter(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, settings_select: dict[str, Select], idata: InstanceData) -> None:
+        async def handle_enter(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, settings_selects: dict[str, Select], idata: InstanceData) -> None:
             prompt_input.disable()
             prompt = prompt_input.value.strip()
             spinner.set_visibility(True)
@@ -247,7 +247,7 @@ class ChatPage:
             logstuff.update_from_request(request)  # updates logging prefix with info from each request
 
             if prompt_input.value.startswith('*'):
-                await handle_special_prompt(prompt, settings_select, idata)
+                await handle_special_prompt(prompt, settings_selects, idata)
             elif idata.mode_is_llm():
                 await handle_llm_prompt(prompt, idata)
             else:
@@ -287,7 +287,7 @@ class ChatPage:
             except builtins.TimeoutError:
                 log.warning(f'TimeoutError waiting for client connection, ignored')
 
-            idata = InstanceData(self.llm_configs, self.llm_config, self.vectorstore, self.parms)
+            idata = InstanceData(self.all_llm_configs, self.llm_config, self.vectorstore, self.parms)
 
             # setup the standard "frame" for all pages
             with frame.frame(f'{config.name} {pagename}'):
