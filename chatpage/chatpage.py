@@ -38,7 +38,6 @@ class ResponseText:
 
 
 class ChatPage:
-
     def __init__(self, llm_configs: dict[str, LLMConfig], init_llm: str, vectorstore: VSAPI, parms: dict[str, str]):
         # anything in here is shared by all instances of ChatPage
         self.llm_configs = llm_configs
@@ -100,14 +99,7 @@ class ChatPage:
             # loop the exchanges to build the texts needed to display
             responses: list[ResponseText] = []
 
-            if len(idata.info_messages) > 0:
-                # info-messages are not exchanges/responses, e.g. they come from special commands
-                rtext = ResponseText(response_duration_seconds=0.0, prompt=prompt)
-                for im in idata.info_messages:
-                    rtext.results.append(im)
-                idata.info_messages.clear()
-                responses.append(rtext)
-            else:
+            if len(idata.info_messages) == 0:
                 for exchange in idata.exchanges.list():
                     rtext: ResponseText = ResponseText(exchange.response_duration_secs, exchange.prompt)
 
@@ -148,6 +140,18 @@ class ChatPage:
 
                     responses.append(rtext)
 
+            if len(idata.info_messages) > 0 or idata.unknown_special_message is not None:
+                rtext = ResponseText(response_duration_seconds=0.0, prompt=prompt)
+                if idata.unknown_special_message is not None:
+                    rtext.results.append(idata.unknown_special_message)
+                    idata.unknown_special_message = None
+
+                # info-messages are not exchanges/responses, e.g. they come from special commands
+                for im in idata.info_messages:
+                    rtext.results.append(im)
+                idata.info_messages.clear()
+                responses.append(rtext)
+
             # since this is NOT @refresh, we have to manually clear the scroll area
             scroller.clear()
             # display/render the various texts of the response
@@ -163,7 +167,7 @@ class ChatPage:
 
         async def handle_special_prompt(prompt: str, settings_select: dict[str, Select], idata: InstanceData) -> None:
             log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.mode}:{idata.llm_config.provider()}:{idata.llm_config.model_name}): "{prompt}"')
-            about = 'special commands: *, *info, *repeat, *forget, *n'
+            about = 'special commands: *, *info, *repeat, *clear, *n'
 
             # extract *n, e.g. "*2", "*3"...
             digit1: int = 0 if len(prompt) < 2 or (not prompt[1].isdigit()) else int(prompt[1])
@@ -183,14 +187,14 @@ class ChatPage:
                 else:
                     await handle_vector_search_prompt(idata.last_prompt, idata)
             elif prompt.startswith('*clear'):
-                idata.forget()
+                idata.clear()
                 idata.info_messages.append('conversation cleared')
             elif digit1 > 0:
                 if 'n' in settings_select:
                     settings_select['n'].set_value(digit1)
                 await idata.change_n(digit1)
             else:
-                idata.info_messages.append(f'unknown special command: {prompt}; {about}')
+                idata.unknown_special_message = f'{idata.unknown_special_prefix}: {prompt}; {about}'
 
         async def handle_llm_prompt(prompt: str, idata: InstanceData) -> None:
             log.info(
