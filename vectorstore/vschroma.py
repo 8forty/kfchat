@@ -58,6 +58,12 @@ chroma_embedding_types: dict[str, dict[str, dict[str, any]]] = {
         },
     },
     'Google-GenerativeAI-Embeddings': {
+        # gemini-embedding-exp-03-07
+        'models/gemini-embedding-exp-03-07': {
+            'function': GoogleGenerativeAiEmbeddingFunction,
+            'create_parms': {'model_name': 'models/gemini-embedding-exp-03-07', 'api_key': config.env.get('kfGEMINI_API_KEY')},
+            'read_parms': {'api_key': config.env.get('kfGEMINI_API_KEY')},
+        },
         'models/text-embedding-004': {
             'function': GoogleGenerativeAiEmbeddingFunction,
             'create_parms': {'model_name': 'models/text-embedding-004', 'api_key': config.env.get('kfGEMINI_API_KEY')},
@@ -245,9 +251,9 @@ class VSChroma(VSAPI):
             results_raw=raw_results
         )
 
-    def search(self, prompt: str, howmany: int) -> VectorStoreResponse:
+    def search(self, prompt: str) -> VectorStoreResponse:
 
-        sresp: VSAPI.SearchResponse = self.raw_search(prompt, howmany)
+        sresp: VSAPI.SearchResponse = self.raw_search(prompt, howmany=self.vssettings.n)
 
         vs_results: list[VectorStoreResult] = []
         for result_idx in range(0, len(sresp.results_raw)):
