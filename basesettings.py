@@ -1,17 +1,11 @@
 from abc import abstractmethod, ABC
+from dataclasses import dataclass
+from typing import Union
 
-from basesettings import BaseSettings
 
-
-class VSSettings(BaseSettings, ABC):
-    def __init__(self, init_n: int):
-        """
-        standard set of settings for vectorstores
-        :param init_n:
-
-        """
+class BaseSettings(ABC):
+    def __init__(self):
         super().__init__()
-        self.n = init_n
 
     def __repr__(self) -> str:
         return f'{self.__class__!s}:{self.__dict__!r}'
@@ -20,11 +14,20 @@ class VSSettings(BaseSettings, ABC):
     def __str__(self) -> str:
         return f'{self.__dict__}'
 
+    @abstractmethod
     def numbers_oneline_logging_str(self) -> str:
-        return f'n:{self.n}'
+        pass
 
+    @abstractmethod
     def texts_oneline_logging_str(self) -> str:
-        return f''
+        pass
 
-    def info(self) -> list[BaseSettings.Info]:
+    @dataclass
+    class Info:
+        label: str
+        options: Union[list, dict]
+        value: any
+
+    @abstractmethod
+    def info(self) -> list[Info]:
         pass

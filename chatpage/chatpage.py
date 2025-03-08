@@ -35,6 +35,7 @@ class ResponseText:
     response_context = ''
     response_subscripts: list[str] = field(default_factory=list)
     response_problems: list[str] = field(default_factory=list)
+    use_markdown: bool = False
 
 
 class ChatPage:
@@ -61,19 +62,25 @@ class ChatPage:
 
                     # results
                     for ri in range(0, len(rtext.results)):
+
                         latex_line = False  # todo: some models put "\[" and "\]" on sep lines, others just use the "$$" markers or [/] or ```latex, this is still far from perfect :(
                         for line in rtext.results[ri].split('\n'):
 
-                            if line.strip() == '\\[':
-                                latex_line = True
-                                continue
-                            if line.strip() == '\\]':
-                                latex_line = False
-                                continue
+                            if rtext.use_markdown:
+                                # latex stuff
+                                if line.strip() == '\\[':
+                                    latex_line = True
+                                    continue
+                                if line.strip() == '\\]':
+                                    latex_line = False
+                                    continue
+                                if latex_line or line.strip().startswith('[') and line.strip().endswith(']'):
+                                    line = f'$${line}$$'
 
-                            if latex_line or line.strip().startswith('[') and line.strip().endswith(']'):
-                                line = f'$${line}$$'
-                            ui.markdown(content=line, extras=['fenced-code-blocks', 'tables', 'latex']).classes(result_text_classes)
+                                ui.markdown(content=line, extras=['fenced-code-blocks', 'tables', 'latex']).classes(result_text_classes)
+                            else:
+                                ui.label(line).classes(result_text_classes)
+
                         # results-subscript
                         if len(rtext.result_subscripts) > ri:
                             for rinfo in rtext.result_subscripts[ri]:
@@ -105,6 +112,7 @@ class ChatPage:
 
                     # llm response
                     if exchange.llm_exchange is not None:
+                        rtext.use_markdown = True
                         llm_exchange = exchange.llm_exchange
                         for response in llm_exchange.responses:
                             rtext.results.append(f'{response.content}')  # .classes(response_text_classes)
