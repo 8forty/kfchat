@@ -15,11 +15,13 @@ from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 
 import config
-from config import FTSType
-from langchain import lc_docloaders, lc_chunkers
 import logstuff
 from chatexchanges import VectorStoreResponse, VectorStoreResult
+from config import FTSType
+from langchain import lc_docloaders, lc_chunkers
 from vectorstore.vsapi import VSAPI
+from vectorstore.vschroma_settings import VSChromaSettings
+from vectorstore.vssettings import VSSettings
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -136,8 +138,9 @@ class VSChroma(VSAPI):
     class OllamaEmbeddingsError(Exception):
         pass
 
-    def __init__(self, vs_type_name: str, parms: dict[str, str]):
-        super().__init__(vs_type_name, parms)
+    def __init__(self, vs_type_name: str, vssettings: VSSettings, parms: dict[str, str]):
+        super().__init__(vs_type_name, vssettings, parms)
+        self.vssettings: VSChromaSettings = VSChromaSettings.from_settings(vssettings)
         self._client: chromadb.ClientAPI | None = None
         self.collection_name: str | None = None  # todo: get rid of this
         self._collection: chromadb.Collection | None = None  # todo: and this
@@ -146,8 +149,8 @@ class VSChroma(VSAPI):
         self._build_clients()
 
     @staticmethod
-    def create(vs_type_name: str, parms: dict[str, str]):
-        return VSChroma(vs_type_name, parms)
+    def create(vs_type_name: str, vssettings: VSSettings, parms: dict[str, str]):
+        return VSChroma(vs_type_name, vssettings, parms)
 
     def get_partial_collection(self, collection_name: str) -> Collection:
         """
@@ -242,7 +245,7 @@ class VSChroma(VSAPI):
             results_raw=raw_results
         )
 
-    def search(self, prompt: str, fts_type: FTSType, howmany: int) -> VectorStoreResponse:
+    def search(self, prompt: str, howmany: int) -> VectorStoreResponse:
 
         sresp: VSAPI.SearchResponse = self.raw_search(prompt, howmany)
 
@@ -266,7 +269,8 @@ class VSChroma(VSAPI):
             cursor = sql.cursor()
 
             #  select substr(content, 1, 40), bm25(chunks_fts5, 0, 1, 0, 0) bm25 from chunks_fts5 where chunks_fts5 match 'ducks';
-            query = f"select substr(content, 1, 40), bm25({config.sql_chunks_fts5[fts_type].table_name}, 0, 1, 0, 0) bm25 from {config.sql_chunks_fts5[fts_type].table_name} where content match '{prompt}';"
+            query = (f"select substr(content, 1, 40), bm25({config.sql_chunks_fts5[self.vssettings.fts_type].table_name}, 0, 1, 0, 0) bm25 "
+                     f"from {config.sql_chunks_fts5[self.vssettings.fts_type].table_name} where content match '{prompt}';")
             log.debug(f'query {config.sql_chunks_table_name}: {query}')
             cursor.execute(query)
             for row in cursor.fetchall():
@@ -378,7 +382,7 @@ class VSChroma(VSAPI):
         (*) unique per... tenant? database? all?
 
         :param name:
-        :param fts_types
+        :param fts_types:
         :param embedding_type:
         :param subtype:
         """
@@ -393,23 +397,22 @@ class VSChroma(VSAPI):
         #     "hnsw:search_ef": 1000,
         #     "hnsw:M": 60
         # },
-        # default hnsw: {'space': 'l2', 'construction_ef': 100, 'search_ef': 10, 'num_threads': 22, 'M': 16, 'resize_factor': 1.2, 'batch_size': 100, 'sync_threshold': 1000, '_type': 'HNSWConfigurationInternal'}
         # todo: CollectionConfiguration will eventually be implemented: https://github.com/chroma-core/chroma/pull/2495
         embedding_function_info = chroma_embedding_types[embedding_type][subtype]  # default: 'all-MiniLM-L6-v2'
         #  x: CollectionConfiguration = CollectionConfiguration(hnsw_configuration=HNSWConfiguration(space='cosine'))
         collection: Collection = self._client.create_collection(
             name=name,
             metadata={
-                'fts_types': f'{json.dumps(FTSType.names())}',
+                'fts_types': f'{json.dumps([f.name for f in fts_types])}',
 
                 'embedding_type': embedding_type,
                 'embedding_function_name': embedding_function_info['function'].__name__,
                 'embedding_function_parms': json.dumps(self.filter_metadata(embedding_function_info['create_parms']), ensure_ascii=False),
 
-                'hnsw:space': 'l2',  # default l2
-                'hnsw:construction_ef': 500,  # default 100
-                'hnsw:search_ef': 500,  # default 10
-                'hnsw:M': 40,  # default 16
+                'hnsw:space': 'cosine',  # default l2
+                'hnsw:construction_ef': 600,  # default 100
+                'hnsw:search_ef': 1000,  # default 10
+                'hnsw:M': 60,  # default 16
 
                 'chroma_version': self._client.get_version(),
                 'created': config.now_datetime()
@@ -574,7 +577,7 @@ class VSChroma(VSAPI):
                 log.debug(f'inserting {len(chunks)} chunks into {config.sql_chunks_table_name}')
                 for i, chunk_content in enumerate(chunks_content):
                     insert = f"insert into {config.sql_chunks_table_name} values ('{_fix(collection.name)}', '{_fix(chunk_content)}', '{_fix(ids[i])}', '{_fix(str(metadata[i]))}', NULL)"
-                    log.debug(f'insert: {insert.replace("\n", "[\\n]")}')
+                    # log.debug(f'insert: {insert.replace("\n", "[\\n]")}')
                     cursor.execute(insert)
 
                 sql.commit()

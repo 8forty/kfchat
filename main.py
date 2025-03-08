@@ -10,11 +10,14 @@ from typing_extensions import OrderedDict
 import chromadbpage
 import config
 import logstuff
+from config import FTSType
 from llmconfig.llm_anthropic_config import LLMAnthropicSettings, LLMAnthropicConfig
 from llmconfig.llmconfig import LLMConfig
 from vectorstore import vsapi_factory
 from chatpage import chatpage
 from llmconfig.llm_openai_config import LLMOpenAIConfig, LLMOpenAISettings
+from vectorstore.vschroma_settings import VSChromaSettings
+from vectorstore.vssettings import VSSettings
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
@@ -42,7 +45,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
             llm_configs_list.append(LLMOpenAIConfig(model_name=model_spec.name, provider=model_spec.provider, settings=settings_openai))
         elif model_spec.api.lower() == 'anthropic':
             llm_configs_list.append(LLMAnthropicConfig(model_name=model_spec.name, provider=model_spec.provider, settings=settings_anthropic))
-    llm_configs = OrderedDict({f'{lc.provider()}.{lc.model_name}': lc for lc in llm_configs_list})
+    all_llm_configs = OrderedDict({f'{lc.provider()}.{lc.model_name}': lc for lc in llm_configs_list})
     init_llm = 'GITHUB.gpt-4o'
 
     # setup vs
@@ -50,8 +53,9 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         retry_wait_seconds = 15
         while True:
             try:
+                vssettings = VSChromaSettings(init_n=2, init_fts_type=FTSType.SQLITE3_TRIGRAM_IMPROVED)
                 vsparms = config.env.copy()
-                vectorstore = vsapi_factory.create_one('chroma', parms=vsparms)  # todo: add to env
+                vectorstore = vsapi_factory.create_one('chroma', vssettings, parms=vsparms)  # todo: add to env
                 vectorstore.warmup()
                 break
             except (Exception,) as e:
@@ -64,7 +68,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         raise
 
     # the chat page
-    cp = chatpage.ChatPage(all_llm_configs=llm_configs, init_llm_name=init_llm, vectorstore=vectorstore, parms=config.env)
+    cp = chatpage.ChatPage(all_llm_configs=all_llm_configs, init_llm_name=init_llm, vectorstore=vectorstore, parms=config.env)
     cp.setup('/', 'Chat')
 
     # the chromadb page
