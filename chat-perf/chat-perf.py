@@ -86,7 +86,7 @@ def run(model_sets_name: str, settings_sets_name: str, message_set_name: str, cs
                     llm_config = LLMAnthropicConfig(model_spec.name, model_spec.provider, LLMOpenAISettings.from_settings(Data.llm_settings_sets['ollama-warmup'][0]))
                 else:
                     raise ValueError(f'api must be "openai" or "anthropic"!')
-                llm_config.do_chat([LLMMessagePair('user', 'How many galaxies are there?')])
+                llm_config.chat([LLMMessagePair('user', 'How many galaxies are there?')])
                 warmup_secs = timeit.default_timer() - warmup_start
                 csv_data.append([llm_config.provider(), llm_config.model_name, '', '', '(warm-up)', '', '', str(warmup_secs)])
                 print(f'{config.secs_string(all_start)}: warmup: {warmup_secs:.1f}s')
@@ -110,7 +110,7 @@ def run(model_sets_name: str, settings_sets_name: str, message_set_name: str, cs
             ms_output_tokens = 0
             for idx, message_set in enumerate(message_sets.llm_message_sets[message_set_name]):
                 try:
-                    exchange = llm_config.do_chat(message_set)
+                    exchange = llm_config.chat(message_set)
                 except (Exception,) as e:
                     print(f'run Exception! {llm_config.provider()}:{llm_config.model_name} {message_set_name}.{message_set}: {e.__class__.__name__}: {e} skipping...')
                     break

@@ -202,15 +202,29 @@ sql_chunks_fts5 = {
 }
 
 
-class LLMData:
-    # models
-    @dataclass
-    class ModelSpec:
-        name: str
-        provider: str
-        api: Literal['openai', 'anthropic']
+@dataclass
+class ModelSpec:
+    name: str
+    provider: str
+    api: Literal['openai', 'anthropic']
 
+
+class LLMData:
     models = [
+
+        ModelSpec('claude-3-5-haiku-20241022', provider='ANTHROPIC', api='anthropic'),
+        ModelSpec('claude-3-5-sonnet-20241022', provider='ANTHROPIC', api='anthropic'),
+
+        ModelSpec('RFI-Automate-GPT-4o-mini-2000k', provider='AZURE', api='openai'),
+
+        ModelSpec('gemini-1.5-flash', provider='GEMINI', api='openai'),
+        ModelSpec('gemini-1.5-flash-8b', provider='GEMINI', api='openai'),
+        ModelSpec('gemini-1.5-pro', provider='GEMINI', api='openai'),
+        ModelSpec('gemini-2.0-flash-001', provider='GEMINI', api='openai'),
+        ModelSpec('gemini-2.0-flash-lite-preview-02-05', provider='GEMINI', api='openai'),
+        ModelSpec('gemini-2.0-pro-exp-02-05', provider='GEMINI', api='openai'),
+        ModelSpec('gemini-2.0-flash-thinking-exp-01-21', provider='GEMINI', api='openai'),
+
         ModelSpec('gpt-4o-mini', provider='GITHUB', api='openai'),
         ModelSpec('gpt-4o', provider='GITHUB', api='openai'),
         ModelSpec('deepseek-r1', provider='GITHUB', api='openai'),
@@ -227,6 +241,7 @@ class LLMData:
         ModelSpec('deepseek-r1-distill-llama-70b', provider='GROQ', api='openai'),
         ModelSpec('gemma2-9b-it', provider='GROQ', api='openai'),
         ModelSpec('mixtral-8x7b-32768', provider='GROQ', api='openai'),
+        ModelSpec('qwen-qwq-32b', provider='GROQ', api='openai'),
 
         ModelSpec('llama3.2:1b', provider='OLLAMA', api='openai'),
         ModelSpec('llama3.2:3b', provider='OLLAMA', api='openai'),
@@ -235,6 +250,10 @@ class LLMData:
         ModelSpec('gemma2:2b', provider='OLLAMA', api='openai'),
         ModelSpec('gemma2:9b', provider='OLLAMA', api='openai'),
         ModelSpec('gemma2:27b', provider='OLLAMA', api='openai'),
+        ModelSpec('gemma3:1b', provider='OLLAMA', api='openai'),
+        ModelSpec('gemma3:4b', provider='OLLAMA', api='openai'),
+        ModelSpec('gemma3:12b', provider='OLLAMA', api='openai'),
+        ModelSpec('gemma3:27b', provider='OLLAMA', api='openai'),
         ModelSpec('llama3.3:70b', provider='OLLAMA', api='openai'),
         ModelSpec('llama3.3:70b-instruct-q2_K', provider='OLLAMA', api='openai'),
         ModelSpec('deepseek-r1:1.5b', provider='OLLAMA', api='openai'),
@@ -253,23 +272,10 @@ class LLMData:
         ModelSpec('openthinker:7b', provider='OLLAMA', api='openai'),
         ModelSpec('openthinker:32b', provider='OLLAMA', api='openai'),
 
-        ModelSpec('gemini-1.5-flash', provider='GEMINI', api='openai'),
-        ModelSpec('gemini-1.5-flash-8b', provider='GEMINI', api='openai'),
-        ModelSpec('gemini-1.5-pro', provider='GEMINI', api='openai'),
-        ModelSpec('gemini-2.0-flash-001', provider='GEMINI', api='openai'),
-        ModelSpec('gemini-2.0-flash-lite-preview-02-05', provider='GEMINI', api='openai'),
-        ModelSpec('gemini-2.0-pro-exp-02-05', provider='GEMINI', api='openai'),
-        ModelSpec('gemini-2.0-flash-thinking-exp-01-21', provider='GEMINI', api='openai'),
-
         ModelSpec('gpt-4o-mini', provider='OPENAI', api='openai'),
         ModelSpec('gpt-4o', provider='OPENAI', api='openai'),
         ModelSpec('o1', provider='OPENAI', api='openai'),
         ModelSpec('o3-mini', provider='OPENAI', api='openai'),
-
-        ModelSpec('RFI-Automate-GPT-4o-mini-2000k', provider='AZURE', api='openai'),
-
-        ModelSpec('claude-3-5-haiku-20241022', provider='ANTHROPIC', api='anthropic'),
-        ModelSpec('claude-3-5-sonnet-20241022', provider='ANTHROPIC', api='anthropic'),
     ]
     models_by_pname = {f'{ms.provider}.{ms.name}': ms for ms in models}
     providers = {ms.provider for ms in models}

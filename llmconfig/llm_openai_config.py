@@ -8,6 +8,7 @@ from openai.types.chat import ChatCompletion
 
 import config
 import logstuff
+from basesettings import BaseSettings
 from config import redact
 from llmconfig.llm_openai_exchange import LLMOpenAIExchange
 from llmconfig.llmconfig import LLMConfig, LLMSettings
@@ -56,8 +57,15 @@ providers_config = {
 
 
 class LLMOpenAISettings(LLMSettings):
+
     def __init__(self, init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int, init_system_message_name: str):
-        super().__init__(init_n, init_temp, init_top_p, init_max_tokens, init_system_message_name)
+        super().__init__()
+        self.n = init_n
+        self.temp = init_temp
+        self.top_p = init_top_p
+        self.max_tokens = init_max_tokens
+        self.system_message_name = init_system_message_name
+        self.system_message = config.LLMData.sysmsg_all[init_system_message_name]
 
     def __repr__(self) -> str:
         return f'{self.__class__!s}:{self.__dict__!r}'
@@ -66,6 +74,38 @@ class LLMOpenAISettings(LLMSettings):
     @classmethod
     def from_settings(cls, rhs):
         return cls(init_n=rhs.n, init_temp=rhs.temp, init_top_p=rhs.top_p, init_max_tokens=rhs.max_tokens, init_system_message_name=rhs.system_message_name)
+
+    def numbers_oneline_logging_str(self) -> str:
+        return f'n:{self.n},temp:{self.temp},top_p:{self.top_p},max_tokens:{self.max_tokens}'
+
+    def texts_oneline_logging_str(self) -> str:
+        return f'sysmsg:{self.system_message}'
+
+    def info(self) -> list[BaseSettings.Info]:
+        sysmsg_names = [key for key in config.LLMData.sysmsg_all]
+        return [
+            BaseSettings.Info(label='n', options=[i for i in range(1, 10)], value=self.n, tooltip='number of results per query'),
+            BaseSettings.Info(label='temp', options=[float(t) / 10.0 for t in range(0, 21)], value=self.temp, tooltip='responses: 0=very predictable, 2=very random/creative'),
+            BaseSettings.Info(label='top_p', options=[float(t) / 10.0 for t in range(0, 11)], value=self.top_p, tooltip='responses: 0=less random, 1 more random'),
+            BaseSettings.Info(label='max_tokens', options=[80, 200, 400, 800, 1000, 1500, 2000], value=self.max_tokens, tooltip='max tokens in response'),
+            BaseSettings.Info(label='system_message_name', options=sysmsg_names, value=self.system_message_name, tooltip='system/setup text sent with each prompt'),
+        ]
+
+    def change(self, label: str, value: any) -> None:
+        print(f'~~~~ oai change: {label}: {value}')
+        if label == 'n':
+            self.n = value
+        elif label == 'temp':
+            self.temp = value
+        elif label == 'top_p':
+            self.top_p = value
+        elif label == 'max_tokens':
+            self.max_tokens = value
+        elif label == 'system_message_name':
+            self.system_message_name = value
+            self.system_message = config.LLMData.sysmsg_all[value]
+        else:
+            raise ValueError(f'bad label! {label}')
 
 
 class LLMOpenAIConfig(LLMConfig):
@@ -153,7 +193,25 @@ class LLMOpenAIConfig(LLMConfig):
 
         return self._api_client
 
-    def do_chat(self, messages: list[LLMMessagePair], max_rate_limit_retries: int = 10) -> LLMOpenAIExchange:
+    def generate_chat_completion(self, messages: list[dict]) -> ChatCompletion:
+        chat_completion: ChatCompletion = self._client().chat.completions.create(
+            model=self.model_name,
+            temperature=self._settings.temp,  # default 1.0, 0.0->2.0
+            top_p=self._settings.top_p,  # default 1, ~0.01->1.0
+            messages=messages,
+            max_tokens=self._settings.max_tokens,  # default 16?
+            n=self._settings.n,
+
+            stream=False,
+
+            seed=27,
+            # frequency_penalty=1,  # default 0, -2.0->2.0
+            # presence_penalty=1,  # default 0, -2.0->2.0
+            # stop=[],
+        )
+        return chat_completion
+
+    def chat(self, messages: list[LLMMessagePair], max_rate_limit_retries: int = 10) -> LLMOpenAIExchange:
         # prompt is the last dict in the list
         prompt = messages[-1].content
 
@@ -166,21 +224,7 @@ class LLMOpenAIConfig(LLMConfig):
                 log.debug(f'{self.model_name} n:{self._settings.n} temp:{self._settings.temp} top_p:{self._settings.top_p}, max_tok:{self._settings.max_tokens} prompt:"{prompt}" msgs:{messages_list}')
 
                 start = timeit.default_timer()
-                chat_completion: ChatCompletion = self._client().chat.completions.create(
-                    model=self.model_name,
-                    temperature=self._settings.temp,  # default 1.0, 0.0->2.0
-                    top_p=self._settings.top_p,  # default 1, ~0.01->1.0
-                    messages=messages_list,
-                    max_tokens=self._settings.max_tokens,  # default 16?
-                    n=self._settings.n,
-
-                    stream=False,
-
-                    seed=27,
-                    # frequency_penalty=1,  # default 0, -2.0->2.0
-                    # presence_penalty=1,  # default 0, -2.0->2.0
-                    # stop=[],
-                )
+                chat_completion: ChatCompletion = self.generate_chat_completion(messages_list)
                 return LLMOpenAIExchange(prompt, chat_completion=chat_completion, model_name=self.model_name, provider=self._provider,
                                          response_duration_seconds=timeit.default_timer() - start, settings=self._settings)
             except openai.RateLimitError as e:

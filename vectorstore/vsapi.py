@@ -35,6 +35,10 @@ class VSAPI(ABC):
         else:
             raise ValueError(f'{__class__.__name__}: invalid vs type! {vs_type_name}')
 
+    @abstractmethod
+    def settings(self) -> VSSettings:
+        pass
+
     @staticmethod
     @abstractmethod
     def create(vs_type_name: str, vssettings: VSSettings, parms: dict[str, str]):

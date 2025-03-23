@@ -131,7 +131,6 @@ class ChatPage:
 
                     # vector store response
                     elif exchange.vector_store_response is not None:
-                        vs_resp = exchange.vector_store_response
                         rtext.response_context += f'{exchange.mode},{exchange.source}'
                         for result in exchange.vector_store_response.results:
                             rtext.results.append(f'[{exchange.mode}]: {result.content}')  # .classes(response_text_classes)
@@ -173,7 +172,7 @@ class ChatPage:
             exchange: LLMExchange = idata.llm_config.chat_convo(convo=convo, prompt=prompt)
             return exchange
 
-        async def handle_special_prompt(prompt: str, settings_selects: dict[str, Select], idata: InstanceData) -> None:
+        async def handle_special_prompt(prompt: str, idata: InstanceData) -> None:
             log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.mode}:{idata.llm_config.provider()}:{idata.llm_config.model_name}): "{prompt}"')
             about = 'special commands: *, *info, *repeat, *clear, (n) *1/*2... '
 
@@ -197,10 +196,10 @@ class ChatPage:
             elif prompt.startswith('*clear'):
                 idata.clear()
                 idata.info_messages.append('conversation cleared')
-            elif digit1 > 0:
-                if 'n' in settings_selects:
-                    settings_selects['n'].set_value(digit1)
-                await idata.change_n(digit1)
+            # elif digit1 > 0:
+            #     if 'n' in settings_selects:
+            #         settings_selects['n'].set_value(digit1)
+            #     await idata.change_n(digit1)
             else:
                 idata.unknown_special_message = f'{idata.unknown_special_prefix}: {prompt}; {about}'
 
@@ -247,7 +246,7 @@ class ChatPage:
                                   source=idata.source, mode=idata.mode)
                 idata.exchanges.append(ce)
 
-        async def handle_enter(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, settings_selects: dict[str, Select], idata: InstanceData) -> None:
+        async def handle_enter(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
             prompt_input.disable()
             prompt = prompt_input.value.strip()
             spinner.set_visibility(True)
@@ -255,7 +254,7 @@ class ChatPage:
             logstuff.update_from_request(request)  # updates logging prefix with info from each request
 
             if prompt_input.value.startswith('*'):
-                await handle_special_prompt(prompt, settings_selects, idata)
+                await handle_special_prompt(prompt, idata)
             elif idata.mode_is_llm():
                 await handle_llm_prompt(prompt, idata)
             else:
@@ -309,48 +308,57 @@ class ChatPage:
                         spinner = ui.spinner(size='xl')
                         spinner.set_visibility(False)
                         pinput = ui.input(placeholder="Enter prompt").classes('flex-grow').props('rounded outlined color=primary bg-color=black')
-                        pinput.on('keydown.enter', lambda req=request, i=idata: handle_enter(req, pinput, spinner, scroller, settings_selects, i))
+                        pinput.on('keydown.enter', lambda req=request, i=idata: handle_enter(req, pinput, spinner, scroller, i))
 
                 with (ui.column().classes('w-full flex-grow border-solid border border-white')):  # place-content-center')):
                     # the settings selection row
                     with (ui.row().classes('w-full border-solid border border-white')):  # place-content-center')):
                         sources = idata.all_sources()
-                        selmodel = ui.select(label='Source:',
-                                             options=sources,
-                                             value=idata.source,
-                                             ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_source(vc.value), pinput, spinner)
-                                                               ).tooltip('vs=vector search, llm=lang model chat').props('square outlined label-color=green').classes('min-w-30')
+                        ui.select(label='Source:',
+                                  options=sources,
+                                  value=idata.source,
+                                  ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_source(vc.value), pinput, spinner)
+                                                    ).tooltip('vs=vector search, llm=lang model chat').props('square outlined label-color=green').classes('min-w-30')
 
-                        settings = idata.llm_config.settings
-                        seln = ui.select(label='n:',
-                                         options=[i for i in range(1, 10)],
-                                         value=settings().n,
-                                         ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_n(vc.value), pinput, spinner)
-                                                           ).tooltip('number of results per query').props('square outlined label-color=green').classes('min-w-20')
-                        seltemp = ui.select(label='Temp:',
-                                            options=[float(t) / 10.0 for t in range(0, 21)],
-                                            value=settings().temp,
-                                            ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_temp(vc.value), pinput, spinner)
-                                                              ).tooltip('responses: 0=very predictable, 2=very random/creative').props('square outlined label-color=green').classes('min-w-40')
-                        seltopp = ui.select(label='Top_p:',
-                                            options=[float(t) / 10.0 for t in range(0, 11)],
-                                            value=settings().top_p,
-                                            ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_top_p(vc.value), pinput, spinner)
-                                                              ).tooltip('responses: 0=less random, 1 more random').props('square outlined label-color=green').classes('min-w-40')
-                        selmaxtok = ui.select(label='Max Tokens:',
-                                              options=[80, 200, 400, 800, 1000, 1500, 2000],
-                                              value=settings().max_tokens,
-                                              ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_max_tokens(vc.value), pinput, spinner)
-                                                                ).tooltip('max tokens in response').props('square outlined label-color=green').classes('min-w-40')
-                        sysmsg_names = [key for key in config.LLMData.sysmsg_all]
-                        selsysmsg = ui.select(label='Sys Msg:',
-                                              options=sysmsg_names,
-                                              value=settings().system_message_name
-                                              ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_sysmsg(vc.value), pinput, spinner)
-                                                                ).tooltip('system/setup text sent with each prompt').props('square outlined label-color=green').classes('min-w-50')
+                        settings = idata.llm_config.settings() if idata.mode_is_llm() else idata.vectorstore.settings()
+                        for sinfo in settings.info():
+                            ui.select(label=sinfo.label,
+                                      options=sinfo.options,
+                                      value=sinfo.value,
+                                      ).on_value_change(callback=lambda vc: call_and_focus(lambda: settings.change(sinfo.label, vc.value), pinput, spinner)
+                                                        ).tooltip(sinfo.tooltip).props('square outlined label-color=green')
+                        x: ValueChangeEventArguments
 
-                        settings_selects = {'model': selmodel, 'n': seln, 'temp': seltemp, 'top_p': seltopp, 'maxtokens': selmaxtok, 'sysmsg': selsysmsg}
+                        # seln = ui.select(label='n:',
+                        #                  options=[i for i in range(1, 10)],
+                        #                  value=settings().n,
+                        #                  ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_n(vc.value), pinput, spinner)
+                        #                                    ).tooltip('number of results per query').props('square outlined label-color=green').classes('min-w-20')
+                        # seltemp = ui.select(label='Temp:',
+                        #                     options=[float(t) / 10.0 for t in range(0, 21)],
+                        #                     value=settings().temp,
+                        #                     ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_temp(vc.value), pinput, spinner)
+                        #                                       ).tooltip('responses: 0=very predictable, 2=very random/creative').props('square outlined label-color=green').classes('min-w-40')
+                        # seltopp = ui.select(label='Top_p:',
+                        #                     options=[float(t) / 10.0 for t in range(0, 11)],
+                        #                     value=settings().top_p,
+                        #                     ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_top_p(vc.value), pinput, spinner)
+                        #                                       ).tooltip('responses: 0=less random, 1 more random').props('square outlined label-color=green').classes('min-w-40')
+                        # selmaxtok = ui.select(label='Max Tokens:',
+                        #                       options=[80, 200, 400, 800, 1000, 1500, 2000],
+                        #                       value=settings().max_tokens,
+                        #                       ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_max_tokens(vc.value), pinput, spinner)
+                        #                                         ).tooltip('max tokens in response').props('square outlined label-color=green').classes('min-w-40')
+                        # sysmsg_names = [key for key in config.LLMData.sysmsg_all]
+                        # selsysmsg = ui.select(label='Sys Msg:',
+                        #                       options=sysmsg_names,
+                        #                       value=settings().system_message_name
+                        #                       ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_sysmsg(vc.value), pinput, spinner)
+                        #                                         ).tooltip('system/setup text sent with each prompt').props('square outlined label-color=green').classes('min-w-50')
 
+                        # settings_selects = {'model': selmodel, 'n': seln, 'temp': seltemp, 'top_p': seltopp, 'maxtokens': selmaxtok, 'sysmsg': selsysmsg}
+
+                    # the chat scroll area
                     with ui.scroll_area().classes('w-full flex-grow border border-solid border-white') as scroller:
                         await refresh_chat(pinput.value.strip(), idata, scroller)
 

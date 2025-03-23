@@ -4,14 +4,8 @@ from basesettings import BaseSettings
 
 
 class VSSettings(BaseSettings, ABC):
-    def __init__(self, init_n: int):
-        """
-        standard set of settings for vectorstores
-        :param init_n:
-
-        """
+    def __init__(self):
         super().__init__()
-        self.n = init_n
 
     def __repr__(self) -> str:
         return f'{self.__class__!s}:{self.__dict__!r}'
@@ -27,4 +21,6 @@ class VSSettings(BaseSettings, ABC):
         return f''
 
     def info(self) -> list[BaseSettings.Info]:
-        pass
+        return [
+            BaseSettings.Info(label='n', options=[i for i in range(1, 10)], value=self.n),
+        ]

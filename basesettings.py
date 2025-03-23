@@ -27,7 +27,12 @@ class BaseSettings(ABC):
         label: str
         options: Union[list, dict]
         value: any
+        tooltip: str
 
     @abstractmethod
     def info(self) -> list[Info]:
+        pass
+
+    @abstractmethod
+    def change(self, label: str, value: any) -> None:
         pass

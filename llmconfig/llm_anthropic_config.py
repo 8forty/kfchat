@@ -5,8 +5,11 @@ import timeit
 import anthropic
 import dotenv
 from anthropic.types import Message
+from openai.types.chat import ChatCompletion
 
+import config
 import logstuff
+from basesettings import BaseSettings
 from config import redact
 from llmconfig.llm_anthropic_exchange import LLMAnthropicExchange
 from llmconfig.llmconfig import LLMConfig, LLMSettings
@@ -28,9 +31,14 @@ providers_config = {
 
 
 class LLMAnthropicSettings(LLMSettings):
-    # todo: doesn't support n
-    def __init__(self, init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int, init_system_message_name: str):
-        super().__init__(init_n, init_temp, init_top_p, init_max_tokens, init_system_message_name)
+
+    def __init__(self, init_temp: float, init_top_p: float, init_max_tokens: int, init_system_message_name: str):
+        super().__init__()
+        self.temp = init_temp
+        self.top_p = init_top_p
+        self.max_tokens = init_max_tokens
+        self.system_message_name = init_system_message_name
+        self.system_message = config.LLMData.sysmsg_all[init_system_message_name]
 
     def __repr__(self) -> str:
         return f'{self.__class__!s}:{self.__dict__!r}'
@@ -38,13 +46,35 @@ class LLMAnthropicSettings(LLMSettings):
 
     @classmethod
     def from_settings(cls, rhs):
-        return cls(init_n=rhs.n, init_temp=rhs.temp, init_top_p=rhs.top_p, init_max_tokens=rhs.max_tokens, init_system_message_name=rhs.system_message_name)
+        return cls(init_temp=rhs.temp, init_top_p=rhs.top_p, init_max_tokens=rhs.max_tokens, init_system_message_name=rhs.system_message_name)
 
     def numbers_oneline_logging_str(self) -> str:
-        return f'n?:{self.n},temp:{self.temp},top_p:{self.top_p},max_tokens:{self.max_tokens}'
+        return f'temp:{self.temp},top_p:{self.top_p},max_tokens:{self.max_tokens}'
 
     def texts_oneline_logging_str(self) -> str:
         return f'sysmsg:{self.system_message}'
+
+    def info(self) -> list[BaseSettings.Info]:
+        sysmsg_names = [key for key in config.LLMData.sysmsg_all]
+        return [
+            BaseSettings.Info(label='temp', options=[float(t) / 10.0 for t in range(0, 21)], value=self.temp),
+            BaseSettings.Info(label='top_p', options=[float(t) / 10.0 for t in range(0, 11)], value=self.top_p),
+            BaseSettings.Info(label='max_tokens', options=[80, 200, 400, 800, 1000, 1500, 2000], value=self.max_tokens),
+            BaseSettings.Info(label='system_message_name', options=sysmsg_names, value=self.system_message_name),
+        ]
+
+    def change(self, label: str, value: any) -> None:
+        if label == 'temp':
+            self.temp = value
+        elif label == 'top_p':
+            self.top_p = value
+        elif label == 'max_tokens':
+            self.max_tokens = value
+        elif label == 'system_message_name':
+            self.system_message_name = value
+            self.system_message = config.LLMData.sysmsg_all[value]
+        else:
+            raise ValueError(f'bad label! {label}')
 
 
 class LLMAnthropicConfig(LLMConfig):
@@ -94,7 +124,7 @@ class LLMAnthropicConfig(LLMConfig):
 
         return self._api_client
 
-    def do_chat(self, messages: list[LLMMessagePair], max_rate_limit_retries: int = 10) -> LLMAnthropicExchange:
+    def chat(self, messages: list[LLMMessagePair], max_rate_limit_retries: int = 10) -> LLMAnthropicExchange:
         # todo: this is clumsy
         # prompt is the last dict in the list by openai's convention
         prompt = messages[-1].content
@@ -104,7 +134,7 @@ class LLMAnthropicConfig(LLMConfig):
         while True:
             try:
                 messages_list: list[dict] = [{'role': pair.role, 'content': pair.content} for pair in messages]
-                log.debug(f'{self.model_name} n:{self._settings.n} temp:{self._settings.temp} top_p:{self._settings.top_p}, max_tok:{self._settings.max_tokens} prompt:"{prompt}" msgs:{messages_list}')
+                log.debug(f'{self.model_name} temp:{self._settings.temp} top_p:{self._settings.top_p}, max_tok:{self._settings.max_tokens} prompt:"{prompt}" msgs:{messages_list}')
 
                 start = timeit.default_timer()
                 message: Message = self._client().messages.create(

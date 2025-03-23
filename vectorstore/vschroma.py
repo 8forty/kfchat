@@ -146,7 +146,7 @@ class VSChroma(VSAPI):
 
     def __init__(self, vs_type_name: str, vssettings: VSSettings, parms: dict[str, str]):
         super().__init__(vs_type_name, vssettings, parms)
-        self.vssettings: VSChromaSettings = VSChromaSettings.from_settings(vssettings)
+        self._settings: VSChromaSettings = VSChromaSettings.from_settings(vssettings)
         self._client: chromadb.ClientAPI | None = None
         self.collection_name: str | None = None  # todo: get rid of this
         self._collection: chromadb.Collection | None = None  # todo: and this
@@ -155,8 +155,11 @@ class VSChroma(VSAPI):
         self._build_clients()
 
     @staticmethod
-    def create(vs_type_name: str, vssettings: VSSettings, parms: dict[str, str]):
+    def create(vs_type_name: str, vssettings: VSSettings, parms: dict[str, str]) -> VSAPI:
         return VSChroma(vs_type_name, vssettings, parms)
+
+    def settings(self) -> VSSettings:
+        return self._settings
 
     def get_partial_collection(self, collection_name: str) -> Collection:
         """
