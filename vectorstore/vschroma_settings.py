@@ -25,7 +25,7 @@ class VSChromaSettings(VSSettings):
             BaseSettings.Info(label='FTS', options=[FTSType.names()], value=self.fts_type, tooltip='full-text search type'),
         ]
 
-    def change(self, label: str, value: any) -> None:
+    async def change(self, label: str, value: any) -> None:
         if label == 'n':
             self.n = value
         elif label == 'FTS':

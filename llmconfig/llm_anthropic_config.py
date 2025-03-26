@@ -63,7 +63,7 @@ class LLMAnthropicSettings(LLMSettings):
             BaseSettings.Info(label='system_message_name', options=sysmsg_names, value=self.system_message_name),
         ]
 
-    def change(self, label: str, value: any) -> None:
+    async def change(self, label: str, value: any) -> None:
         if label == 'temp':
             self.temp = value
         elif label == 'top_p':

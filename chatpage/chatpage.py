@@ -325,38 +325,8 @@ class ChatPage:
                             ui.select(label=sinfo.label,
                                       options=sinfo.options,
                                       value=sinfo.value,
-                                      ).on_value_change(callback=lambda vc: call_and_focus(lambda: settings.change(sinfo.label, vc.value), pinput, spinner)
+                                      ).on_value_change(callback=lambda vc: call_and_focus(lambda: settings.change(vc.sender.props['label'], vc.value), pinput, spinner)
                                                         ).tooltip(sinfo.tooltip).props('square outlined label-color=green')
-                        x: ValueChangeEventArguments
-
-                        # seln = ui.select(label='n:',
-                        #                  options=[i for i in range(1, 10)],
-                        #                  value=settings().n,
-                        #                  ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_n(vc.value), pinput, spinner)
-                        #                                    ).tooltip('number of results per query').props('square outlined label-color=green').classes('min-w-20')
-                        # seltemp = ui.select(label='Temp:',
-                        #                     options=[float(t) / 10.0 for t in range(0, 21)],
-                        #                     value=settings().temp,
-                        #                     ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_temp(vc.value), pinput, spinner)
-                        #                                       ).tooltip('responses: 0=very predictable, 2=very random/creative').props('square outlined label-color=green').classes('min-w-40')
-                        # seltopp = ui.select(label='Top_p:',
-                        #                     options=[float(t) / 10.0 for t in range(0, 11)],
-                        #                     value=settings().top_p,
-                        #                     ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_top_p(vc.value), pinput, spinner)
-                        #                                       ).tooltip('responses: 0=less random, 1 more random').props('square outlined label-color=green').classes('min-w-40')
-                        # selmaxtok = ui.select(label='Max Tokens:',
-                        #                       options=[80, 200, 400, 800, 1000, 1500, 2000],
-                        #                       value=settings().max_tokens,
-                        #                       ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_max_tokens(vc.value), pinput, spinner)
-                        #                                         ).tooltip('max tokens in response').props('square outlined label-color=green').classes('min-w-40')
-                        # sysmsg_names = [key for key in config.LLMData.sysmsg_all]
-                        # selsysmsg = ui.select(label='Sys Msg:',
-                        #                       options=sysmsg_names,
-                        #                       value=settings().system_message_name
-                        #                       ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_sysmsg(vc.value), pinput, spinner)
-                        #                                         ).tooltip('system/setup text sent with each prompt').props('square outlined label-color=green').classes('min-w-50')
-
-                        # settings_selects = {'model': selmodel, 'n': seln, 'temp': seltemp, 'top_p': seltopp, 'maxtokens': selmaxtok, 'sysmsg': selsysmsg}
 
                     # the chat scroll area
                     with ui.scroll_area().classes('w-full flex-grow border border-solid border-white') as scroller:

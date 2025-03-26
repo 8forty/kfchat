@@ -31,15 +31,27 @@ class LLMOpenAIGGAIConfig(LLMOpenAIConfig):
         :param messages:
         :return:
         """
+
+        chat_messages = messages
+        chat_n = self._settings.n
+
+        # models that don't support 'system' role in messages
+        # todo: add restrictions to chat details
+        if self.model_name == 'gemma-3-27b-it':
+            chat_messages = [m for m in messages if m['role'] != 'system']
+            chat_n = 1
+
+        print(f'~~~ messages: {chat_messages}')
         chat_completion: ChatCompletion = self._client().chat.completions.create(
             model=self.model_name,
             temperature=self._settings.temp,  # default 1.0, 0.0->2.0
             top_p=self._settings.top_p,  # default 1, ~0.01->1.0
-            messages=messages,
+            messages=chat_messages,
             max_tokens=self._settings.max_tokens,  # default 16?
-            n=self._settings.n,
+            n=chat_n,
 
             stream=False,
 
         )
+
         return chat_completion

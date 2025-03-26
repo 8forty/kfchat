@@ -4,7 +4,7 @@ import random
 import time
 import timeit
 from collections import OrderedDict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Literal
 
@@ -207,11 +207,14 @@ class ModelSpec:
     name: str
     provider: str
     api: Literal['openai', 'anthropic']
+    supported_parms: list = field(default_factory=list)  # ['temperature', 'top_p', 'max_tokens', 'n', 'seed', 'system']
+    # todo: handle supported_parms, and do so generically
 
 
 class LLMData:
     models = [
 
+        # todo: config-file these
         ModelSpec('claude-3-5-haiku-20241022', provider='ANTHROPIC', api='anthropic'),
         ModelSpec('claude-3-5-sonnet-20241022', provider='ANTHROPIC', api='anthropic'),
 
@@ -220,10 +223,12 @@ class LLMData:
         ModelSpec('gemini-1.5-flash', provider='GEMINI', api='openai'),
         ModelSpec('gemini-1.5-flash-8b', provider='GEMINI', api='openai'),
         ModelSpec('gemini-1.5-pro', provider='GEMINI', api='openai'),
-        ModelSpec('gemini-2.0-flash-001', provider='GEMINI', api='openai'),
-        ModelSpec('gemini-2.0-flash-lite-preview-02-05', provider='GEMINI', api='openai'),
-        ModelSpec('gemini-2.0-pro-exp-02-05', provider='GEMINI', api='openai'),
+        ModelSpec('gemini-2.0-flash', provider='GEMINI', api='openai'),
+        ModelSpec('gemini-2.0-flash-lite', provider='GEMINI', api='openai'),
+        ModelSpec('gemini-2.0-pro', provider='GEMINI', api='openai'),
         ModelSpec('gemini-2.0-flash-thinking-exp-01-21', provider='GEMINI', api='openai'),
+        ModelSpec('gemini-2.5-pro-exp-03-25', provider='GEMINI', api='openai'),
+        ModelSpec('gemma-3-27b-it', provider='GEMINI', api='openai'),
 
         ModelSpec('gpt-4o-mini', provider='GITHUB', api='openai'),
         ModelSpec('gpt-4o', provider='GITHUB', api='openai'),

@@ -84,26 +84,6 @@ class InstanceData:
 
         self.source = selected_title
 
-    async def change_n(self, new_n: int):
-        for llm_config in self.all_llm_configs.values():
-            await llm_config.change_n(new_n)
-
-    async def change_temp(self, new_temp: float):
-        for llm_config in self.all_llm_configs.values():
-            await llm_config.change_temp(new_temp)
-
-    async def change_top_p(self, new_top_p: float):
-        for llm_config in self.all_llm_configs.values():
-            await llm_config.change_top_p(new_top_p)
-
-    async def change_max_tokens(self, new_max_tokens: int):
-        for llm_config in self.all_llm_configs.values():
-            await llm_config.change_max_tokens(new_max_tokens)
-
-    async def change_sysmsg(self, new_system_message_name: str):
-        for llm_config in self.all_llm_configs.values():
-            await llm_config.change_sysmsg(new_system_message_name)
-
     def all_sources(self) -> list[str]:
         sources: list[str] = [self.llm_source(llm_config) for llm_config in self.all_llm_configs.values()]
         sources.extend([f'{self.vs_source(cn)}' for cn in self.vectorstore.list_collection_names()])

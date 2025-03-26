@@ -34,5 +34,5 @@ class BaseSettings(ABC):
         pass
 
     @abstractmethod
-    def change(self, label: str, value: any) -> None:
+    async def change(self, label: str, value: any) -> None:
         pass

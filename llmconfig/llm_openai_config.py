@@ -91,7 +91,7 @@ class LLMOpenAISettings(LLMSettings):
             BaseSettings.Info(label='system_message_name', options=sysmsg_names, value=self.system_message_name, tooltip='system/setup text sent with each prompt'),
         ]
 
-    def change(self, label: str, value: any) -> None:
+    async def change(self, label: str, value: any) -> None:
         print(f'~~~~ oai change: {label}: {value}')
         if label == 'n':
             self.n = value
