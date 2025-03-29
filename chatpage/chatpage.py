@@ -63,20 +63,28 @@ class ChatPage:
                     for ri in range(0, len(rtext.results)):
 
                         # todo: latex: some models put "\[" and "\]" on sep lines, others just use the "$$" markers or [/] or ```latex, this is still far from perfect :(
-                        latex_line = False
+                        is_latex_line = False
                         for line in rtext.results[ri].split('\n'):
+                            raw_line = line
 
                             if rtext.use_markdown:
+                                # dollar signs tend to get crazy with markdown, after several tries from the stack overflow below, this one finally worked: '&#36;'
+                                # https://stackoverflow.com/questions/16089089/escaping-dollar-sign-in-ipython-notebook
+                                line = line.replace('$', '&#36;')
+
                                 # latex stuff
                                 if line.strip() == '\\[':
-                                    latex_line = True
+                                    is_latex_line = True
                                     continue
                                 if line.strip() == '\\]':
-                                    latex_line = False
+                                    is_latex_line = False
                                     continue
-                                if latex_line or line.strip().startswith('[') and line.strip().endswith(']'):
+                                if is_latex_line or line.strip().startswith('[') and line.strip().endswith(']'):
+                                    log.debug('latex line in results')
                                     line = f'$${line}$$'
 
+                                if raw_line != line:
+                                    log.debug(f'modified line! {line}')
                                 ui.markdown(content=line, extras=['fenced-code-blocks', 'tables', 'latex']).classes(result_text_classes)
                             else:
                                 ui.label(line).classes(result_text_classes)
@@ -96,8 +104,6 @@ class ChatPage:
                         ui.label(f'{problem}').classes(problem_classes)
 
         async def refresh_chat(prompt: str, idata: InstanceData, scroller: ScrollArea) -> None:
-            # todo: local-storage-session to separate messages
-            # todo: @refresh?
             idata.last_prompt_update()
 
             # loop the exchanges to build the texts needed to display
@@ -204,7 +210,6 @@ class ChatPage:
             log.info(
                 f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.mode()}:{idata.llm_config().provider()}:{idata.llm_config().model_name},'
                 f'{idata.llm_config().settings().numbers_oneline_logging_str()}): "{prompt}"')
-            # f'{idata.gllm_config().settings().temp},{idata.gllm_config().settings().top_p},{idata.gllm_config().settings().max_tokens}): "{prompt}"')
 
             exchange: LLMExchange | None = None
             try:
@@ -292,6 +297,7 @@ class ChatPage:
             except builtins.TimeoutError:
                 log.warning(f'TimeoutError waiting for client connection, ignored')
 
+            # creating instance data here (instead of during setup) ensures separate windows/tabs have separate data
             idata = InstanceData(self.all_llm_configs, self.init_llm_name, self.vectorstore, self.parms)
 
             # setup the standard "frame" for all pages
