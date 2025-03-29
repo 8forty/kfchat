@@ -165,11 +165,11 @@ class ChatPage:
         def do_llm(prompt: str, idata: InstanceData) -> LLMExchange:
             # todo: count tokens, etc.
             convo = [ex.llm_exchange for ex in idata.chat_exchanges() if ex.llm_exchange is not None]
-            exchange: LLMExchange = idata.gllm_config().chat_convo(convo=convo, prompt=prompt)
+            exchange: LLMExchange = idata.llm_config().chat_convo(convo=convo, prompt=prompt)
             return exchange
 
         async def handle_special_prompt(prompt: str, idata: InstanceData) -> None:
-            log.info(f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.gmode()}:{idata.gllm_config().provider()}:{idata.gllm_config().model_name}): "{prompt}"')
+            log.info(f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.mode()}:{idata.llm_config().provider()}:{idata.llm_config().model_name}): "{prompt}"')
 
             # extract *n, e.g. "*2", "*3"...
             digit1: int = 0 if len(prompt) < 2 or (not prompt[1].isdigit()) else int(prompt[1])
@@ -201,8 +201,8 @@ class ChatPage:
         async def handle_llm_prompt(prompt: str, idata: InstanceData) -> None:
             # todo: suppress and note actually allowed parameters
             log.info(
-                f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.gmode()}:{idata.gllm_config().provider()}:{idata.gllm_config().model_name},'
-                f'{idata.gllm_config().settings().numbers_oneline_logging_str()}): "{prompt}"')
+                f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.mode()}:{idata.llm_config().provider()}:{idata.llm_config().model_name},'
+                f'{idata.llm_config().settings().numbers_oneline_logging_str()}): "{prompt}"')
             # f'{idata.gllm_config().settings().temp},{idata.gllm_config().settings().top_p},{idata.gllm_config().settings().max_tokens}): "{prompt}"')
 
             exchange: LLMExchange | None = None
@@ -218,19 +218,19 @@ class ChatPage:
                 log.debug(f'llm exchange responses: {exchange.responses}')
                 ce = ChatExchange(exchange.prompt, response_duration_secs=exchange.response_duration_secs,
                                   llm_exchange=exchange, vector_store_response=None,
-                                  source=idata.gsource(), mode=idata.gmode())
+                                  source=idata.source(), mode=idata.mode())
                 for choice_idx, sp_text in ce.problems().items():
                     log.warning(f'stop problem from prompt {prompt} choice[{choice_idx}]: {sp_text}')
                 idata.add_chat_exchange(ce)
 
         async def handle_vector_search_prompt(prompt: str, idata: InstanceData) -> None:
-            log.info(f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.gmode()}:{idata.gsource()}): "{prompt}"')
+            log.info(f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.mode()}:{idata.source()}): "{prompt}"')
 
             start = timeit.default_timer()
 
             vsresponse: VectorStoreResponse | None = None
             try:
-                vsresponse = await run.io_bound(lambda: idata.gvectorstore().search(prompt))
+                vsresponse = await run.io_bound(lambda: idata.vectorstore().search(prompt))
                 log.debug(f'vector-search response: {vsresponse}')
             except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)
@@ -240,7 +240,7 @@ class ChatPage:
 
             if vsresponse is not None:
                 ce = ChatExchange(prompt, response_duration_secs=timeit.default_timer() - start, llm_exchange=None, vector_store_response=vsresponse,
-                                  source=idata.gsource(), mode=idata.gmode())
+                                  source=idata.source(), mode=idata.mode())
                 idata.add_chat_exchange(ce)
 
         async def handle_enter(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
@@ -313,11 +313,11 @@ class ChatPage:
                         sources = idata.all_sources()
                         ui.select(label='Source:',
                                   options=sources,
-                                  value=idata.gsource(),
+                                  value=idata.source(),
                                   ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_source(vc.value), pinput, spinner)
                                                     ).tooltip('vs=vector search, llm=lang model chat').props('square outlined label-color=green').classes('min-w-30')
 
-                        settings = idata.gllm_config().settings() if idata.mode_is_llm() else idata.gvectorstore().settings()
+                        settings = idata.llm_config().settings() if idata.mode_is_llm() else idata.vectorstore().settings()
                         for sinfo in settings.info():
                             ui.select(label=sinfo.label,
                                       options=sinfo.options,

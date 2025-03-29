@@ -105,13 +105,13 @@ class InstanceData:
         if self._chat_exchanges.len() > 0:
             self._last_prompt = self._chat_exchanges.list()[-1].prompt
 
-    def gllm_config(self) -> LLMConfig:
+    def llm_config(self) -> LLMConfig:
         return self._llm_config
 
-    def gmode(self) -> str:
+    def mode(self) -> str:
         return self._mode
 
-    def gsource(self) -> str:
+    def source(self) -> str:
         return self._source
 
     async def change_source(self, selected_title: str):
@@ -130,7 +130,7 @@ class InstanceData:
 
         self._source = selected_title
 
-    def gvectorstore(self) -> VSAPI:
+    def vectorstore(self) -> VSAPI:
         return self._vectorstore
 
     def all_sources(self) -> list[str]:
