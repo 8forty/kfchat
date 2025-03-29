@@ -9,7 +9,6 @@ from fastapi import Request
 from nicegui import ui, run, Client
 from nicegui.elements.input import Input
 from nicegui.elements.scroll_area import ScrollArea
-from nicegui.elements.select import Select
 from nicegui.elements.spinner import Spinner
 from nicegui.events import Handler, ValueChangeEventArguments
 
@@ -63,7 +62,8 @@ class ChatPage:
                     # results
                     for ri in range(0, len(rtext.results)):
 
-                        latex_line = False  # todo: some models put "\[" and "\]" on sep lines, others just use the "$$" markers or [/] or ```latex, this is still far from perfect :(
+                        # todo: latex: some models put "\[" and "\]" on sep lines, others just use the "$$" markers or [/] or ```latex, this is still far from perfect :(
+                        latex_line = False
                         for line in rtext.results[ri].split('\n'):
 
                             if rtext.use_markdown:
@@ -99,15 +99,13 @@ class ChatPage:
             # todo: local-storage-session to separate messages
             # todo: @refresh?
 
-            # todo: increaase encapsulation of InstanceData for some/all idata.<whatever> usages below
-            if idata.exchanges.len() > 0:
-                idata.last_prompt = idata.exchanges.list()[-1].prompt
+            # todo: increase encapsulation of InstanceData for some/all idata.<whatever> usages below
+            idata.last_prompt_update()
 
             # loop the exchanges to build the texts needed to display
             responses: list[ResponseText] = []
-
-            if len(idata.info_messages) == 0:
-                for exchange in idata.exchanges.list():
+            if idata.count_info_messages() == 0:
+                for exchange in idata.chat_exchanges():
                     rtext: ResponseText = ResponseText(exchange.response_duration_secs, exchange.prompt)
 
                     # llm response
@@ -127,7 +125,7 @@ class ChatPage:
 
                         # exchange problems
                         if exchange.overflowed():
-                            rtext.response_problems.append(f'exchange history (max:{idata.exchanges.max_exchanges()}) overflowed!  Oldest exchange dropped')
+                            rtext.response_problems.append(f'exchange history (max:{idata.max_chat_exchanges()}) overflowed!  Oldest exchange dropped')
 
                     # vector store response
                     elif exchange.vector_store_response is not None:
@@ -147,20 +145,21 @@ class ChatPage:
 
                     responses.append(rtext)
 
-            if len(idata.info_messages) > 0 or idata.unknown_special_message is not None:
+            if idata.count_info_messages() > 0 or idata.unknown_special_message is not None:
                 rtext = ResponseText(response_duration_seconds=0.0, prompt=prompt)
                 if idata.unknown_special_message is not None:
                     rtext.results.append(idata.unknown_special_message)
                     idata.unknown_special_message = None
 
                 # info-messages are not exchanges/responses, e.g. they come from special commands
-                for im in idata.info_messages:
+                for im in idata.info_messages():
                     rtext.results.append(im)
-                idata.info_messages.clear()
+                idata.clear_info_messages()
                 responses.append(rtext)
 
             # since this is NOT @refresh, we have to manually clear the scroll area
             scroller.clear()
+
             # display/render the various texts of the response
             render_response(responses, scroller)
 
@@ -168,34 +167,34 @@ class ChatPage:
 
         def do_llm(prompt: str, idata: InstanceData) -> LLMExchange:
             # todo: count tokens, etc.
-            convo = [ex.llm_exchange for ex in idata.exchanges.list() if ex.llm_exchange is not None]
+            convo = [ex.llm_exchange for ex in idata.chat_exchanges() if ex.llm_exchange is not None]
             exchange: LLMExchange = idata.llm_config.chat_convo(convo=convo, prompt=prompt)
             return exchange
 
         async def handle_special_prompt(prompt: str, idata: InstanceData) -> None:
-            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.mode}:{idata.llm_config.provider()}:{idata.llm_config.model_name}): "{prompt}"')
+            log.info(f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.mode}:{idata.llm_config.provider()}:{idata.llm_config.model_name}): "{prompt}"')
             about = 'special commands: *, *info, *repeat, *clear, (n) *1/*2... '
 
             # extract *n, e.g. "*2", "*3"...
             digit1: int = 0 if len(prompt) < 2 or (not prompt[1].isdigit()) else int(prompt[1])
 
             if len(prompt) == 1:
-                idata.info_messages.append(about)
+                idata.add_info_message(about)
             elif prompt.startswith('*info'):
-                idata.info_messages.append('env:')
+                idata.add_info_message('env:')
                 for key in self.parms.keys():
                     val = self.parms[key]
                     if key.lower().endswith('_key') or key.lower().endswith('_token'):
                         val = config.redact(val)
-                    idata.info_messages.append(f'----{key}: {val}')
+                    idata.add_info_message(f'----{key}: {val}')
             elif prompt.startswith('*repeat'):
                 if idata.mode_is_llm():
-                    await handle_llm_prompt(idata.last_prompt, idata)
+                    await handle_llm_prompt(idata.last_prompt(), idata)
                 else:
-                    await handle_vector_search_prompt(idata.last_prompt, idata)
+                    await handle_vector_search_prompt(idata.last_prompt(), idata)
             elif prompt.startswith('*clear'):
-                idata.clear()
-                idata.info_messages.append('conversation cleared')
+                idata.clear_exchanges()
+                idata.add_info_message('conversation cleared')
             # elif digit1 > 0:
             #     if 'n' in settings_selects:
             #         settings_selects['n'].set_value(digit1)
@@ -205,7 +204,7 @@ class ChatPage:
 
         async def handle_llm_prompt(prompt: str, idata: InstanceData) -> None:
             log.info(
-                f'(exchanges[{idata.exchanges.id()}]) prompt({idata.mode}:{idata.llm_config.provider()}:{idata.llm_config.model_name},'
+                f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.mode}:{idata.llm_config.provider()}:{idata.llm_config.model_name},'
                 f'{idata.llm_config.settings().temp},{idata.llm_config.settings().top_p},{idata.llm_config.settings().max_tokens}): "{prompt}"')
 
             exchange: LLMExchange | None = None
@@ -224,10 +223,10 @@ class ChatPage:
                                   source=idata.source, mode=idata.mode)
                 for choice_idx, sp_text in ce.problems().items():
                     log.warning(f'stop problem from prompt {prompt} choice[{choice_idx}]: {sp_text}')
-                idata.exchanges.append(ce)
+                idata.add_chat_exchange(ce)
 
         async def handle_vector_search_prompt(prompt: str, idata: InstanceData) -> None:
-            log.info(f'(exchanges[{idata.exchanges.id()}]) prompt({idata.mode}:{idata.source}): "{prompt}"')
+            log.info(f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.mode}:{idata.source}): "{prompt}"')
 
             start = timeit.default_timer()
 
@@ -244,7 +243,7 @@ class ChatPage:
             if vsresponse is not None:
                 ce = ChatExchange(prompt, response_duration_secs=timeit.default_timer() - start, llm_exchange=None, vector_store_response=vsresponse,
                                   source=idata.source, mode=idata.mode)
-                idata.exchanges.append(ce)
+                idata.add_chat_exchange(ce)
 
         async def handle_enter(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
             prompt_input.disable()
