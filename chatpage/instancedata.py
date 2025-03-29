@@ -37,7 +37,7 @@ class InstanceData:
         self._source: str = self._source_llm_title  # always start with llm
 
         # special commands
-        self.special_about = 'special commands: *, *info, *repeat, *clear, (n) *1/*2... '
+        self._special_about = 'special commands: *, *info, *repeat, *clear, (n) *1/*2... '
         self._unknown_special_prefix: str = 'unknown special command'
 
         self._parms: dict[str, str] = parms
@@ -137,9 +137,12 @@ class InstanceData:
         sources: list[str] = [self.llm_source(llm_config) for llm_config in self._all_llm_configs.values()]
         sources.extend([f'{self.vs_source(cn)}' for cn in self._vectorstore.list_collection_names()])
 
-        # sort alpha but with the vs sources after the llm sources
+        # sort alpha but with the vs sources after the llm sources using prefix 'zzz'
         sources.sort(key=lambda k: 'zzz' + k if k.startswith(self._vs_mode_prefix) else k)
         return sources
 
     def add_unknown_special_message(self, prompt: str) -> None:
-        self.add_info_message(f'{self._unknown_special_prefix}: {prompt}; {self.special_about}')
+        self.add_info_message(f'{self._unknown_special_prefix}: {prompt}; {self._special_about}')
+
+    def special_about(self):
+        return self._special_about

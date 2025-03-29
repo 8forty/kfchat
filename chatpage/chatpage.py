@@ -98,8 +98,6 @@ class ChatPage:
         async def refresh_chat(prompt: str, idata: InstanceData, scroller: ScrollArea) -> None:
             # todo: local-storage-session to separate messages
             # todo: @refresh?
-
-            # todo: increase encapsulation of InstanceData for some/all idata.<whatever> usages below
             idata.last_prompt_update()
 
             # loop the exchanges to build the texts needed to display
@@ -175,7 +173,7 @@ class ChatPage:
             digit1: int = 0 if len(prompt) < 2 or (not prompt[1].isdigit()) else int(prompt[1])
 
             if len(prompt) == 1:
-                idata.add_info_message(idata.special_about)
+                idata.add_info_message(idata.special_about())
             elif prompt.startswith('*info'):
                 idata.add_info_message('env:')
                 for key in self.parms.keys():
@@ -184,10 +182,13 @@ class ChatPage:
                         val = config.redact(val)
                     idata.add_info_message(f'----{key}: {val}')
             elif prompt.startswith('*repeat'):
-                if idata.mode_is_llm():
-                    await handle_llm_prompt(idata.last_prompt(), idata)
+                if idata.last_prompt() is not None:
+                    if idata.mode_is_llm():
+                        await handle_llm_prompt(idata.last_prompt(), idata)
+                    else:
+                        await handle_vector_search_prompt(idata.last_prompt(), idata)
                 else:
-                    await handle_vector_search_prompt(idata.last_prompt(), idata)
+                    idata.add_info_message('no previous prompt!')
             elif prompt.startswith('*clear'):
                 idata.clear_exchanges()
                 idata.add_info_message('conversation cleared')
