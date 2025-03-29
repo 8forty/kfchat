@@ -27,7 +27,9 @@ class LLMOpenAIGGAIConfig(LLMOpenAIConfig):
 
     def generate_chat_completion(self, messages: list[dict]) -> ChatCompletion:
         """
-        google generative AI: no "seed" parameter allowed
+        google generative AI:
+            "seed" parameter never allowed
+            sysmsg sometimes allowed
         :param messages:
         :return:
         """
@@ -41,7 +43,6 @@ class LLMOpenAIGGAIConfig(LLMOpenAIConfig):
             chat_messages = [m for m in messages if m['role'] != 'system']
             chat_n = 1
 
-        print(f'~~~ messages: {chat_messages}')
         chat_completion: ChatCompletion = self._client().chat.completions.create(
             model=self.model_name,
             temperature=self._settings.temp,  # default 1.0, 0.0->2.0

@@ -92,7 +92,6 @@ class LLMOpenAISettings(LLMSettings):
         ]
 
     async def change(self, label: str, value: any) -> None:
-        print(f'~~~~ oai change: {label}: {value}')
         if label == 'n':
             self.n = value
         elif label == 'temp':

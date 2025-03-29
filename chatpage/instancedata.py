@@ -23,22 +23,22 @@ class InstanceData:
         # llm stuff
         self._llm_mode: str = 'llm'
         self._llm_mode_prefix: str = 'llm: '
-        self.all_llm_configs = all_llm_configs
-        self.llm_config = all_llm_configs[init_llm_name]
-        self.source_llm_title: str = self.llm_source(self.llm_config)  # title is "prefix: provider.model-name"
+        self._all_llm_configs = all_llm_configs
+        self._llm_config = all_llm_configs[init_llm_name]
+        self._source_llm_title: str = self.llm_source(self._llm_config)  # title is "prefix: provider.model-name"
 
         # vs stuff
-        self.vs_mode: str = 'vs'
-        self.vs_mode_prefix: str = 'vs: '
-        self.vectorstore = vectorstore
+        self._vs_mode: str = 'vs'
+        self._vs_mode_prefix: str = 'vs: '
+        self._vectorstore = vectorstore
 
         # mode & source info
-        self.mode: str = self._llm_mode
-        self.source: str = self.source_llm_title  # always start with llm
+        self._mode: str = self._llm_mode
+        self._source: str = self._source_llm_title  # always start with llm
 
-        # specials
-        self.unknown_special_prefix: str = 'unknown special command'
-        self.unknown_special_message: str | None = None
+        # special commands
+        self.special_about = 'special commands: *, *info, *repeat, *clear, (n) *1/*2... '
+        self._unknown_special_prefix: str = 'unknown special command'
 
         self._parms: dict[str, str] = parms
         self._chat_exchanges: ChatExchanges = ChatExchanges(config.chat_exchanges_circular_list_count)
@@ -48,10 +48,10 @@ class InstanceData:
         self._last_prompt: str | None = None
 
     def mode_is_llm(self) -> bool:
-        return self.mode == self._llm_mode
+        return self._mode == self._llm_mode
 
     def mode_is_vs(self) -> bool:
-        return self.mode == self.vs_mode
+        return self._mode == self._vs_mode
 
     def llm_source(self, llm_config: LLMConfig) -> str:
         """
@@ -67,7 +67,7 @@ class InstanceData:
         :param collection_name:
         :return: title: "<prefix>: <collection-name>"
         """
-        return f'{self.vs_mode_prefix}{collection_name}'
+        return f'{self._vs_mode_prefix}{collection_name}'
 
     def chat_exchanges(self) -> Generator[ChatExchange, None, None]:
         for exchange in self._chat_exchanges.list():
@@ -105,26 +105,41 @@ class InstanceData:
         if self._chat_exchanges.len() > 0:
             self._last_prompt = self._chat_exchanges.list()[-1].prompt
 
+    def gllm_config(self) -> LLMConfig:
+        return self._llm_config
+
+    def gmode(self) -> str:
+        return self._mode
+
+    def gsource(self) -> str:
+        return self._source
+
     async def change_source(self, selected_title: str):
         log.info(f'Changing source to: {selected_title}')
 
         if selected_title.startswith(self._llm_mode_prefix):
-            self.mode = self._llm_mode
-            self.source = selected_title
-            self.llm_config = self.all_llm_configs[selected_title.removeprefix(self._llm_mode_prefix)]
-            log.debug(f'new llm title: {self.source} (provider: {self.llm_config.provider()})')
+            self._mode = self._llm_mode
+            self._source = selected_title
+            self._llm_config = self._all_llm_configs[selected_title.removeprefix(self._llm_mode_prefix)]
+            log.debug(f'new llm title: {self._source} (provider: {self._llm_config.provider()})')
         else:
-            self.source = selected_title
-            self.mode = self.vs_mode
-            await run.io_bound(lambda: self.vectorstore.switch_collection(new_collection_name=self.source.removeprefix(self.vs_mode_prefix)))
-            log.debug(f'new vectorstore title: {self.source}')
+            self._source = selected_title
+            self._mode = self._vs_mode
+            await run.io_bound(lambda: self._vectorstore.switch_collection(new_collection_name=self._source.removeprefix(self._vs_mode_prefix)))
+            log.debug(f'new vectorstore title: {self._source}')
 
-        self.source = selected_title
+        self._source = selected_title
+
+    def gvectorstore(self) -> VSAPI:
+        return self._vectorstore
 
     def all_sources(self) -> list[str]:
-        sources: list[str] = [self.llm_source(llm_config) for llm_config in self.all_llm_configs.values()]
-        sources.extend([f'{self.vs_source(cn)}' for cn in self.vectorstore.list_collection_names()])
+        sources: list[str] = [self.llm_source(llm_config) for llm_config in self._all_llm_configs.values()]
+        sources.extend([f'{self.vs_source(cn)}' for cn in self._vectorstore.list_collection_names()])
 
         # sort alpha but with the vs sources after the llm sources
-        sources.sort(key=lambda k: 'zzz' + k if k.startswith(self.vs_mode_prefix) else k)
+        sources.sort(key=lambda k: 'zzz' + k if k.startswith(self._vs_mode_prefix) else k)
         return sources
+
+    def add_unknown_special_message(self, prompt: str) -> None:
+        self.add_info_message(f'{self._unknown_special_prefix}: {prompt}; {self.special_about}')

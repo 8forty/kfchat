@@ -145,11 +145,8 @@ class ChatPage:
 
                     responses.append(rtext)
 
-            if idata.count_info_messages() > 0 or idata.unknown_special_message is not None:
+            if idata.count_info_messages() > 0:
                 rtext = ResponseText(response_duration_seconds=0.0, prompt=prompt)
-                if idata.unknown_special_message is not None:
-                    rtext.results.append(idata.unknown_special_message)
-                    idata.unknown_special_message = None
 
                 # info-messages are not exchanges/responses, e.g. they come from special commands
                 for im in idata.info_messages():
@@ -168,18 +165,17 @@ class ChatPage:
         def do_llm(prompt: str, idata: InstanceData) -> LLMExchange:
             # todo: count tokens, etc.
             convo = [ex.llm_exchange for ex in idata.chat_exchanges() if ex.llm_exchange is not None]
-            exchange: LLMExchange = idata.llm_config.chat_convo(convo=convo, prompt=prompt)
+            exchange: LLMExchange = idata.gllm_config().chat_convo(convo=convo, prompt=prompt)
             return exchange
 
         async def handle_special_prompt(prompt: str, idata: InstanceData) -> None:
-            log.info(f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.mode}:{idata.llm_config.provider()}:{idata.llm_config.model_name}): "{prompt}"')
-            about = 'special commands: *, *info, *repeat, *clear, (n) *1/*2... '
+            log.info(f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.gmode()}:{idata.gllm_config().provider()}:{idata.gllm_config().model_name}): "{prompt}"')
 
             # extract *n, e.g. "*2", "*3"...
             digit1: int = 0 if len(prompt) < 2 or (not prompt[1].isdigit()) else int(prompt[1])
 
             if len(prompt) == 1:
-                idata.add_info_message(about)
+                idata.add_info_message(idata.special_about)
             elif prompt.startswith('*info'):
                 idata.add_info_message('env:')
                 for key in self.parms.keys():
@@ -200,12 +196,14 @@ class ChatPage:
             #         settings_selects['n'].set_value(digit1)
             #     await idata.change_n(digit1)
             else:
-                idata.unknown_special_message = f'{idata.unknown_special_prefix}: {prompt}; {about}'
+                idata.add_unknown_special_message(prompt)
 
         async def handle_llm_prompt(prompt: str, idata: InstanceData) -> None:
+            # todo: suppress and note actually allowed parameters
             log.info(
-                f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.mode}:{idata.llm_config.provider()}:{idata.llm_config.model_name},'
-                f'{idata.llm_config.settings().temp},{idata.llm_config.settings().top_p},{idata.llm_config.settings().max_tokens}): "{prompt}"')
+                f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.gmode()}:{idata.gllm_config().provider()}:{idata.gllm_config().model_name},'
+                f'{idata.gllm_config().settings().numbers_oneline_logging_str()}): "{prompt}"')
+            # f'{idata.gllm_config().settings().temp},{idata.gllm_config().settings().top_p},{idata.gllm_config().settings().max_tokens}): "{prompt}"')
 
             exchange: LLMExchange | None = None
             try:
@@ -220,19 +218,19 @@ class ChatPage:
                 log.debug(f'llm exchange responses: {exchange.responses}')
                 ce = ChatExchange(exchange.prompt, response_duration_secs=exchange.response_duration_secs,
                                   llm_exchange=exchange, vector_store_response=None,
-                                  source=idata.source, mode=idata.mode)
+                                  source=idata.gsource(), mode=idata.gmode())
                 for choice_idx, sp_text in ce.problems().items():
                     log.warning(f'stop problem from prompt {prompt} choice[{choice_idx}]: {sp_text}')
                 idata.add_chat_exchange(ce)
 
         async def handle_vector_search_prompt(prompt: str, idata: InstanceData) -> None:
-            log.info(f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.mode}:{idata.source}): "{prompt}"')
+            log.info(f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.gmode()}:{idata.gsource()}): "{prompt}"')
 
             start = timeit.default_timer()
 
             vsresponse: VectorStoreResponse | None = None
             try:
-                vsresponse = await run.io_bound(lambda: idata.vectorstore.search(prompt))
+                vsresponse = await run.io_bound(lambda: idata.gvectorstore().search(prompt))
                 log.debug(f'vector-search response: {vsresponse}')
             except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)
@@ -242,7 +240,7 @@ class ChatPage:
 
             if vsresponse is not None:
                 ce = ChatExchange(prompt, response_duration_secs=timeit.default_timer() - start, llm_exchange=None, vector_store_response=vsresponse,
-                                  source=idata.source, mode=idata.mode)
+                                  source=idata.gsource(), mode=idata.gmode())
                 idata.add_chat_exchange(ce)
 
         async def handle_enter(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
@@ -315,11 +313,11 @@ class ChatPage:
                         sources = idata.all_sources()
                         ui.select(label='Source:',
                                   options=sources,
-                                  value=idata.source,
+                                  value=idata.gsource(),
                                   ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_source(vc.value), pinput, spinner)
                                                     ).tooltip('vs=vector search, llm=lang model chat').props('square outlined label-color=green').classes('min-w-30')
 
-                        settings = idata.llm_config.settings() if idata.mode_is_llm() else idata.vectorstore.settings()
+                        settings = idata.gllm_config().settings() if idata.mode_is_llm() else idata.gvectorstore().settings()
                         for sinfo in settings.info():
                             ui.select(label=sinfo.label,
                                       options=sinfo.options,
