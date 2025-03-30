@@ -9,6 +9,7 @@ from fastapi import Request
 from nicegui import ui, run, Client
 from nicegui.elements.input import Input
 from nicegui.elements.scroll_area import ScrollArea
+from nicegui.elements.select import Select
 from nicegui.elements.spinner import Spinner
 from nicegui.events import Handler, ValueChangeEventArguments
 
@@ -46,6 +47,7 @@ class ChatPage:
         self.parms = parms
 
     def setup(self, path: str, pagename: str):
+        settings_selects: dict[str, Select] = {}
 
         def render_response(responses: list[ResponseText], scroller: ScrollArea):
             prompt_classes = 'w-full font-bold text-lg text-blue text-left px-2 pt-4 pb-1'
@@ -167,7 +169,6 @@ class ChatPage:
             scroller.scroll_to(percent=1e6)  # 1e6 works around quasar scroll-area bug
 
         def do_llm(prompt: str, idata: InstanceData) -> LLMExchange:
-            # todo: count tokens, etc.
             convo = [ex.llm_exchange for ex in idata.chat_exchanges() if ex.llm_exchange is not None]
             exchange: LLMExchange = idata.llm_config().chat_convo(convo=convo, prompt=prompt)
             return exchange
@@ -198,10 +199,16 @@ class ChatPage:
             elif prompt.startswith('*clear'):
                 idata.clear_exchanges()
                 idata.add_info_message('conversation cleared')
-            # elif digit1 > 0:
-            #     if 'n' in settings_selects:
-            #         settings_selects['n'].set_value(digit1)
-            #     await idata.change_n(digit1)
+            elif digit1 > 0:
+                if idata.mode_is_llm():
+                    settings = idata.llm_config().settings()
+                    # only change n if the source has an n spec
+                    for spec in settings.specs():
+                        if spec.label == 'n':
+                            await settings.change(spec.label, digit1)
+                            # now update the gui
+                            if 'n' in settings_selects.keys():
+                                settings_selects['n'].value = digit1
             else:
                 idata.add_unknown_special_message(prompt)
 
@@ -325,14 +332,16 @@ class ChatPage:
                                                     ).tooltip('vs=vector search, llm=lang model chat').props('square outlined label-color=green').classes('min-w-30')
 
                         settings = idata.llm_config().settings() if idata.mode_is_llm() else idata.vectorstore().settings()
-                        for sinfo in settings.info():
-                            ui.select(label=sinfo.label,
-                                      options=sinfo.options,
-                                      value=sinfo.value,
-                                      ).on_value_change(callback=lambda vc: call_and_focus(lambda: settings.change(vc.sender.props['label'], vc.value), pinput, spinner)
-                                                        ).tooltip(sinfo.tooltip).props('square outlined label-color=green')
+                        for sinfo in settings.specs():
+                            # vc.sender.props['label'] is 'n', 'temp', ...
+                            s = ui.select(label=sinfo.label,
+                                          options=sinfo.options,
+                                          value=sinfo.value,
+                                          ).on_value_change(callback=lambda vc: call_and_focus(lambda: settings.change(vc.sender.props['label'], vc.value), pinput, spinner)
+                                                            ).tooltip(sinfo.tooltip).props('square outlined label-color=green')
+                            settings_selects[sinfo.label] = s
 
-                    # the chat scroll area
+                            # the chat scroll area
                     with ui.scroll_area().classes('w-full flex-grow border border-solid border-white') as scroller:
                         await refresh_chat(pinput.value.strip(), idata, scroller)
 

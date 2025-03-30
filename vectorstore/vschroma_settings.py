@@ -19,10 +19,10 @@ class VSChromaSettings(VSSettings):
     def texts_oneline_logging_str(self) -> str:
         return f''
 
-    def info(self) -> list[BaseSettings.Info]:
+    def specs(self) -> list[BaseSettings.SettingsSpec]:
         return [
-            BaseSettings.Info(label='n', options=[i for i in range(1, 10)], value=self.n, tooltip='number of results per query'),
-            BaseSettings.Info(label='FTS', options=[FTSType.names()], value=self.fts_type, tooltip='full-text search type'),
+            BaseSettings.SettingsSpec(label='n', options=[i for i in range(1, 10)], value=self.n, tooltip='number of results per query'),
+            BaseSettings.SettingsSpec(label='FTS', options=[FTSType.names()], value=self.fts_type, tooltip='full-text search type'),
         ]
 
     async def change(self, label: str, value: any) -> None:

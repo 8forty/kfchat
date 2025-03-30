@@ -54,13 +54,13 @@ class LLMAnthropicSettings(LLMSettings):
     def texts_oneline_logging_str(self) -> str:
         return f'sysmsg:{self.system_message}'
 
-    def info(self) -> list[BaseSettings.Info]:
+    def specs(self) -> list[BaseSettings.SettingsSpec]:
         sysmsg_names = [key for key in config.LLMData.sysmsg_all]
         return [
-            BaseSettings.Info(label='temp', options=[float(t) / 10.0 for t in range(0, 21)], value=self.temp),
-            BaseSettings.Info(label='top_p', options=[float(t) / 10.0 for t in range(0, 11)], value=self.top_p),
-            BaseSettings.Info(label='max_tokens', options=[80, 200, 400, 800, 1000, 1500, 2000], value=self.max_tokens),
-            BaseSettings.Info(label='system_message_name', options=sysmsg_names, value=self.system_message_name),
+            BaseSettings.SettingsSpec(label='temp', options=[float(t) / 10.0 for t in range(0, 21)], value=self.temp),
+            BaseSettings.SettingsSpec(label='top_p', options=[float(t) / 10.0 for t in range(0, 11)], value=self.top_p),
+            BaseSettings.SettingsSpec(label='max_tokens', options=[80, 200, 400, 800, 1000, 1500, 2000], value=self.max_tokens),
+            BaseSettings.SettingsSpec(label='system_message_name', options=sysmsg_names, value=self.system_message_name),
         ]
 
     async def change(self, label: str, value: any) -> None:

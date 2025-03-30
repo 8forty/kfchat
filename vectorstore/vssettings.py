@@ -20,7 +20,7 @@ class VSSettings(BaseSettings, ABC):
     def texts_oneline_logging_str(self) -> str:
         return f''
 
-    def info(self) -> list[BaseSettings.Info]:
+    def specs(self) -> list[BaseSettings.SettingsSpec]:
         return [
-            BaseSettings.Info(label='n', options=[i for i in range(1, 10)], value=self.n),
+            BaseSettings.SettingsSpec(label='n', options=[i for i in range(1, 10)], value=self.n),
         ]

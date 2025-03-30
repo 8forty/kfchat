@@ -23,14 +23,14 @@ class BaseSettings(ABC):
         pass
 
     @dataclass
-    class Info:
+    class SettingsSpec:
         label: str
         options: Union[list, dict]
         value: any
         tooltip: str
 
     @abstractmethod
-    def info(self) -> list[Info]:
+    def specs(self) -> list[SettingsSpec]:
         pass
 
     @abstractmethod
