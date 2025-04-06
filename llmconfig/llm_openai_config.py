@@ -41,6 +41,10 @@ providers_config = {
         'key': env.get('kfGROQ_API_KEY'),
         'kfGROQ_ENDPOINT': env.get('kfGROQ_ENDPOINT'),
     },
+    'CEREBRAS': {
+        'key': env.get('kfCEREBRAS_API_KEY'),
+        'kfCEREBRAS_ENDPOINT': env.get('kfCEREBRAS_ENDPOINT'),
+    },
     'GEMINI': {
         'key': env.get('kfGEMINI_API_KEY'),
         'kfGEMINI_ENDPOINT': env.get('kfGEMINI_ENDPOINT'),

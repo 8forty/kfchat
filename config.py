@@ -248,6 +248,8 @@ class LLMData:
         ModelSpec('mixtral-8x7b-32768', provider='GROQ', api='openai'),
         ModelSpec('qwen-qwq-32b', provider='GROQ', api='openai'),
 
+        ModelSpec('llama-3.3-70b', provider='CEREBRAS', api='openai'),
+
         ModelSpec('llama3.2:1b', provider='OLLAMA', api='openai'),
         ModelSpec('llama3.2:3b', provider='OLLAMA', api='openai'),
         ModelSpec('mistral-nemo:12b', provider='OLLAMA', api='openai'),
