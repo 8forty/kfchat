@@ -281,15 +281,20 @@ class VSChroma(VSAPI):
             sql = sqlite3.connect(config.sql_path)
             cursor = sql.cursor()
 
-            query = (f"select content, bm25({config.sql_chunks_fts5[self._settings.fts_type].table_name}, 0, 1, 0, 0) bm25 "
-                     f"from {config.sql_chunks_fts5[self._settings.fts_type].table_name} where content match '{prompt}';")
+            # FTS5 table full-text search using MATCH operator, plus bm25 (smaller=better match)
+            bm25_fragment = f"bm25({config.sql_chunks_fts5[self._settings.fts_type].table_name}, 0, 1, 0, 0)"
+            query = (f"select *, {bm25_fragment} bm25 "
+                     f"from {config.sql_chunks_fts5[self._settings.fts_type].table_name} where content match '{prompt}' order by {bm25_fragment};")
             log.debug(f'query {config.sql_chunks_table_name}: {query}')
             cursor.execute(query)
+            colnames = [d[0] for d in cursor.description]
             for row in cursor.fetchall():
+                rowdict = dict(zip(colnames, row))
+                metrics = {e: rowdict[e] for e in rowdict if e not in ['content', 'id']}
                 vs_results.append(VectorStoreResult(
-                    result_id=None,
-                    metrics={'bm25': row[1]},
-                    content=row[0]
+                    result_id=rowdict['id'],
+                    metrics=metrics,
+                    content=rowdict['content'],
                 ))
 
         except (Exception,) as e:
