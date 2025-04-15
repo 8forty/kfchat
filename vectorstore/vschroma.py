@@ -281,15 +281,11 @@ class VSChroma(VSAPI):
             sql = sqlite3.connect(config.sql_path)
             cursor = sql.cursor()
 
-            #  select substr(content, 1, 40), bm25(chunks_fts5, 0, 1, 0, 0) bm25 from chunks_fts5 where chunks_fts5 match 'ducks';
-            # query = (f"select substr(content, 1, 40), bm25({config.sql_chunks_fts5[self._settings.fts_type].table_name}, 0, 1, 0, 0) bm25 "
-            #          f"from {config.sql_chunks_fts5[self._settings.fts_type].table_name} where content match '{prompt}';")
             query = (f"select content, bm25({config.sql_chunks_fts5[self._settings.fts_type].table_name}, 0, 1, 0, 0) bm25 "
                      f"from {config.sql_chunks_fts5[self._settings.fts_type].table_name} where content match '{prompt}';")
             log.debug(f'query {config.sql_chunks_table_name}: {query}')
             cursor.execute(query)
             for row in cursor.fetchall():
-                print(f'~~~~ row: {row}')
                 vs_results.append(VectorStoreResult(
                     result_id=None,
                     metrics={'bm25': row[1]},
