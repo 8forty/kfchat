@@ -224,28 +224,31 @@ class VSChroma(VSAPI):
         self._build_clients()
         return [name for name in self._client.list_collections()]
 
-    def raw_search(self, prompt: str, howmany: int) -> VSAPI.SearchResponse:
+    def embeddings_search(self, prompt: str, howmany: int) -> VSAPI.SearchResponse:
         self._build_clients()
 
-        # dict str->list (1 per prompt) of lists (1 per result): 'ids'->[[str]], 'distances'->[[float]], 'embeddings'-> None?, 'metadatas'->[[None?]]
+        # QueryResult is a TypedDict:
+        # str->list (1 per prompt) of lists (1 per result): 'ids'->[[str]], 'distances'->[[float]], 'embeddings'-> None?, 'metadatas'->[[None?]]
         # ...'documents'->[[str]], 'uris'->None?, 'data'->None? 'included'->['distances', 'documents', 'metadatas']
-        results: dict = self._collection.query(
-            query_texts=[prompt],  # chroma will automatically creates embedding(s) for these
+        results: chroma_api_types.QueryResult = self._collection.query(
+            query_texts=[prompt],  # chroma automatically creates embedding(s) for prompts
             n_results=howmany,
             include=[chroma_api_types.IncludeEnum('documents'), chroma_api_types.IncludeEnum('metadatas'), chroma_api_types.IncludeEnum('distances'),
                      chroma_api_types.IncludeEnum('uris'), chroma_api_types.IncludeEnum('data')],
         )
 
         # chroma results are lists with one element per prompt, since we only have 1 prompt we only use element 0 from each list
+        prompt_idx = 0
         # transform from dict-of-lists to more sensible list-of-dicts
         raw_results = []
-        # for each expected result
+        # for each result
         for i in range(0, howmany):
             rdict = {}
-            # for each of the chroma result keys
+            # for each of the chroma result (enum/typeddict) keys
             for k in results:
                 if k != 'included':  # we ignore the 'included' key
-                    rdict[k] = results[k][0][i] if results[k] is not None and len(results[k]) > 0 and len(results[k][0]) > i else None
+                    # noinspection PyTypedDict
+                    rdict[k] = results[k][prompt_idx][i] if results[k] is not None and len(results[k]) > 0 and len(results[k][prompt_idx]) > i else None
             raw_results.append(rdict)
 
         return VSAPI.SearchResponse(
@@ -254,10 +257,9 @@ class VSChroma(VSAPI):
             results_raw=raw_results
         )
 
-    def search(self, prompt: str) -> VectorStoreResponse:
-
-        sresp: VSAPI.SearchResponse = self.raw_search(prompt, howmany=self.vssettings.n)
-
+    def search(self, prompt: str) -> VectorStoreResponse | None:
+        # embeddings search results
+        sresp: VSAPI.SearchResponse = self.embeddings_search(prompt, howmany=self._settings.n)
         vs_results: list[VectorStoreResult] = []
         for result_idx in range(0, len(sresp.results_raw)):
             metrics = {
@@ -267,23 +269,32 @@ class VSChroma(VSAPI):
                 'data': sresp.results_raw[result_idx]['data'],
                 'id': sresp.results_raw[result_idx]['ids'],
             }
-            vs_results.append(VectorStoreResult(sresp.results_raw[result_idx]['ids'], metrics,
-                                                sresp.results_raw[result_idx]['documents']))
+            vs_results.append(VectorStoreResult(result_id=sresp.results_raw[result_idx]['ids'],
+                                                metrics=metrics,
+                                                content=sresp.results_raw[result_idx]['documents']))
 
-        log.debug(f'connecting to sql: {config.sql_path}.{config.sql_chunks_table_name}')
+        # full-text results
         sql = None
         try:
-            # todo: fresh connection every time
+            # todo: fresh connection every time necesasry?
+            log.debug(f'connecting to sql: {config.sql_path}.{config.sql_chunks_table_name}')
             sql = sqlite3.connect(config.sql_path)
             cursor = sql.cursor()
 
             #  select substr(content, 1, 40), bm25(chunks_fts5, 0, 1, 0, 0) bm25 from chunks_fts5 where chunks_fts5 match 'ducks';
-            query = (f"select substr(content, 1, 40), bm25({config.sql_chunks_fts5[self.vssettings.fts_type].table_name}, 0, 1, 0, 0) bm25 "
-                     f"from {config.sql_chunks_fts5[self.vssettings.fts_type].table_name} where content match '{prompt}';")
+            # query = (f"select substr(content, 1, 40), bm25({config.sql_chunks_fts5[self._settings.fts_type].table_name}, 0, 1, 0, 0) bm25 "
+            #          f"from {config.sql_chunks_fts5[self._settings.fts_type].table_name} where content match '{prompt}';")
+            query = (f"select content, bm25({config.sql_chunks_fts5[self._settings.fts_type].table_name}, 0, 1, 0, 0) bm25 "
+                     f"from {config.sql_chunks_fts5[self._settings.fts_type].table_name} where content match '{prompt}';")
             log.debug(f'query {config.sql_chunks_table_name}: {query}')
             cursor.execute(query)
             for row in cursor.fetchall():
                 print(f'~~~~ row: {row}')
+                vs_results.append(VectorStoreResult(
+                    result_id=None,
+                    metrics={'bm25': row[1]},
+                    content=row[0]
+                ))
 
         except (Exception,) as e:
             log.warning(f'SQL error! {e}')
@@ -311,7 +322,7 @@ class VSChroma(VSAPI):
             log.debug(f'delete {config.sql_chunks_table_name}: {delete}')
             cursor.execute(delete)
 
-            # NOTE: fts tables are "external content" with delete triggers so no need for explicit deletes
+            # NOTE: fts tables are chroma "external content" with delete triggers so no need for explicit deletes
 
             sql.commit()
 
@@ -357,7 +368,7 @@ class VSChroma(VSAPI):
         return self._collection.__dict__
 
     @staticmethod
-    def compute_collection_name(file_name: str) -> str:
+    def filename_to_collname(file_name: str) -> str:
         """
         chroma collection name:
         (1) contains 3-63 characters,
@@ -502,7 +513,7 @@ class VSChroma(VSAPI):
             retval[key] = value
         return retval
 
-    def ingest(self, collection: Collection, server_file_path: str, org_filename: str, docloader_type: str, chunker_type: str) -> Collection:
+    def ingest(self, collection: Collection, server_file_path: str, org_filename: str, docloader_type: str, chunker_type: str) -> Collection | None:
         if docloader_type in lc_docloaders.docloaders:
             log.debug(f'loading {org_filename} for {collection.name} with {docloader_type}')
             docs: list[Document] = lc_docloaders.docloaders[docloader_type]['function'](file_path=server_file_path).load()

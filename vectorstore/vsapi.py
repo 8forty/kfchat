@@ -59,7 +59,7 @@ class VSAPI(ABC):
         pass
 
     @abstractmethod
-    def raw_search(self, prompt: str, howmany: int) -> SearchResponse:
+    def embeddings_search(self, prompt: str, howmany: int) -> SearchResponse:
         pass
 
     @abstractmethod

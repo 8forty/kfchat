@@ -70,7 +70,7 @@ class VSAzure(VSAPI):
         self._build_clients()
         return [n for n in self._aais_index_client.list_index_names()]
 
-    def raw_search(self, prompt: str, howmany: int) -> VSAPI.SearchResponse:
+    def embeddings_search(self, prompt: str, howmany: int) -> VSAPI.SearchResponse:
         self._build_clients()
         query_embedding = self._aoai_client.embeddings.create(
             input=prompt,
@@ -102,7 +102,7 @@ class VSAzure(VSAPI):
         )
 
     def search(self, prompt: str, howmany: int) -> VectorStoreResponse:
-        sresp: VSAPI.SearchResponse = self.raw_search(prompt, howmany)
+        sresp: VSAPI.SearchResponse = self.embeddings_search(prompt, howmany)
 
         vs_results: list[VectorStoreResult] = []
         for result_idx in range(0, len(sresp.results_raw)):

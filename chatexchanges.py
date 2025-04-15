@@ -8,8 +8,8 @@ log.setLevel(logstuff.logging_level)
 
 
 class VectorStoreResult:
-    def __init__(self, result_id: str, metrics: dict, content: str):
-        self.result_id: str = result_id
+    def __init__(self, result_id: str | None, metrics: dict, content: str):
+        self.result_id: str | None = result_id
         self.metrics: dict = metrics
         self.content: str = content
 
