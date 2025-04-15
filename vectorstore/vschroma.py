@@ -258,6 +258,8 @@ class VSChroma(VSAPI):
         )
 
     def search(self, prompt: str) -> VectorStoreResponse | None:
+        self._build_clients()
+
         # embeddings search results
         sresp: VSAPI.SearchResponse = self.embeddings_search(prompt, howmany=self._settings.n)
         vs_results: list[VectorStoreResult] = []
@@ -276,7 +278,7 @@ class VSChroma(VSAPI):
         # full-text results
         sql = None
         try:
-            # todo: fresh connection every time necesasry?
+            # todo: fresh connection every time necessary?
             log.debug(f'connecting to sql: {config.sql_path}.{config.sql_chunks_table_name}')
             sql = sqlite3.connect(config.sql_path)
             cursor = sql.cursor()
@@ -315,7 +317,7 @@ class VSChroma(VSAPI):
         log.debug(f'connecting to sql: {config.sql_path}.{config.sql_chunks_table_name}')
         sql = None
         try:
-            # todo: fresh connection every time
+            # todo: fresh connection every time necessary?
             sql = sqlite3.connect(config.sql_path)
             cursor = sql.cursor()
 
