@@ -36,7 +36,9 @@ sql_chunks_create = f"""
             unique (collection, id)
         );
     """
+# noinspection SqlIdentifier
 sql_chunks_insert_trigger_create = f"create trigger if not exists {sql_chunks_table_name}_ai after insert on {sql_chunks_table_name}"
+# noinspection SqlIdentifier
 sql_chunks_delete_trigger_create = f"create trigger if not exists {sql_chunks_table_name}_ad after delete on {sql_chunks_table_name}"
 sql_chunks_update_trigger_create = f"create trigger if not exists {sql_chunks_table_name}_au after update on {sql_chunks_table_name}"
 
@@ -74,8 +76,7 @@ def tn(fts_type: FTSType) -> str:
 sql_chunks_fts5 = {
     FTSType.SQLITE3_UNICODE: FTSSpec(
         table_name=tn(FTSType.SQLITE3_UNICODE),
-        create=
-        f"""
+        create=f"""
             create virtual table if not exists {tn(FTSType.SQLITE3_UNICODE)}
                 using fts5 (
                 collection unindexed,
@@ -87,17 +88,14 @@ sql_chunks_fts5 = {
                 tokenize = "unicode61 remove_diacritics 2", -- we use remove_diacritics 2 as the default b/c greenfield
             );
         """,
-        insert_trigger=
-        f"""
+        insert_trigger=f"""
                 insert into {tn(FTSType.SQLITE3_UNICODE)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
         """,
-        delete_trigger=
-        f"""
+        delete_trigger=f"""
                 -- this is the fancy delete command for contentless external content tables: https://www.sqlite.org/fts5.html#the_delete_command 
                 insert into {tn(FTSType.SQLITE3_UNICODE)}({tn(FTSType.SQLITE3_UNICODE)}, rowid, collection, content, id, metadata) values ('delete', old.sqlid, old.collection, old.content, old.id, old.metadata);
         """,
-        update_trigger=
-        f"""
+        update_trigger=f"""
                 insert into {tn(FTSType.SQLITE3_UNICODE)}({tn(FTSType.SQLITE3_UNICODE)}, rowid, collection, content, id, metadata) values ('delete', old.sqlid, old.collection, old.content, old.id, old.metadata);
                 insert into {tn(FTSType.SQLITE3_UNICODE)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
         """,
@@ -106,8 +104,7 @@ sql_chunks_fts5 = {
 
     FTSType.SQLITE3_UNICODE_IMPROVED: FTSSpec(
         table_name=tn(FTSType.SQLITE3_UNICODE_IMPROVED),
-        create=
-        f"""
+        create=f"""
             create virtual table if not exists {tn(FTSType.SQLITE3_UNICODE_IMPROVED)}
                 using fts5 (
                 collection unindexed,
@@ -119,17 +116,14 @@ sql_chunks_fts5 = {
                 tokenize = "unicode61 remove_diacritics 2 tokenchars '-_'", -- we use remove_diacritics 2 as the default b/c greenfield
             );
         """,
-        insert_trigger=
-        f"""
+        insert_trigger=f"""
                 insert into {tn(FTSType.SQLITE3_UNICODE_IMPROVED)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
         """,
-        delete_trigger=
-        f"""
+        delete_trigger=f"""
                 -- this is the fancy delete command for contentless external content tables: https://www.sqlite.org/fts5.html#the_delete_command 
                 insert into {tn(FTSType.SQLITE3_UNICODE_IMPROVED)}({tn(FTSType.SQLITE3_UNICODE_IMPROVED)}, rowid, collection, content, id, metadata) values ('delete', old.sqlid, old.collection, old.content, old.id, old.metadata);
         """,
-        update_trigger=
-        f"""
+        update_trigger=f"""
                 insert into {tn(FTSType.SQLITE3_UNICODE_IMPROVED)}({tn(FTSType.SQLITE3_UNICODE_IMPROVED)}, rowid, collection, content, id, metadata) values ('delete', old.sqlid, old.collection, old.content, old.id, old.metadata);
                 insert into {tn(FTSType.SQLITE3_UNICODE_IMPROVED)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
         """,
@@ -138,8 +132,7 @@ sql_chunks_fts5 = {
 
     FTSType.SQLITE3_PORTER_IMPROVED: FTSSpec(
         table_name=tn(FTSType.SQLITE3_PORTER_IMPROVED),
-        create=
-        f"""
+        create=f"""
             create virtual table if not exists {tn(FTSType.SQLITE3_PORTER_IMPROVED)}
                 using fts5 (
                 collection unindexed,
@@ -151,17 +144,14 @@ sql_chunks_fts5 = {
                 tokenize = "porter unicode61 remove_diacritics 2 tokenchars '-_'", -- we use remove_diacritics 2 as the default b/c greenfield
             );
         """,
-        insert_trigger=
-        f"""
+        insert_trigger=f"""
                 insert into {tn(FTSType.SQLITE3_PORTER_IMPROVED)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
         """,
-        delete_trigger=
-        f"""
+        delete_trigger=f"""
                 -- this is the fancy delete command for contentless external content tables: https://www.sqlite.org/fts5.html#the_delete_command 
                 insert into {tn(FTSType.SQLITE3_PORTER_IMPROVED)}({tn(FTSType.SQLITE3_PORTER_IMPROVED)}, rowid, collection, content, id, metadata) values ('delete', old.sqlid, old.collection, old.content, old.id, old.metadata);
         """,
-        update_trigger=
-        f"""
+        update_trigger=f"""
                 insert into {tn(FTSType.SQLITE3_PORTER_IMPROVED)}({tn(FTSType.SQLITE3_PORTER_IMPROVED)}, rowid, collection, content, id, metadata) values ('delete', old.sqlid, old.collection, old.content, old.id, old.metadata);
                 insert into {tn(FTSType.SQLITE3_PORTER_IMPROVED)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
         """,
@@ -170,8 +160,7 @@ sql_chunks_fts5 = {
 
     FTSType.SQLITE3_TRIGRAM_IMPROVED: FTSSpec(
         table_name=tn(FTSType.SQLITE3_TRIGRAM_IMPROVED),
-        create=
-        f"""
+        create=f"""
         create virtual table if not exists {tn(FTSType.SQLITE3_TRIGRAM_IMPROVED)}
             using fts5 (
             collection unindexed,
@@ -183,17 +172,14 @@ sql_chunks_fts5 = {
             tokenize = "trigram remove_diacritics 1 case_sensitive 0", -- we use remove_diacritics 2 as the default b/c greenfield
         );
         """,
-        insert_trigger=
-        f"""
+        insert_trigger=f"""
             insert into {tn(FTSType.SQLITE3_TRIGRAM_IMPROVED)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
         """,
-        delete_trigger=
-        f"""
+        delete_trigger=f"""
             -- this is the fancy delete command for contentless external content tables: https://www.sqlite.org/fts5.html#the_delete_command 
             insert into {tn(FTSType.SQLITE3_TRIGRAM_IMPROVED)}({tn(FTSType.SQLITE3_TRIGRAM_IMPROVED)}, rowid, collection, content, id, metadata) values ('delete', old.sqlid, old.collection, old.content, old.id, old.metadata);
         """,
-        update_trigger=
-        f"""
+        update_trigger=f"""
             insert into {tn(FTSType.SQLITE3_TRIGRAM_IMPROVED)}({tn(FTSType.SQLITE3_TRIGRAM_IMPROVED)}, rowid, collection, content, id, metadata) values ('delete', old.sqlid, old.collection, old.content, old.id, old.metadata);
             insert into {tn(FTSType.SQLITE3_TRIGRAM_IMPROVED)}(collection, content, id, metadata) values (new.collection, new.content, new.id, new.metadata);
         """,
@@ -248,6 +234,8 @@ class LLMData:
         ModelSpec('qwen-qwq-32b', provider='GROQ', api='openai'),
         ModelSpec('meta-llama/llama-4-maverick-17b-128e-instruct', provider='GROQ', api='openai'),
         ModelSpec('meta-llama/llama-4-scout-17b-16e-instruct', provider='GROQ', api='openai'),
+        ModelSpec('compound-beta', provider='GROQ', api='openai'),
+        ModelSpec('compound-beta-mini', provider='GROQ', api='openai'),
 
         ModelSpec('llama-3.3-70b', provider='CEREBRAS', api='openai'),
         ModelSpec('llama-4-scout-17b-16e-instruct', provider='CEREBRAS', api='openai'),
