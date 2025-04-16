@@ -63,7 +63,6 @@ class ChatPage:
 
                     # results
                     for ri in range(0, len(rtext.results)):
-
                         # todo: latex: some models put "\[" and "\]" on sep lines, others just use the "$$" markers or [/] or ```latex, this is still far from perfect :(
                         is_latex_line = False
                         for line in rtext.results[ri].split('\n'):
@@ -137,9 +136,9 @@ class ChatPage:
                     elif exchange.vector_store_response is not None:
                         rtext.response_context += f'{exchange.mode},{exchange.source}'
                         for result in exchange.vector_store_response.results:
-                            rtext.results.append(f'[{exchange.mode}]: {result.content}')  # .classes(response_text_classes)
+                            rtext.results.append(f'{result.content}')
 
-                            metric_list = []
+                            metric_list: list[str] = [f'id: {result.result_id}']
                             for metric in result.metrics:
                                 val = result.metrics[metric]
                                 if val is not None and len(str(val)) > 0:
@@ -243,7 +242,7 @@ class ChatPage:
 
             vsresponse: VectorStoreResponse | None = None
             try:
-                vsresponse = await run.io_bound(lambda: idata.vectorstore().search(prompt))
+                vsresponse = await run.io_bound(lambda: idata.vectorstore().search(query=prompt, max_results=0, dense_weight=0.5))
                 log.debug(f'vector-search response: {vsresponse}')
             except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)

@@ -257,11 +257,11 @@ class VSChroma(VSAPI):
             results_raw=raw_results
         )
 
-    def search(self, prompt: str) -> VectorStoreResponse | None:
+    def search(self, query: str, max_results: int = 0, dense_weight: float = 0.5) -> VectorStoreResponse | None:
         self._build_clients()
 
-        # embeddings search results
-        sresp: VSAPI.SearchResponse = self.embeddings_search(prompt, howmany=self._settings.n)
+        # embeddings search results (aka "dense")
+        sresp: VSAPI.SearchResponse = self.embeddings_search(query, howmany=self._settings.n)
         vs_results: list[VectorStoreResult] = []
         for result_idx in range(0, len(sresp.results_raw)):
             metrics = {
@@ -275,36 +275,74 @@ class VSChroma(VSAPI):
                                                 metrics=metrics,
                                                 content=sresp.results_raw[result_idx]['documents']))
 
-        # full-text results
-        sql = None
+        # full-text results (aka "sparse")
         try:
             # todo: fresh connection every time necessary?
             log.debug(f'connecting to sql: {config.sql_path}.{config.sql_chunks_table_name}')
-            sql = sqlite3.connect(config.sql_path)
-            cursor = sql.cursor()
+            with sqlite3.connect(config.sql_path) as sql:
+                cursor = sql.cursor()
 
-            # FTS5 table full-text search using MATCH operator, plus bm25 (smaller=better match)
-            bm25_fragment = f"bm25({config.sql_chunks_fts5[self._settings.fts_type].table_name}, 0, 1, 0, 0)"
-            query = (f"select *, {bm25_fragment} bm25 "
-                     f"from {config.sql_chunks_fts5[self._settings.fts_type].table_name} where content match '{prompt}' order by {bm25_fragment};")
-            log.debug(f'query {config.sql_chunks_table_name}: {query}')
-            cursor.execute(query)
-            colnames = [d[0] for d in cursor.description]
-            for row in cursor.fetchall():
-                rowdict = dict(zip(colnames, row))
-                metrics = {e: rowdict[e] for e in rowdict if e not in ['content', 'id']}
-                vs_results.append(VectorStoreResult(
-                    result_id=rowdict['id'],
-                    metrics=metrics,
-                    content=rowdict['content'],
-                ))
+                # FTS5 table full-text search using MATCH operator, plus bm25 (smaller=better match)
+                bm25_fragment = f"bm25({config.sql_chunks_fts5[self._settings.fts_type].table_name}, 0, 1, 0, 0)"
+                query = (f"select *, {bm25_fragment} bm25 "
+                         f"from {config.sql_chunks_fts5[self._settings.fts_type].table_name} where content match '{query}' order by {bm25_fragment};")
+                log.debug(f'query {config.sql_chunks_table_name}: {query}')
+                cursor.execute(query)
+                colnames = [d[0] for d in cursor.description]
+                for row in cursor.fetchall():
+                    rowdict = dict(zip(colnames, row))
+                    metrics = {e: rowdict[e] for e in rowdict if e not in ['content', 'id']}
+                    vs_results.append(VectorStoreResult(
+                        result_id=rowdict['id'],
+                        metrics=metrics,
+                        content=rowdict['content'],
+                    ))
 
         except (Exception,) as e:
             log.warning(f'SQL error! {e}')
             raise e
-        finally:
-            if sql is not None:
-                sql.close()
+
+        # # Combine the document IDs and remove duplicates
+        # all_doc_ids = list(set(dense_doc_ids + sparse_doc_ids))
+        #
+        # # Create dictionaries to store the reciprocal ranks
+        # dense_reciprocal_ranks = {doc_id: 0.0 for doc_id in all_doc_ids}
+        # sparse_reciprocal_ranks = {doc_id: 0.0 for doc_id in all_doc_ids}
+        #
+        # # Step 2: Calculate the reciprocal rank for each document in dense and sparse search results.
+        # for i, doc_id in enumerate(dense_doc_ids):
+        #     dense_reciprocal_ranks[doc_id] = 1.0 / (i + 1)
+        #
+        # for i, doc_id in enumerate(sparse_doc_ids):
+        #     sparse_reciprocal_ranks[doc_id] = 1.0 / (i + 1)
+        #
+        # # Step 3: Sum the reciprocal ranks for each document.
+        # combined_reciprocal_ranks = {doc_id: 0.0 for doc_id in all_doc_ids}
+        # for doc_id in all_doc_ids:
+        #     combined_reciprocal_ranks[doc_id] = dense_weight * dense_reciprocal_ranks[doc_id] + sparse_weight * sparse_reciprocal_ranks[doc_id]
+        #
+        # # Step 4: Sort the documents based on their combined reciprocal rank scores.
+        # sorted_doc_ids = sorted(all_doc_ids, key=lambda doc_id: combined_reciprocal_ranks[doc_id], reverse=True)
+        #
+        # # Step 5: Retrieve the documents based on the sorted document IDs.
+        # sorted_docs = []
+        # all_docs = dense_docs + sparse_docs
+        # for doc_id in sorted_doc_ids:
+        #     matching_docs = [doc for doc in all_docs if doc.metadata['id'] == doc_id]
+        #     if matching_docs:
+        #         doc = matching_docs[0]
+        #         doc.metadata['score'] = combined_reciprocal_ranks[doc_id]
+        #         doc.metadata['rank'] = sorted_doc_ids.index(doc_id) + 1
+        #         if len(matching_docs) > 1:
+        #             doc.metadata['retriever'] = 'both'
+        #         elif doc in dense_docs:
+        #             doc.metadata['retriever'] = 'dense'
+        #         else:
+        #             doc.metadata['retriever'] = 'sparse'
+        #         sorted_docs.append(doc)
+        #
+        # # Step 7: Return the final ranked and sorted list, truncated by the top-k parameter
+        # return sorted_docs[:k]
 
         return VectorStoreResponse(vs_results)
 

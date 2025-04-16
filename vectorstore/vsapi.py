@@ -4,7 +4,6 @@ from dataclasses import dataclass
 
 import logstuff
 from chatexchanges import VectorStoreResponse
-from config import FTSType
 from vectorstore.vssettings import VSSettings
 
 log: logging.Logger = logging.getLogger(__name__)
@@ -63,7 +62,13 @@ class VSAPI(ABC):
         pass
 
     @abstractmethod
-    def search(self, prompt: str) -> VectorStoreResponse:
+    def search(self, query: str, max_results: int = 0, dense_weight: float = 0.5) -> VectorStoreResponse | None:
+        """
+        hybrid search using embeddings and text/keyword search.
+        :param query: the query
+        :param max_results: 0 means all results, otherwise the number of results to return.
+        :param dense_weight: relative weight of dense (embedded/semantic) results vs sparse (text/keyword) results. 0.0 = sparse only, 1.0 = dense only.
+        """
         pass
 
     @abstractmethod

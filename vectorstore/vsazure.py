@@ -101,8 +101,8 @@ class VSAzure(VSAPI):
             results_raw=raw_results
         )
 
-    def search(self, prompt: str, howmany: int) -> VectorStoreResponse:
-        sresp: VSAPI.SearchResponse = self.embeddings_search(prompt, howmany)
+    def search(self, query: str, howmany: int) -> VectorStoreResponse:
+        sresp: VSAPI.SearchResponse = self.embeddings_search(query, howmany)
 
         vs_results: list[VectorStoreResult] = []
         for result_idx in range(0, len(sresp.results_raw)):
