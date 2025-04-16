@@ -246,6 +246,8 @@ class LLMData:
         ModelSpec('deepseek-r1-distill-llama-70b', provider='GROQ', api='openai'),
         ModelSpec('gemma2-9b-it', provider='GROQ', api='openai'),
         ModelSpec('qwen-qwq-32b', provider='GROQ', api='openai'),
+        ModelSpec('meta-llama/llama-4-maverick-17b-128e-instruct', provider='GROQ', api='openai'),
+        ModelSpec('meta-llama/llama-4-scout-17b-16e-instruct', provider='GROQ', api='openai'),
 
         ModelSpec('llama-3.3-70b', provider='CEREBRAS', api='openai'),
         ModelSpec('llama-4-scout-17b-16e-instruct', provider='CEREBRAS', api='openai'),
