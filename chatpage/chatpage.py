@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from fastapi import Request
 from nicegui import ui, run, Client
 from nicegui.elements.input import Input
+from nicegui.elements.label import Label
 from nicegui.elements.scroll_area import ScrollArea
 from nicegui.elements.select import Select
 from nicegui.elements.spinner import Spinner
@@ -276,6 +277,10 @@ class ChatPage:
             await refresh_chat(prompt, idata, scroller)
             await prompt_input.run_method('focus')
 
+        async def change_source(source_label: Label, new_value: str, callback: Handler[ValueChangeEventArguments], prompt_input: Input, spinner: Spinner):
+            source_label.set_text(new_value)
+            await call_and_focus(callback, prompt_input, spinner)
+
         async def call_and_focus(callback: Handler[ValueChangeEventArguments], prompt_input: Input, spinner: Spinner):
             prompt_input.disable()
             spinner.set_visibility(True)
@@ -323,13 +328,23 @@ class ChatPage:
                 with (ui.column().classes('w-full flex-grow border-solid border border-white')):
                     # the settings selection row
                     settings = idata.llm_config().settings() if idata.mode_is_llm() else idata.vectorstore().settings()
-                    with (ui.row().classes(f'w-full border-solid border border-white grid grid-cols-{len(settings.specs()) + 1} gap-0')):
+                    with ui.row().classes(f'w-full border-solid border border-white grid grid-cols-{len(settings.specs()) + 1} gap-0'):
                         sources = idata.all_sources()
-                        ui.select(label='Source:',
-                                  options=sources,
-                                  value=idata.source(),
-                                  ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_source(vc.value), pinput, spinner)
-                                                    ).tooltip('vs=vector search, llm=lang model chat').props('square outlined label-color=green')
+                        with ui.column().classes('border border-solid border-white'):
+                            with ui.button(text='Source').props('no-caps color=green').classes('w-3/4 self-center').tooltip('vs=vector search, llm=lang model chat'):
+                                with ui.menu():
+                                    for k, v in sources.items():
+                                        with ui.menu_item(k, auto_close=False):
+                                            with ui.item_section().props('side'):
+                                                ui.icon('keyboard_arrow_right')
+                                            with ui.menu().props('anchor="top end" self="top start" auto-close'):
+                                                for sub_k in v:
+                                                    ui.menu_item(sub_k, on_click=lambda ceargs: change_source(source_label,
+                                                                                                              ceargs.sender.default_slot.children[0].text,
+                                                                                                              lambda: idata.change_source(ceargs.sender.default_slot.children[0].text),
+                                                                                                              pinput,
+                                                                                                              spinner))
+                            source_label = ui.label(idata.llm_source(idata.llm_config())).classes('w-full')
 
                         for sinfo in settings.specs():
                             # vc.sender.props['label'] is 'n', 'temp', ...

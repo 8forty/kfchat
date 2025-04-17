@@ -133,12 +133,13 @@ class InstanceData:
     def vectorstore(self) -> VSAPI:
         return self._vectorstore
 
-    def all_sources(self) -> list[str]:
-        sources: list[str] = [self.llm_source(llm_config) for llm_config in self._all_llm_configs.values()]
-        sources.extend([f'{self.vs_source(cn)}' for cn in self._vectorstore.list_collection_names()])
+    def all_sources(self) -> dict[str, list[str]]:
+        sources: dict[str, list[str]] = {}
+        sources.update({self._llm_mode: [self.llm_source(llm_config) for llm_config in self._all_llm_configs.values()]})
+        sources.update({self._vs_mode: [self.vs_source(cn) for cn in self._vectorstore.list_collection_names()]})
 
         # sort alpha but with the vs sources after the llm sources using prefix 'zzz'
-        sources.sort(key=lambda k: 'zzz' + k if k.startswith(self._vs_mode_prefix) else k)
+        # sources.sort(key=lambda k: 'zzz' + k if k.startswith(self._vs_mode_prefix) else k)
         return sources
 
     def add_unknown_special_message(self, prompt: str) -> None:
