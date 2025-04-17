@@ -1,6 +1,9 @@
 import logging
 from abc import abstractmethod, ABC
 from dataclasses import dataclass
+from typing import Annotated
+
+from pydantic import validate_call, Field
 
 import logstuff
 from chatexchanges import VectorStoreResponse
@@ -11,6 +14,12 @@ log.setLevel(logstuff.logging_level)
 
 
 class VSAPI(ABC):
+
+    # search type is added to each result as a metric
+    search_type_metric_name = 'search_type'
+    search_type_embeddings = 'embeddings'
+    search_type_fulltext = 'full-text'
+
     @dataclass
     class SearchResponse:
         """
@@ -58,16 +67,23 @@ class VSAPI(ABC):
         pass
 
     @abstractmethod
-    def embeddings_search(self, prompt: str, howmany: int) -> SearchResponse:
+    @validate_call
+    def embeddings_search(self, query: str, max_results: Annotated[int, Field(strict=True, ge=1)] = 10) -> SearchResponse:
+        """
+        search using embeddings (dense)
+        :param query: the query
+        :param max_results: the number of results to return, must be > 0
+        """
         pass
 
     @abstractmethod
-    def search(self, query: str, max_results: int = 0, dense_weight: float = 0.5) -> VectorStoreResponse | None:
+    @validate_call
+    def search(self, query: str, max_results: int = 0, dense_weight: Annotated[float, Field(strict=True, ge=0.0, le=1.0)] = 0.5) -> VectorStoreResponse | None:
         """
         hybrid search using embeddings and text/keyword search.
         :param query: the query
         :param max_results: 0 means all results, otherwise the number of results to return.
-        :param dense_weight: relative weight of dense (embedded/semantic) results vs sparse (text/keyword) results. 0.0 = sparse only, 1.0 = dense only.
+        :param dense_weight: range 0.0->1.0, relative weight of dense (embedded/semantic) results vs sparse (text/keyword) results. 0.0 = sparse only, 1.0 = dense only
         """
         pass
 

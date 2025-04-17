@@ -2,6 +2,7 @@ import json
 import logging
 import sqlite3
 import timeit
+from typing import Annotated
 
 import chromadb
 import chromadb.api.types as chroma_api_types
@@ -13,6 +14,7 @@ from chromadb.utils.embedding_functions.openai_embedding_function import OpenAIE
 from chromadb.utils.embedding_functions.sentence_transformer_embedding_function import SentenceTransformerEmbeddingFunction
 from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
+from pydantic import Field, validate_call
 
 import config
 import logstuff
@@ -224,31 +226,34 @@ class VSChroma(VSAPI):
         self._build_clients()
         return [name for name in self._client.list_collections()]
 
-    def embeddings_search(self, prompt: str, howmany: int) -> VSAPI.SearchResponse:
+    @validate_call()
+    def embeddings_search(self, query: str, max_results: Annotated[int, Field(strict=True, ge=1)] = 10) -> VSAPI.SearchResponse:
         self._build_clients()
 
         # QueryResult is a TypedDict:
-        # str->list (1 per prompt) of lists (1 per result): 'ids'->[[str]], 'distances'->[[float]], 'embeddings'-> None?, 'metadatas'->[[None?]]
+        # str->list (1 per query) of lists (1 per result): 'ids'->[[str]], 'distances'->[[float]], 'embeddings'-> None?, 'metadatas'->[[None?]]
         # ...'documents'->[[str]], 'uris'->None?, 'data'->None? 'included'->['distances', 'documents', 'metadatas']
+
         results: chroma_api_types.QueryResult = self._collection.query(
-            query_texts=[prompt],  # chroma automatically creates embedding(s) for prompts
-            n_results=howmany,
+            query_texts=[query],  # chroma automatically creates embedding(s) for queries
+            n_results=max_results,
             include=[chroma_api_types.IncludeEnum('documents'), chroma_api_types.IncludeEnum('metadatas'), chroma_api_types.IncludeEnum('distances'),
                      chroma_api_types.IncludeEnum('uris'), chroma_api_types.IncludeEnum('data')],
         )
+        results_keys = results.keys()  # 'documents', 'metadatas', ...
 
-        # chroma results are lists with one element per prompt, since we only have 1 prompt we only use element 0 from each list
-        prompt_idx = 0
+        # chroma results are lists with one element per query, since we only have 1 query we only use element 0 from each list
+        query_idx = 0
         # transform from dict-of-lists to more sensible list-of-dicts
         raw_results = []
         # for each result
-        for i in range(0, howmany):
+        for i in range(0, len(results['ids'][query_idx])):  # get the result count for this query from a reliable key
             rdict = {}
-            # for each of the chroma result (enum/typeddict) keys
-            for k in results:
-                if k != 'included':  # we ignore the 'included' key
+            # add each of the keys to this result rdict, indexed by the result number i
+            for k in results_keys:
+                if k != 'included':  # we ignore the 'included' key, it just lists the keys that were included in the results
                     # noinspection PyTypedDict
-                    rdict[k] = results[k][prompt_idx][i] if results[k] is not None and len(results[k]) > 0 and len(results[k][prompt_idx]) > i else None
+                    rdict[k] = results[k][query_idx][i] if results[k] is not None and len(results[k]) > 0 and len(results[k][query_idx]) > i else None
             raw_results.append(rdict)
 
         return VSAPI.SearchResponse(
@@ -257,50 +262,60 @@ class VSChroma(VSAPI):
             results_raw=raw_results
         )
 
-    def search(self, query: str, max_results: int = 0, dense_weight: float = 0.5) -> VectorStoreResponse | None:
+    @validate_call
+    def search(self, query: str, max_results: int = 0, dense_weight: Annotated[float, Field(strict=True, ge=0.0, le=1.0)] = 0.5) -> VectorStoreResponse | None:
         self._build_clients()
 
-        # embeddings search results (aka "dense")
-        sresp: VSAPI.SearchResponse = self.embeddings_search(query, howmany=self._settings.n)
         vs_results: list[VectorStoreResult] = []
-        for result_idx in range(0, len(sresp.results_raw)):
-            metrics = {
-                'distance': sresp.results_raw[result_idx]['distances'],
-                'chunk metadata': sresp.results_raw[result_idx]['metadatas'],
-                'uris': sresp.results_raw[result_idx]['uris'],
-                'data': sresp.results_raw[result_idx]['data'],
-                'id': sresp.results_raw[result_idx]['ids'],
-            }
-            vs_results.append(VectorStoreResult(result_id=sresp.results_raw[result_idx]['ids'],
-                                                metrics=metrics,
-                                                content=sresp.results_raw[result_idx]['documents']))
+
+        # embeddings search results (aka "dense")
+        if dense_weight > 0.0:
+            try:
+                # todo: chroma (and others?) don't allow a max for embedded (dense) searches, so we use... 10 of course :)
+                sresp: VSAPI.SearchResponse = self.embeddings_search(query, max_results=max_results if max_results > 0 else 10)
+                for result_idx in range(0, len(sresp.results_raw)):
+                    metrics = {
+                        VSAPI.search_type_metric_name: VSAPI.search_type_embeddings,
+                        'distance': sresp.results_raw[result_idx]['distances'],
+                        'chunk metadata': sresp.results_raw[result_idx]['metadatas'],
+                        'uris': sresp.results_raw[result_idx]['uris'],
+                        'data': sresp.results_raw[result_idx]['data'],
+                        'id': sresp.results_raw[result_idx]['ids'],
+                    }
+                    vs_results.append(VectorStoreResult(result_id=sresp.results_raw[result_idx]['ids'],
+                                                        metrics=metrics,
+                                                        content=sresp.results_raw[result_idx]['documents']))
+            except (Exception,) as e:
+                log.warning(f' embeddings_search error! {e}')
+                raise e
 
         # full-text results (aka "sparse")
-        try:
-            # todo: fresh connection every time necessary?
-            log.debug(f'connecting to sql: {config.sql_path}.{config.sql_chunks_table_name}')
-            with sqlite3.connect(config.sql_path) as sql:
-                cursor = sql.cursor()
+        if dense_weight < 1.0:
+            try:
+                # todo: fresh connection every time necessary?
+                log.debug(f'connecting to sql: {config.sql_path}.{config.sql_chunks_table_name}')
+                with sqlite3.connect(config.sql_path) as sql:
+                    cursor = sql.cursor()
 
-                # FTS5 table full-text search using MATCH operator, plus bm25 (smaller=better match)
-                bm25_fragment = f"bm25({config.sql_chunks_fts5[self._settings.fts_type].table_name}, 0, 1, 0, 0)"
-                query = (f"select *, {bm25_fragment} bm25 "
-                         f"from {config.sql_chunks_fts5[self._settings.fts_type].table_name} where content match '{query}' order by {bm25_fragment};")
-                log.debug(f'query {config.sql_chunks_table_name}: {query}')
-                cursor.execute(query)
-                colnames = [d[0] for d in cursor.description]
-                for row in cursor.fetchall():
-                    rowdict = dict(zip(colnames, row))
-                    metrics = {e: rowdict[e] for e in rowdict if e not in ['content', 'id']}
-                    vs_results.append(VectorStoreResult(
-                        result_id=rowdict['id'],
-                        metrics=metrics,
-                        content=rowdict['content'],
-                    ))
-
-        except (Exception,) as e:
-            log.warning(f'SQL error! {e}')
-            raise e
+                    # FTS5 table full-text search using MATCH operator, plus bm25 (smaller=better match)
+                    bm25_fragment = f"bm25({config.sql_chunks_fts5[self._settings.fts_type].table_name}, 0, 1, 0, 0)"
+                    query = (f"select *, {bm25_fragment} bm25 "
+                             f"from {config.sql_chunks_fts5[self._settings.fts_type].table_name} where content match '{query}' order by {bm25_fragment};")
+                    log.debug(f'query {config.sql_chunks_table_name}: {query}')
+                    cursor.execute(query)
+                    colnames = [d[0] for d in cursor.description]
+                    for row in cursor.fetchall():
+                        rowdict = dict(zip(colnames, row))
+                        metrics = {VSAPI.search_type_metric_name: VSAPI.search_type_fulltext}
+                        metrics.update({e: rowdict[e] for e in rowdict if e not in ['content', 'id']})
+                        vs_results.append(VectorStoreResult(
+                            result_id=rowdict['id'],
+                            metrics=metrics,
+                            content=rowdict['content'],
+                        ))
+            except (Exception,) as e:
+                log.warning(f'SQL error! {e}')
+                raise e
 
         # # Combine the document IDs and remove duplicates
         # all_doc_ids = list(set(dense_doc_ids + sparse_doc_ids))

@@ -70,16 +70,16 @@ class VSAzure(VSAPI):
         self._build_clients()
         return [n for n in self._aais_index_client.list_index_names()]
 
-    def embeddings_search(self, prompt: str, howmany: int) -> VSAPI.SearchResponse:
+    def embeddings_search(self, query: str, max_results: int) -> VSAPI.SearchResponse:
         self._build_clients()
         query_embedding = self._aoai_client.embeddings.create(
-            input=prompt,
+            input=query,
             # todo: curiously this was already specified when the aoai_client was created
             model=self.deployment,
             dimensions=self.embedding_dimensions).data[0].embedding
 
         vector_query = VectorizedQuery(vector=query_embedding,
-                                       k_nearest_neighbors=howmany if howmany > 0 else None,
+                                       k_nearest_neighbors=max_results if max_results > 0 else None,
                                        fields='questionVector',
                                        exhaustive=False)
 
