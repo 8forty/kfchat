@@ -320,17 +320,17 @@ class ChatPage:
                         pinput = ui.input(placeholder="Enter prompt").classes('flex-grow').props('rounded outlined color=primary bg-color=black')
                         pinput.on('keydown.enter', lambda req=request, i=idata: handle_enter(req, pinput, spinner, scroller, i))
 
-                with (ui.column().classes('w-full flex-grow border-solid border border-white')):  # place-content-center')):
+                with (ui.column().classes('w-full flex-grow border-solid border border-white')):
                     # the settings selection row
-                    with (ui.row().classes('w-full border-solid border border-white')):  # place-content-center')):
+                    settings = idata.llm_config().settings() if idata.mode_is_llm() else idata.vectorstore().settings()
+                    with (ui.row().classes(f'w-full border-solid border border-white grid grid-cols-{len(settings.specs()) + 1} gap-0')):
                         sources = idata.all_sources()
                         ui.select(label='Source:',
                                   options=sources,
                                   value=idata.source(),
                                   ).on_value_change(lambda vc: call_and_focus(lambda: idata.change_source(vc.value), pinput, spinner)
-                                                    ).tooltip('vs=vector search, llm=lang model chat').props('square outlined label-color=green').classes('min-w-30')
+                                                    ).tooltip('vs=vector search, llm=lang model chat').props('square outlined label-color=green')
 
-                        settings = idata.llm_config().settings() if idata.mode_is_llm() else idata.vectorstore().settings()
                         for sinfo in settings.specs():
                             # vc.sender.props['label'] is 'n', 'temp', ...
                             s = ui.select(label=sinfo.label,
