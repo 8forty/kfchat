@@ -233,7 +233,6 @@ class VSChroma(VSAPI):
         # QueryResult is a TypedDict:
         # str->list (1 per query) of lists (1 per result): 'ids'->[[str]], 'distances'->[[float]], 'embeddings'-> None?, 'metadatas'->[[None?]]
         # ...'documents'->[[str]], 'uris'->None?, 'data'->None? 'included'->['distances', 'documents', 'metadatas']
-
         results: chroma_api_types.QueryResult = self._collection.query(
             query_texts=[query],  # chroma automatically creates embedding(s) for queries
             n_results=max_results,
@@ -263,7 +262,7 @@ class VSChroma(VSAPI):
         )
 
     @validate_call
-    def search(self, query: str, max_results: int = 0, dense_weight: Annotated[float, Field(strict=True, ge=0.0, le=1.0)] = 0.5) -> VectorStoreResponse | None:
+    def hybrid_search(self, query: str, max_results: int = 0, dense_weight: Annotated[float, Field(strict=True, ge=0.0, le=1.0)] = 0.5) -> VectorStoreResponse | None:
         self._build_clients()
 
         dense_results: list[VectorStoreResult] = []
@@ -272,8 +271,9 @@ class VSChroma(VSAPI):
         # load embeddings results (aka "dense")
         if dense_weight > 0.0:
             try:
-                # todo: chroma (and others?) don't allow a max for embedded (dense) searches, so we use... 10 of course :)
-                sresp: VSAPI.SearchResponse = self.embeddings_search(query, max_results=max_results if max_results > 0 else 10)
+                # get more than max so we have some to choose from
+                # todo: 20?
+                sresp: VSAPI.SearchResponse = self.embeddings_search(query, max_results=max_results * 2 if max_results > 0 else 20)
                 for result_idx in range(0, len(sresp.results_raw)):
                     metrics = {
                         VSAPI.search_type_metric_name: VSAPI.search_type_embeddings,
@@ -288,6 +288,7 @@ class VSChroma(VSAPI):
             except (Exception,) as e:
                 log.warning(f' embeddings_search error! {e}')
                 raise e
+            log.debug(f'dense_results: {len(dense_results)}')
 
         # load full-text results (aka "sparse")
         if dense_weight < 1.0:
@@ -316,54 +317,41 @@ class VSChroma(VSAPI):
             except (Exception,) as e:
                 log.warning(f'SQL error! {e}')
                 raise e
+            log.debug(f'sparse_results: {len(sparse_results)}')
 
-        dense_ids = [vsr.result_id for vsr in dense_results]
-        vs_results: list[VectorStoreResult] = list(dense_results)
-        for vsr in sparse_results:
-            if vsr.result_id not in dense_ids:
-                vs_results.append(vsr)
+        dense_map = {vsr.result_id: vsr for vsr in dense_results}
+        sparse_map = {vsr.result_id: vsr for vsr in sparse_results}
+        all_ids = set(list(dense_map.keys()) + list(sparse_map.keys()))  # list?
 
-        # # Combine the document IDs and remove duplicates
-        # all_doc_ids = list(set(dense_doc_ids + sparse_doc_ids))
-        #
-        # # Create dictionaries to store the reciprocal ranks
-        # dense_reciprocal_ranks = {doc_id: 0.0 for doc_id in all_doc_ids}
-        # sparse_reciprocal_ranks = {doc_id: 0.0 for doc_id in all_doc_ids}
-        #
-        # # Step 2: Calculate the reciprocal rank for each document in dense and sparse search results.
-        # for i, doc_id in enumerate(dense_doc_ids):
-        #     dense_reciprocal_ranks[doc_id] = 1.0 / (i + 1)
-        #
-        # for i, doc_id in enumerate(sparse_doc_ids):
-        #     sparse_reciprocal_ranks[doc_id] = 1.0 / (i + 1)
-        #
-        # # Step 3: Sum the reciprocal ranks for each document.
-        # combined_reciprocal_ranks = {doc_id: 0.0 for doc_id in all_doc_ids}
-        # for doc_id in all_doc_ids:
-        #     combined_reciprocal_ranks[doc_id] = dense_weight * dense_reciprocal_ranks[doc_id] + sparse_weight * sparse_reciprocal_ranks[doc_id]
-        #
-        # # Step 4: Sort the documents based on their combined reciprocal rank scores.
-        # sorted_doc_ids = sorted(all_doc_ids, key=lambda doc_id: combined_reciprocal_ranks[doc_id], reverse=True)
-        #
-        # # Step 5: Retrieve the documents based on the sorted document IDs.
-        # sorted_docs = []
-        # all_docs = dense_docs + sparse_docs
-        # for doc_id in sorted_doc_ids:
-        #     matching_docs = [doc for doc in all_docs if doc.metadata['id'] == doc_id]
-        #     if matching_docs:
-        #         doc = matching_docs[0]
-        #         doc.metadata['score'] = combined_reciprocal_ranks[doc_id]
-        #         doc.metadata['rank'] = sorted_doc_ids.index(doc_id) + 1
-        #         if len(matching_docs) > 1:
-        #             doc.metadata['retriever'] = 'both'
-        #         elif doc in dense_docs:
-        #             doc.metadata['retriever'] = 'dense'
-        #         else:
-        #             doc.metadata['retriever'] = 'sparse'
-        #         sorted_docs.append(doc)
-        #
-        # # Step 7: Return the final ranked and sorted list, truncated by the top-k parameter
-        # return sorted_docs[:k]
+        # -------------- RRF (Reciprocal Rank Fusion)
+        # create dicts to store the reciprocal ranks for ALL ids, 0.0 for any missing docs to give it minimal recip value
+        dense_reciprocal_ranks = {doc_id: 0.0 for doc_id in all_ids}
+        sparse_reciprocal_ranks = {doc_id: 0.0 for doc_id in all_ids}
+
+        # replace default recip for each doc with calculated recip
+        for i, doc_id in enumerate(dense_map.keys()):
+            dense_reciprocal_ranks[doc_id] = 1.0 / (i + 1)
+        for i, doc_id in enumerate(sparse_map.keys()):
+            sparse_reciprocal_ranks[doc_id] = 1.0 / (i + 1)
+
+        # sum the reciprocal ranks for each document and sort large->small (best->worst)
+        combined_reciprocal_ranks = {}
+        for doc_id in all_ids:
+            combined_reciprocal_ranks[doc_id] = (dense_weight * dense_reciprocal_ranks[doc_id]) + ((1.0 - dense_weight) * sparse_reciprocal_ranks[doc_id])
+        sorted_doc_ids = sorted(all_ids, key=lambda doc_id: combined_reciprocal_ranks[doc_id], reverse=True)
+        # -------------- RRF (Reciprocal Rank Fusion)
+
+        # build the final (sorted) results, adding the rrank metric and choosing the higher ranking search type for each result
+        vs_results: list[VectorStoreResult] = []
+        for doc_id in sorted_doc_ids:
+            dense_rank = 0 if doc_id not in dense_map.keys() else dense_reciprocal_ranks[doc_id]
+            sparse_rank = 0 if doc_id not in sparse_map.keys() else sparse_reciprocal_ranks[doc_id]
+            if dense_rank >= sparse_rank:
+                vsr = dense_map[doc_id]
+            else:
+                vsr = sparse_map[doc_id]
+            vsr.metrics['rrank'] = combined_reciprocal_ranks[doc_id]
+            vs_results.append(vsr)
 
         return VectorStoreResponse(vs_results)
 

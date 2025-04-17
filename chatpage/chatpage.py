@@ -242,7 +242,7 @@ class ChatPage:
 
             vsresponse: VectorStoreResponse | None = None
             try:
-                vsresponse = await run.io_bound(lambda: idata.vectorstore().search(query=prompt, max_results=4, dense_weight=0.5))
+                vsresponse = await run.io_bound(lambda: idata.vectorstore().hybrid_search(query=prompt, max_results=4, dense_weight=0.5))
                 log.debug(f'vector-search response: {vsresponse}')
             except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)

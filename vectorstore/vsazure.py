@@ -85,7 +85,7 @@ class VSAzure(VSAPI):
 
         # dict str->?: 'source', 'id', '@search.score', '@search.reranker_score', '@search.highlights', '@search.captions'
         # todo: question and answer are alcami-specific
-        results: SearchItemPaged[dict] = self._aais_search_client.search(
+        results: SearchItemPaged[dict] = self._aais_search_client.hybrid_search(
             search_text=None,
             vector_queries=[vector_query],
             query_type='semantic',
@@ -101,7 +101,7 @@ class VSAzure(VSAPI):
             results_raw=raw_results
         )
 
-    def search(self, query: str, howmany: int) -> VectorStoreResponse:
+    def hybrid_search(self, query: str, howmany: int) -> VectorStoreResponse:
         sresp: VSAPI.SearchResponse = self.embeddings_search(query, howmany)
 
         vs_results: list[VectorStoreResult] = []
