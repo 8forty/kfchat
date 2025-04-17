@@ -266,9 +266,10 @@ class VSChroma(VSAPI):
     def search(self, query: str, max_results: int = 0, dense_weight: Annotated[float, Field(strict=True, ge=0.0, le=1.0)] = 0.5) -> VectorStoreResponse | None:
         self._build_clients()
 
-        vs_results: list[VectorStoreResult] = []
+        dense_results: list[VectorStoreResult] = []
+        sparse_results: list[VectorStoreResult] = []
 
-        # embeddings search results (aka "dense")
+        # load embeddings results (aka "dense")
         if dense_weight > 0.0:
             try:
                 # todo: chroma (and others?) don't allow a max for embedded (dense) searches, so we use... 10 of course :)
@@ -280,16 +281,15 @@ class VSChroma(VSAPI):
                         'chunk metadata': sresp.results_raw[result_idx]['metadatas'],
                         'uris': sresp.results_raw[result_idx]['uris'],
                         'data': sresp.results_raw[result_idx]['data'],
-                        'id': sresp.results_raw[result_idx]['ids'],
                     }
-                    vs_results.append(VectorStoreResult(result_id=sresp.results_raw[result_idx]['ids'],
-                                                        metrics=metrics,
-                                                        content=sresp.results_raw[result_idx]['documents']))
+                    dense_results.append(VectorStoreResult(result_id=sresp.results_raw[result_idx]['ids'],
+                                                           metrics=metrics,
+                                                           content=sresp.results_raw[result_idx]['documents']))
             except (Exception,) as e:
                 log.warning(f' embeddings_search error! {e}')
                 raise e
 
-        # full-text results (aka "sparse")
+        # load full-text results (aka "sparse")
         if dense_weight < 1.0:
             try:
                 # todo: fresh connection every time necessary?
@@ -308,7 +308,7 @@ class VSChroma(VSAPI):
                         rowdict = dict(zip(colnames, row))
                         metrics = {VSAPI.search_type_metric_name: VSAPI.search_type_fulltext}
                         metrics.update({e: rowdict[e] for e in rowdict if e not in ['content', 'id']})
-                        vs_results.append(VectorStoreResult(
+                        sparse_results.append(VectorStoreResult(
                             result_id=rowdict['id'],
                             metrics=metrics,
                             content=rowdict['content'],
@@ -316,6 +316,12 @@ class VSChroma(VSAPI):
             except (Exception,) as e:
                 log.warning(f'SQL error! {e}')
                 raise e
+
+        dense_ids = [vsr.result_id for vsr in dense_results]
+        vs_results: list[VectorStoreResult] = list(dense_results)
+        for vsr in sparse_results:
+            if vsr.result_id not in dense_ids:
+                vs_results.append(vsr)
 
         # # Combine the document IDs and remove duplicates
         # all_doc_ids = list(set(dense_doc_ids + sparse_doc_ids))
