@@ -20,16 +20,21 @@ class InstanceData:
         self._id = InstanceData._next_id
         InstanceData._next_id += 1
 
-        # llm stuff
+        # modes
         self._llm_mode: str = 'llm'
         self._llm_mode_prefix: str = 'llm: '
-        self._all_llm_configs = all_llm_configs
-        self._llm_config = all_llm_configs[init_llm_name]
-        self._source_llm_title: str = self.llm_source(self._llm_config)  # title is "prefix: provider.model-name"
-
-        # vs stuff
         self._vs_mode: str = 'vs'
         self._vs_mode_prefix: str = 'vs: '
+        self._rag_mode: str = 'rag'
+        self._rag_mode_prefix: str = 'rag: '
+        self._modes: list[str] = [self._llm_mode, self._vs_mode, self._rag_mode]
+
+        # llm stuff
+        self._all_llm_configs = all_llm_configs
+        self._llm_config = all_llm_configs[init_llm_name]
+        self._source_llm_title: str = self.llm_source(self._llm_config)  # title is "<prefix>: <provider>.<model-name>"
+
+        # vs stuff
         self._vectorstore = vectorstore
 
         # mode & source info
@@ -68,6 +73,14 @@ class InstanceData:
         :return: title: "<prefix>: <collection-name>"
         """
         return f'{self._vs_mode_prefix}{collection_name}'
+
+    def rag_source(self, collection_name: str) -> str:
+        """
+        build full rag source title from a vs collection name
+        :param collection_name:
+        :return: title: "<prefix>: <collection-name>"
+        """
+        return f'{self._rag_mode_prefix}{collection_name}'
 
     def chat_exchanges(self) -> Generator[ChatExchange, None, None]:
         for exchange in self._chat_exchanges.list():
@@ -137,9 +150,8 @@ class InstanceData:
         sources: dict[str, list[str]] = {}
         sources.update({self._llm_mode: [self.llm_source(llm_config) for llm_config in self._all_llm_configs.values()]})
         sources.update({self._vs_mode: [self.vs_source(cn) for cn in self._vectorstore.list_collection_names()]})
+        sources.update({self._rag_mode: [self.rag_source(cn) for cn in self._vectorstore.list_collection_names()]})
 
-        # sort alpha but with the vs sources after the llm sources using prefix 'zzz'
-        # sources.sort(key=lambda k: 'zzz' + k if k.startswith(self._vs_mode_prefix) else k)
         return sources
 
     def add_unknown_special_message(self, prompt: str) -> None:

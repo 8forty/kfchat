@@ -312,7 +312,7 @@ class ChatPage:
             idata = InstanceData(self.all_llm_configs, self.init_llm_name, self.vectorstore, self.parms)
 
             # setup the standard "frame" for all pages
-            with frame.frame(f'{config.name} {pagename}'):
+            with (frame.frame(f'{config.name} {pagename}')):
 
                 # this suppresses the enormous default(?) 8px top/bottom margins on every line of markdown
                 ui.add_css('div.nicegui-markdown p { margin-top: 0px; margin-bottom: 0px; }')
@@ -328,10 +328,12 @@ class ChatPage:
                 with (ui.column().classes('w-full flex-grow border-solid border border-white')):
                     # the settings selection row
                     settings = idata.llm_config().settings() if idata.mode_is_llm() else idata.vectorstore().settings()
-                    with ui.row().classes(f'w-full border-solid border border-white grid grid-cols-{len(settings.specs()) + 1} gap-0'):
+                    with ui.row().classes(f'w-full border-solid border border-white grid grid-cols-{len(settings.specs()) + 2} gap-0'):
                         sources = idata.all_sources()
-                        with ui.column().classes('border border-solid border-white'):
-                            with ui.button(text='Source').props('no-caps color=green').classes('w-3/4 self-center').tooltip('vs=vector search, llm=lang model chat'):
+                        with ui.column().classes('border grid grid-rows-2 gap-0 col-span-2'):
+                            ui.label('source').classes('text-green text-[12px] font-[400] m-1')
+                            with ui.label(text=idata.llm_source(idata.llm_config())
+                                          ).classes('w-full m-1').tooltip('vs=vector search, llm=lang model chat, rag=rag') as source_label:
                                 with ui.menu():
                                     for k, v in sources.items():
                                         with ui.menu_item(k, auto_close=False):
@@ -344,7 +346,7 @@ class ChatPage:
                                                                                                               lambda: idata.change_source(ceargs.sender.default_slot.children[0].text),
                                                                                                               pinput,
                                                                                                               spinner))
-                            source_label = ui.label(idata.llm_source(idata.llm_config())).classes('w-full')
+                            #source_label = ui.label(idata.llm_source(idata.llm_config())).classes('w-full')
 
                         for sinfo in settings.specs():
                             # vc.sender.props['label'] is 'n', 'temp', ...
