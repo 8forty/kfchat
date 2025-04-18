@@ -80,7 +80,7 @@ class VSAPI(ABC):
     @validate_call
     def hybrid_search(self, query: str, max_results: int = 0, dense_weight: Annotated[float, Field(strict=True, ge=0.0, le=1.0)] = 0.5) -> VectorStoreResponse | None:
         """
-        hybrid search using embeddings and text/keyword search.
+        hybrid search using embeddings and text/keyword search, results are sorted best->worst by score
         :param query: the query
         :param max_results: 0 means all results, otherwise the number of results to return.
         :param dense_weight: range 0.0->1.0, relative weight of dense (embedded/semantic) results vs sparse (text/keyword) results. 0.0 = sparse only, 1.0 = dense only

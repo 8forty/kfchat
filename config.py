@@ -322,6 +322,18 @@ class LLMData:
         'empty': empty_sysmsg,
     })
 
+    # prompts
+    rag1_prompt = (
+        'Context information is below.'
+        '---------------------'
+        '{context}'
+        '---------------------'
+        'Given the context information and not prior knowledge, answer the query.'
+        'Always respond "I don\'t know" if you are not sure about the answer.'
+        'Query: {query}'
+        'Answer:'
+    )
+
 
 def now_datetime() -> str:
     return datetime.datetime.now(datetime.UTC).strftime('%Y-%m-%d-%H:%M:%S')

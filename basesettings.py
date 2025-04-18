@@ -33,6 +33,17 @@ class BaseSettings(ABC):
     def specs(self) -> list[SettingsSpec]:
         pass
 
+    def value(self, label: str) -> any:
+        """
+        returns the current value of setting with given label, or None if there isn't one
+        :param label:
+        :return:
+        """
+        for spec in self.specs():
+            if spec.label == label:
+                return spec.value
+        return None
+
     @abstractmethod
     async def change(self, label: str, value: any) -> None:
         pass

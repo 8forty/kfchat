@@ -213,7 +213,7 @@ class ChatPage:
                 idata.add_unknown_special_message(prompt)
 
         async def handle_llm_prompt(prompt: str, idata: InstanceData) -> None:
-            # todo: suppress and note actually allowed parameters
+            # todo: suppress + note actually allowed parameters
             log.info(
                 f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.mode()}:{idata.llm_config().provider()}:{idata.llm_config().model_name},'
                 f'{idata.llm_config().settings().numbers_oneline_logging_str()}): "{prompt}"')
@@ -243,7 +243,8 @@ class ChatPage:
 
             vsresponse: VectorStoreResponse | None = None
             try:
-                vsresponse = await run.io_bound(lambda: idata.vectorstore().hybrid_search(query=prompt, max_results=4, dense_weight=0.5))
+                # todo: configure dense_weight; stop using llm_config!
+                vsresponse = await run.io_bound(lambda: idata.vectorstore().hybrid_search(query=prompt, max_results=idata.llm_config().settings().value('n'), dense_weight=0.5))
                 log.debug(f'vector-search response: {vsresponse}')
             except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)
@@ -256,6 +257,25 @@ class ChatPage:
                                   source=idata.source(), mode=idata.mode())
                 idata.add_chat_exchange(ce)
 
+        async def handle_rag_prompt(prompt: str, idata: InstanceData) -> None:
+            log.info(f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.mode()}:{idata.source()}): "{prompt}"')
+
+            start = timeit.default_timer()
+
+            # first get the vector results
+            try:
+                # todo: configure max_results and dense_weight
+                vsresponse: VectorStoreResponse = await run.io_bound(lambda: idata.vectorstore().hybrid_search(query=prompt, max_results=0, dense_weight=0.5))
+                log.debug(f'rag vector-search response: {vsresponse}')
+                context = [r.content for r in vsresponse.results]
+                await handle_llm_prompt(config.LLMData.rag1_prompt.format(context=context, query=prompt), idata)
+
+            except (Exception,) as e:
+                traceback.print_exc(file=sys.stdout)
+                errmsg = f'rag error! {e.__class__.__name__}: {e}'
+                log.warning(errmsg)
+                ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
+
         async def handle_enter(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
             prompt_input.disable()
             prompt = prompt_input.value.strip()
@@ -267,8 +287,12 @@ class ChatPage:
                 await handle_special_prompt(prompt, idata)
             elif idata.mode_is_llm():
                 await handle_llm_prompt(prompt, idata)
-            else:
+            elif idata.mode_is_vs():
                 await handle_vector_search_prompt(prompt, idata)
+            elif idata.mode_is_rag():
+                await handle_rag_prompt(prompt, idata)
+            else:
+                raise ValueError(f'unknown mode: {idata.mode()}')
 
             spinner.set_visibility(False)
             prompt_input.value = ''
@@ -346,7 +370,7 @@ class ChatPage:
                                                                                                               lambda: idata.change_source(ceargs.sender.default_slot.children[0].text),
                                                                                                               pinput,
                                                                                                               spinner))
-                            #source_label = ui.label(idata.llm_source(idata.llm_config())).classes('w-full')
+                            # source_label = ui.label(idata.llm_source(idata.llm_config())).classes('w-full')
 
                         for sinfo in settings.specs():
                             # vc.sender.props['label'] is 'n', 'temp', ...

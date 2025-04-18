@@ -58,6 +58,9 @@ class InstanceData:
     def mode_is_vs(self) -> bool:
         return self._mode == self._vs_mode
 
+    def mode_is_rag(self) -> bool:
+        return self._mode == self._rag_mode
+
     def llm_source(self, llm_config: LLMConfig) -> str:
         """
         build full llm source title from an LLMConfig
@@ -135,11 +138,18 @@ class InstanceData:
             self._source = selected_title
             self._llm_config = self._all_llm_configs[selected_title.removeprefix(self._llm_mode_prefix)]
             log.debug(f'new llm title: {self._source} (provider: {self._llm_config.provider()})')
-        else:
+        elif selected_title.startswith(self._vs_mode_prefix):
             self._source = selected_title
             self._mode = self._vs_mode
             await run.io_bound(lambda: self._vectorstore.switch_collection(new_collection_name=self._source.removeprefix(self._vs_mode_prefix)))
             log.debug(f'new vectorstore title: {self._source}')
+        elif selected_title.startswith(self._rag_mode_prefix):
+            self._source = selected_title
+            self._mode = self._rag_mode
+            await run.io_bound(lambda: self._vectorstore.switch_collection(new_collection_name=self._source.removeprefix(self._rag_mode_prefix)))
+            log.debug(f'new (rag) vectorstore title: {self._source}')
+        else:
+            raise ValueError(f'unknown selected title: {selected_title}')
 
         self._source = selected_title
 

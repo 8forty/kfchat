@@ -273,7 +273,7 @@ class VSChroma(VSAPI):
             try:
                 # get more than max so we have some to choose from
                 # todo: 20?
-                sresp: VSAPI.SearchResponse = self.embeddings_search(query, max_results=max_results * 2 if max_results > 0 else 20)
+                sresp: VSAPI.SearchResponse = self.embeddings_search(query, max_results=min(max_results * 2, 20) if max_results > 0 else 20)
                 for result_idx in range(0, len(sresp.results_raw)):
                     metrics = {
                         VSAPI.search_type_metric_name: VSAPI.search_type_embeddings,
@@ -353,6 +353,8 @@ class VSChroma(VSAPI):
             vsr.metrics['rrank'] = combined_reciprocal_ranks[doc_id]
             vs_results.append(vsr)
 
+        if max_results > 0:
+            vs_results = vs_results[:max_results]
         return VectorStoreResponse(vs_results)
 
     def delete_collection(self, collection_name: str):
