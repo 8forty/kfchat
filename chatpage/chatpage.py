@@ -212,7 +212,7 @@ class ChatPage:
             else:
                 idata.add_unknown_special_message(prompt)
 
-        async def handle_llm_prompt(prompt: str, idata: InstanceData) -> None:
+        async def run_llm_prompt(prompt: str, idata: InstanceData) -> LLMExchange | None:
             # todo: suppress + note actually allowed parameters
             log.info(
                 f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.mode()}:{idata.llm_config().provider()}:{idata.llm_config().model_name},'
@@ -227,6 +227,10 @@ class ChatPage:
                 log.warning(errmsg)
                 ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
 
+            return exchange
+
+        async def handle_llm_prompt(prompt: str, idata: InstanceData) -> None:
+            exchange: LLMExchange | None = await run_llm_prompt(prompt, idata)
             if exchange is not None:
                 log.debug(f'llm exchange responses: {exchange.responses}')
                 ce = ChatExchange(exchange.prompt, response_duration_secs=exchange.response_duration_secs,
@@ -260,15 +264,26 @@ class ChatPage:
         async def handle_rag_prompt(prompt: str, idata: InstanceData) -> None:
             log.info(f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.mode()}:{idata.source()}): "{prompt}"')
 
-            start = timeit.default_timer()
-
             # first get the vector results
             try:
                 # todo: configure max_results and dense_weight
                 vsresponse: VectorStoreResponse = await run.io_bound(lambda: idata.vectorstore().hybrid_search(query=prompt, max_results=0, dense_weight=0.5))
                 log.debug(f'rag vector-search response: {vsresponse}')
                 context = [r.content for r in vsresponse.results]
-                await handle_llm_prompt(config.LLMData.rag1_prompt.format(context=context, query=prompt), idata)
+                if len(context) > 0:
+                    exchange: LLMExchange | None = await run_llm_prompt(config.LLMData.rag1_prompt.format(context=context, query=prompt), idata)
+                    if exchange is not None:
+                        log.debug(f'rag llm exchange responses: {exchange.responses}')
+                        ce = ChatExchange(prompt, response_duration_secs=exchange.response_duration_secs,
+                                          llm_exchange=exchange, vector_store_response=None,
+                                          source=idata.source(), mode=idata.mode())
+                        for choice_idx, sp_text in ce.problems().items():
+                            log.warning(f'rag stop problem from prompt {prompt} choice[{choice_idx}]: {sp_text}')
+                        idata.add_chat_exchange(ce)
+                    else:
+                        raise ValueError(f'rag got no result from LLM! ({idata.source()})')
+                else:
+                    raise ValueError(f'rag found no context! ({idata.source()})')
 
             except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)
