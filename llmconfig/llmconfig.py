@@ -71,30 +71,38 @@ class LLMConfig(ABC):
     def _clean_messages(messages: list[LLMMessagePair]) -> list[LLMMessagePair]:
         for message in messages:
             if message.role == 'system':
-                log.warning(f"'system' message removed from messages! {message}")
+                log.warning(f'"system" message removed from messages! {message}')
         return [mp for mp in messages if mp.role != 'system']
 
     @abstractmethod
-    def _chat(self, messages: list[LLMMessagePair], max_rate_limit_retries: int = 10) -> LLMExchange:
+    def _chat(self, messages: list[LLMMessagePair], context: list[str] | None, max_rate_limit_retries: int = 10) -> LLMExchange:
+        """
+        the internal chat function
+        :param messages:
+        :param context: the RAG context, if any, to replace "{context}" in the system message
+        :param max_rate_limit_retries:
+        """
         pass
 
-    def chat_messages(self, messages: list[LLMMessagePair], max_rate_limit_retries: int = 10) -> LLMExchange:
+    def chat_messages(self, messages: list[LLMMessagePair], context: list[str] | None, max_rate_limit_retries: int = 10) -> LLMExchange:
         """
-        run chat-completion from a list of messages that includes the prompt as a final dict: {role': 'user', 'content': '...'}
+        run chat-completion from a list of messages that includes the prompt as the final LLMMessagePair: {role': 'user', 'content': '...'}
         NOTE: this configuration's system message will be used instead of any supplied in messages
         :param messages:
+        :param context: the RAG context, if any, to replace "{context}" in the system message
         :param max_rate_limit_retries:
         """
         messages = LLMConfig._clean_messages(messages)
         log.debug(f'{messages=}')
-        return self._chat(messages, max_rate_limit_retries=max_rate_limit_retries)
+        return self._chat(messages, context, max_rate_limit_retries=max_rate_limit_retries)
 
-    def chat_convo(self, convo: list[LLMExchange], prompt: str, max_rate_limit_retries: int = 10) -> LLMExchange:
+    def chat_convo(self, convo: list[LLMExchange], prompt: str, context: list[str] | None, max_rate_limit_retries: int = 10) -> LLMExchange:
         """
-        run chat-completion
+        run chat-completion with a conversation (list of LLMExchanges) and a prompt,
         NOTE: this configuration's system message will be used instead of any supplied in convo
         :param convo: properly ordered list of LLMOpenaiExchange's
         :param prompt: the prompt duh
+        :param context: the RAG context, if any, to replace "{context}" in the system message
         :param max_rate_limit_retries:
         """
         messages: list[LLMMessagePair] = []
@@ -107,4 +115,4 @@ class LLMConfig(ABC):
 
         # add the prompt
         messages.append(LLMMessagePair('user', prompt))
-        return self.chat_messages(messages, max_rate_limit_retries=max_rate_limit_retries)
+        return self.chat_messages(messages, context, max_rate_limit_retries=max_rate_limit_retries)

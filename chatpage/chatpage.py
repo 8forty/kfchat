@@ -210,7 +210,7 @@ class ChatPage:
             else:
                 idata.add_unknown_special_message(prompt)
 
-        async def run_llm_prompt(prompt: str, idata: InstanceData) -> LLMExchange | None:
+        async def run_llm_prompt(prompt: str, context: list[str] | None, idata: InstanceData) -> LLMExchange | None:
             # todo: suppress + note actually allowed parameters
             log.info(
                 f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.mode()}:{idata.llm_config().provider()}:{idata.llm_config().model_name},'
@@ -219,7 +219,7 @@ class ChatPage:
             exchange: LLMExchange | None = None
             try:
                 convo = [ex.llm_exchange for ex in idata.chat_exchanges() if ex.llm_exchange is not None]
-                exchange: LLMExchange = await run.io_bound(lambda: idata.llm_config().chat_convo(convo=convo, prompt=prompt))
+                exchange: LLMExchange = await run.io_bound(lambda: idata.llm_config().chat_convo(convo=convo, prompt=prompt, context=context))
 
             except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)
@@ -230,7 +230,7 @@ class ChatPage:
             return exchange
 
         async def handle_llm_prompt(prompt: str, idata: InstanceData) -> None:
-            exchange: LLMExchange | None = await run_llm_prompt(prompt, idata)
+            exchange: LLMExchange | None = await run_llm_prompt(prompt, context=None, idata=idata)
             if exchange is not None:
                 log.debug(f'llm exchange responses: {exchange.responses}')
                 ce = ChatExchange(exchange.prompt, response_duration_secs=exchange.response_duration_secs,
@@ -271,7 +271,7 @@ class ChatPage:
                 log.debug(f'rag vector-search response: {vsresponse}')
                 context = [r.content for r in vsresponse.results]
                 if len(context) > 0:
-                    exchange: LLMExchange | None = await run_llm_prompt(config.LLMData.rag1_prompt.format(context=context, query=prompt), idata)
+                    exchange: LLMExchange | None = await run_llm_prompt(prompt, context, idata)
 
                     if exchange is not None:
                         log.debug(f'rag llm exchange responses: {exchange.responses}')
@@ -293,29 +293,30 @@ class ChatPage:
                 ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
 
         async def handle_enter(request, prompt_input: Input, spinner: Spinner, scroller: ScrollArea, idata: InstanceData) -> None:
-            prompt_input.disable()
-            prompt = prompt_input.value.strip()
-            spinner.set_visibility(True)
+            if len(prompt_input.value.strip()) > 0:
+                prompt_input.disable()
+                prompt = prompt_input.value.strip()
+                spinner.set_visibility(True)
 
-            logstuff.update_from_request(request)  # updates logging prefix with info from each request
+                logstuff.update_from_request(request)  # updates logging prefix with info from each request
 
-            if prompt_input.value.startswith('*'):
-                await handle_special_prompt(prompt, idata)
-            elif idata.mode_is_llm():
-                await handle_llm_prompt(prompt, idata)
-            elif idata.mode_is_vs():
-                await handle_vector_search_prompt(prompt, idata)
-            elif idata.mode_is_rag():
-                await handle_rag_prompt(prompt, idata)
-            else:
-                raise ValueError(f'unknown mode: {idata.mode()}')
+                if prompt_input.value.startswith('*'):
+                    await handle_special_prompt(prompt, idata)
+                elif idata.mode_is_llm():
+                    await handle_llm_prompt(prompt, idata)
+                elif idata.mode_is_vs():
+                    await handle_vector_search_prompt(prompt, idata)
+                elif idata.mode_is_rag():
+                    await handle_rag_prompt(prompt, idata)
+                else:
+                    raise ValueError(f'unknown mode: {idata.mode()}')
 
-            spinner.set_visibility(False)
-            prompt_input.value = ''
-            prompt_input.enable()
+                spinner.set_visibility(False)
+                prompt_input.value = ''
+                prompt_input.enable()
 
-            await refresh_chat(prompt, idata, scroller)
-            await prompt_input.run_method('focus')
+                await refresh_chat(prompt, idata, scroller)
+                await prompt_input.run_method('focus')
 
         async def change_source(source_label: Label, new_value: str, callback: Handler[ValueChangeEventArguments], prompt_input: Input, spinner: Spinner):
             source_label.set_text(new_value)

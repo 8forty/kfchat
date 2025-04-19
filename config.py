@@ -301,9 +301,6 @@ class LLMData:
     technical800_sysmsg = ('You are an AI research assistant. Respond in a tone that is technical and scientific. '
                            'All math equations should be latex format delimited by $$. '
                            'Your responses must always be less than 800 tokens.')
-    rag1_sysmsg = ('You are a chatbot that answers questions that are labeled "Question:" based on the context labeled "Context:". '
-                   'Keep your answers short and concise. '
-                   'Always respond "I don\'t know" if you are not sure about the answer.')
     textclass_sysmsg = 'Classify each prompt into neutral, negative or positive.'
     csagan_sysmsg = 'You are a helpful assistant that talks like Carl Sagan.'
     empty_sysmsg = ''
@@ -316,23 +313,28 @@ class LLMData:
         'professional800': professional800_sysmsg,
         'technical': technical_sysmsg,
         'technical800': technical800_sysmsg,
-        'rag1': rag1_sysmsg,
         'text-sentiment': textclass_sysmsg,
         'carl-sagan': csagan_sysmsg,
         'empty': empty_sysmsg,
     })
 
-    # prompts
-    rag1_prompt = (
-        'Context information is below.'
-        '---------------------'
-        '{context}'
-        '---------------------'
-        'Given the context information and not prior knowledge, answer the query.'
-        'Always respond "I don\'t know" if you are not sure about the answer.'
-        'Query: {query}'
-        'Answer:'
+    # RAG system messages with {context} and {sysmsg}
+    dont_know = 'I\'m sorry, the given collection of information doesn\'t appear to contain that information.'
+    rag1_sysmsg = (
+            '{sysmsg}'
+            'Context information is below.'
+            '---------------------'
+            '{context}'
+            '---------------------'
+            'Please answer using the given context only, do not use any prior knowledge.'
+            'Always respond "' + dont_know +
+            '" if you are not sure about the answer.'
+            'In any case, don\'t answer using your own knowledge.'
     )
+
+    #     You are a bot that answers questions.  Please answer using retrieved documents only
+    #     and without using your knowledge. Please generate citations to retrieved documents for every claim in your
+    #     answer.  In any case, don't answer using your own knowledge.  If you don't know an answer, please say "{g_dont_know_preferred}"
 
 
 def now_datetime() -> str:

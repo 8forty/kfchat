@@ -124,17 +124,23 @@ class LLMAnthropicConfig(LLMConfig):
 
         return self._api_client
 
-    def _chat(self, messages: list[LLMMessagePair], max_rate_limit_retries: int = 10) -> LLMAnthropicExchange:
-        # todo: this is clumsy
+    def _chat(self, messages: list[LLMMessagePair], context: list[str] | None, max_rate_limit_retries: int = 10) -> LLMAnthropicExchange:
         # prompt is the last dict in the list by openai's convention
+        # todo: this is clumsy
         prompt = messages[-1].content
+
+        # normal or RAG?
+        if context is None:
+            sysmsg = self._settings.system_message
+        else:
+            sysmsg = config.LLMData.rag1_sysmsg.format(sysmsg=self._settings.system_message, context=context)
 
         rate_limit_retries = 0
         retry_wait_secs = 1.0
         while True:
             try:
                 messages_list: list[dict] = [{'role': pair.role, 'content': pair.content} for pair in messages]
-                log.debug(f'{self.model_name} temp:{self._settings.temp} top_p:{self._settings.top_p}, max_tok:{self._settings.max_tokens} prompt:"{prompt}" msgs:{messages_list}')
+                log.debug(f'{self._provider}.{self.model_name} temp:{self._settings.temp} top_p:{self._settings.top_p}, max_tok:{self._settings.max_tokens} prompt:"{prompt}" msgs:{messages_list}')
 
                 start = timeit.default_timer()
                 message: Message = self._client().messages.create(
@@ -143,11 +149,11 @@ class LLMAnthropicConfig(LLMConfig):
                     top_p=self._settings.top_p,  # default 1, ~0.01->1.0
                     messages=messages_list,
                     max_tokens=self._settings.max_tokens,  # default 16?
-                    system=self._settings.system_message,
+                    system=sysmsg,
 
                     # n=self._settings.n,  # not in anthropic's api
 
-                    stream=False,  # todo: allow streaming
+                    # stream=False,  # todo: allow streaming
 
                     # seed=27,
                     # frequency_penalty=1,  # default 0, -2.0->2.0

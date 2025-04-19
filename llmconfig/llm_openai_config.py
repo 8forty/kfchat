@@ -216,17 +216,24 @@ class LLMOpenAIConfig(LLMConfig):
         )
         return chat_completion
 
-    def _chat(self, messages: list[LLMMessagePair], max_rate_limit_retries: int = 10) -> LLMOpenAIExchange:
-        # prompt is the last dict in the list
+    def _chat(self, messages: list[LLMMessagePair], context: list[str] | None, max_rate_limit_retries: int = 10) -> LLMOpenAIExchange:
+        # prompt is the last dict in the list by openai's convention
+        # todo: this is clumsy
         prompt = messages[-1].content
+
+        # normal or RAG?
+        if context is None:
+            sysmsg = self._settings.system_message
+        else:
+            sysmsg = config.LLMData.rag1_sysmsg.format(sysmsg=self._settings.system_message, context=context)
 
         rate_limit_retries = 0
         retry_wait_secs = 1.0
         while True:
             try:
-                messages_list: list[dict] = [{'role': 'system', 'content': self._settings.system_message}]
+                messages_list: list[dict] = [{'role': 'system', 'content': sysmsg}]
                 messages_list.extend([{'role': pair.role, 'content': pair.content} for pair in messages])
-                log.debug(f'{self.model_name} n:{self._settings.n} temp:{self._settings.temp} top_p:{self._settings.top_p}, max_tok:{self._settings.max_tokens} prompt:"{prompt}" msgs:{messages_list}')
+                log.debug(f'{self._provider}.{self.model_name} n:{self._settings.n} temp:{self._settings.temp} top_p:{self._settings.top_p}, max_tok:{self._settings.max_tokens} prompt:"{prompt}" msgs:{messages_list}')
 
                 start = timeit.default_timer()
                 chat_completion: ChatCompletion = self.generate_chat_completion(messages_list)
