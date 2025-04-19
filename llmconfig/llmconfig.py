@@ -75,7 +75,7 @@ class LLMConfig(ABC):
         return [mp for mp in messages if mp.role != 'system']
 
     @abstractmethod
-    def chat(self, messages: list[LLMMessagePair], max_rate_limit_retries: int = 10) -> LLMExchange:
+    def _chat(self, messages: list[LLMMessagePair], max_rate_limit_retries: int = 10) -> LLMExchange:
         pass
 
     def chat_messages(self, messages: list[LLMMessagePair], max_rate_limit_retries: int = 10) -> LLMExchange:
@@ -87,7 +87,7 @@ class LLMConfig(ABC):
         """
         messages = LLMConfig._clean_messages(messages)
         log.debug(f'{messages=}')
-        return self.chat(messages, max_rate_limit_retries=max_rate_limit_retries)
+        return self._chat(messages, max_rate_limit_retries=max_rate_limit_retries)
 
     def chat_convo(self, convo: list[LLMExchange], prompt: str, max_rate_limit_retries: int = 10) -> LLMExchange:
         """

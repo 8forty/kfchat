@@ -23,14 +23,14 @@ def run(cfg: LLMConfig):
 
 
 settings_openai = LLMOpenAISettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=80, init_system_message_name='carl-sagan')
-settings_anthropic = LLMAnthropicSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=80, init_system_message_name='carl-sagan')
+settings_anthropic = LLMAnthropicSettings(init_temp=0.7, init_top_p=1.0, init_max_tokens=80, init_system_message_name='carl-sagan')
 models = {
     # 'openai': ['gpt-3.5-turbo', 'gpt-4o', 'gpt-4o-mini'],
     # 'groq': ['llama-3.2-1b-preview', 'llama-3.3-70b-versatile', 'mixtral-8x7b-32768', 'gemma2-9b-it'],
     # 'azure': ['RFI-Automate-GPT-4o-mini-2000k'],
     # 'ollama': ['llama3.2:1b', 'llama3.2:3b', 'llama3.3:70b', 'qwen2.5:0.5b', 'gemma2:2b', 'qwq'],
     'x': [
-        LLMOpenAIConfig(model_name='llama3.2:1b', provider='ollama', settings=settings_openai),
+        LLMOpenAIConfig(model_name='llama3.2:1b', provider='OLLAMA', settings=settings_openai),
     ]
 }
 for k in models.keys():

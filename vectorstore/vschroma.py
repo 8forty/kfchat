@@ -290,6 +290,9 @@ class VSChroma(VSAPI):
                 raise e
             log.debug(f'dense_results: {len(dense_results)}')
 
+        # clear the query so it will work with sql/full-text searches
+        query = query.replace('?', '')  # remove all "?"
+
         # load full-text results (aka "sparse")
         if dense_weight < 1.0:
             try:
@@ -300,10 +303,10 @@ class VSChroma(VSAPI):
 
                     # FTS5 table full-text search using MATCH operator, plus bm25 (smaller=better match)
                     bm25_fragment = f"bm25({config.sql_chunks_fts5[self._settings.fts_type].table_name}, 0, 1, 0, 0)"
-                    query = (f"select *, {bm25_fragment} bm25 "
-                             f"from {config.sql_chunks_fts5[self._settings.fts_type].table_name} where content match '{query}' order by {bm25_fragment};")
-                    log.debug(f'query {config.sql_chunks_table_name}: {query}')
-                    cursor.execute(query)
+                    sqlquery = (f"select *, {bm25_fragment} bm25 "
+                                f"from {config.sql_chunks_fts5[self._settings.fts_type].table_name} where content match '{query}' order by {bm25_fragment};")
+                    log.debug(f'query {config.sql_chunks_table_name}: {sqlquery}')
+                    cursor.execute(sqlquery)
                     colnames = [d[0] for d in cursor.description]
                     for row in cursor.fetchall():
                         rowdict = dict(zip(colnames, row))

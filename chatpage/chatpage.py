@@ -168,11 +168,6 @@ class ChatPage:
 
             scroller.scroll_to(percent=1e6)  # 1e6 works around quasar scroll-area bug
 
-        def do_llm(prompt: str, idata: InstanceData) -> LLMExchange:
-            convo = [ex.llm_exchange for ex in idata.chat_exchanges() if ex.llm_exchange is not None]
-            exchange: LLMExchange = idata.llm_config().chat_convo(convo=convo, prompt=prompt)
-            return exchange
-
         async def handle_special_prompt(prompt: str, idata: InstanceData) -> None:
             log.info(f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.mode()}:{idata.llm_config().provider()}:{idata.llm_config().model_name}): "{prompt}"')
 
@@ -192,23 +187,26 @@ class ChatPage:
                 if idata.last_prompt() is not None:
                     if idata.mode_is_llm():
                         await handle_llm_prompt(idata.last_prompt(), idata)
-                    else:
+                    elif idata.mode_is_vs():
                         await handle_vector_search_prompt(idata.last_prompt(), idata)
+                    elif idata.mode_is_rag():
+                        await handle_rag_prompt(idata.last_prompt(), idata)
+                    else:
+                        raise ValueError(f'unknown mode {idata.mode()}')
                 else:
                     idata.add_info_message('no previous prompt!')
             elif prompt.startswith('*clear'):
                 idata.clear_exchanges()
                 idata.add_info_message('conversation cleared')
             elif digit1 > 0:
-                if idata.mode_is_llm():
-                    settings = idata.llm_config().settings()
-                    # only change n if the source has an n spec
-                    for spec in settings.specs():
-                        if spec.label == 'n':
-                            await settings.change(spec.label, digit1)
-                            # now update the gui
-                            if 'n' in settings_selects.keys():
-                                settings_selects['n'].value = digit1
+                settings = idata.llm_config().settings()
+                # only change n if the source has an n spec
+                for spec in settings.specs():
+                    if spec.label == 'n':
+                        await settings.change(spec.label, digit1)
+                        # now update the gui
+                        if 'n' in settings_selects.keys():
+                            settings_selects['n'].value = digit1
             else:
                 idata.add_unknown_special_message(prompt)
 
@@ -220,7 +218,9 @@ class ChatPage:
 
             exchange: LLMExchange | None = None
             try:
-                exchange = await run.io_bound(lambda: do_llm(prompt, idata))
+                convo = [ex.llm_exchange for ex in idata.chat_exchanges() if ex.llm_exchange is not None]
+                exchange: LLMExchange = await run.io_bound(lambda: idata.llm_config().chat_convo(convo=convo, prompt=prompt))
+
             except (Exception,) as e:
                 traceback.print_exc(file=sys.stdout)
                 errmsg = f'llm error! {e.__class__.__name__}: {e}'
@@ -272,6 +272,7 @@ class ChatPage:
                 context = [r.content for r in vsresponse.results]
                 if len(context) > 0:
                     exchange: LLMExchange | None = await run_llm_prompt(config.LLMData.rag1_prompt.format(context=context, query=prompt), idata)
+
                     if exchange is not None:
                         log.debug(f'rag llm exchange responses: {exchange.responses}')
                         ce = ChatExchange(prompt, response_duration_secs=exchange.response_duration_secs,
@@ -366,6 +367,7 @@ class ChatPage:
 
                 with (ui.column().classes('w-full flex-grow border-solid border border-white')):
                     # the settings selection row
+                    # todo: what about rag mode?
                     settings = idata.llm_config().settings() if idata.mode_is_llm() else idata.vectorstore().settings()
                     with ui.row().classes(f'w-full border-solid border border-white grid grid-cols-{len(settings.specs()) + 2} gap-0'):
                         sources = idata.all_sources()

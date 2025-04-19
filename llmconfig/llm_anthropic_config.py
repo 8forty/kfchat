@@ -124,7 +124,7 @@ class LLMAnthropicConfig(LLMConfig):
 
         return self._api_client
 
-    def chat(self, messages: list[LLMMessagePair], max_rate_limit_retries: int = 10) -> LLMAnthropicExchange:
+    def _chat(self, messages: list[LLMMessagePair], max_rate_limit_retries: int = 10) -> LLMAnthropicExchange:
         # todo: this is clumsy
         # prompt is the last dict in the list by openai's convention
         prompt = messages[-1].content

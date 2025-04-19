@@ -197,6 +197,7 @@ class LLMOpenAIConfig(LLMConfig):
         return self._api_client
 
     def generate_chat_completion(self, messages: list[dict]) -> ChatCompletion:
+
         chat_completion: ChatCompletion = self._client().chat.completions.create(
             model=self.model_name,
             temperature=self._settings.temp,  # default 1.0, 0.0->2.0
@@ -205,16 +206,17 @@ class LLMOpenAIConfig(LLMConfig):
             max_tokens=self._settings.max_tokens,  # default 16?
             n=self._settings.n,
 
-            stream=False,
+            # stream=False,
 
             seed=27,
+
             # frequency_penalty=1,  # default 0, -2.0->2.0
             # presence_penalty=1,  # default 0, -2.0->2.0
             # stop=[],
         )
         return chat_completion
 
-    def chat(self, messages: list[LLMMessagePair], max_rate_limit_retries: int = 10) -> LLMOpenAIExchange:
+    def _chat(self, messages: list[LLMMessagePair], max_rate_limit_retries: int = 10) -> LLMOpenAIExchange:
         # prompt is the last dict in the list
         prompt = messages[-1].content
 
