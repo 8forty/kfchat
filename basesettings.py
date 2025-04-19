@@ -16,10 +16,16 @@ class BaseSettings(ABC):
 
     @abstractmethod
     def numbers_oneline_logging_str(self) -> str:
+        """
+        returns a string of just the numeric settings and their values (i.e. it's short-ish)
+        """
         pass
 
     @abstractmethod
     def texts_oneline_logging_str(self) -> str:
+        """
+        returns a string of just the text settings and their values (i.e. it's probably long)
+        """
         pass
 
     @dataclass
@@ -46,4 +52,9 @@ class BaseSettings(ABC):
 
     @abstractmethod
     async def change(self, label: str, value: any) -> None:
+        """
+        changes the value of the setting with given label to the given value
+        :param label:
+        :param value:
+        """
         pass

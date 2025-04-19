@@ -4,6 +4,9 @@ from basesettings import BaseSettings
 
 
 class LLMSettings(BaseSettings, ABC):
+    """
+    settings used for an LLM
+    """
 
     def __init__(self):
         super().__init__()
