@@ -290,8 +290,9 @@ class VSChroma(VSAPI):
                 raise e
             log.debug(f'dense_results: {len(dense_results)}')
 
-        # clear the query so it will work with sql/full-text searches
+        # clean the query so it will work with sql/full-text searches
         query = query.replace('?', '')  # remove all "?"
+        query = query.replace("'", "''")  # escape all single-quotes
 
         # load full-text results (aka "sparse")
         if dense_weight < 1.0:
