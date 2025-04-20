@@ -291,8 +291,8 @@ class VSChroma(VSAPI):
             log.debug(f'dense_results: {len(dense_results)}')
 
         # clean the query so it will work with sql/full-text searches
-        query = query.replace('?', '')  # remove all "?"
-        query = query.replace("'", "''")  # escape all single-quotes
+        query = query.replace('?', ' ')  # remove all "?"
+        query = query.replace("'", " ")  # remove all single-quotes
 
         # load full-text results (aka "sparse")
         if dense_weight < 1.0:
@@ -304,8 +304,8 @@ class VSChroma(VSAPI):
 
                     # FTS5 table full-text search using MATCH operator, plus bm25 (smaller=better match)
                     bm25_fragment = f"bm25({config.sql_chunks_fts5[self._settings.fts_type].table_name}, 0, 1, 0, 0)"
-                    sqlquery = (f"select *, {bm25_fragment} bm25 "
-                                f"from {config.sql_chunks_fts5[self._settings.fts_type].table_name} where content match '{query}' order by {bm25_fragment};")
+                    sqlquery = (f'select *, {bm25_fragment} bm25 '
+                                f'from {config.sql_chunks_fts5[self._settings.fts_type].table_name} where content match "{query}" order by {bm25_fragment};')
                     log.debug(f'query {config.sql_chunks_table_name}: {sqlquery}')
                     cursor.execute(sqlquery)
                     colnames = [d[0] for d in cursor.description]
