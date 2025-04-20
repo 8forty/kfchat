@@ -318,8 +318,16 @@ class ChatPage:
                 await refresh_chat(prompt, idata, scroller)
                 await prompt_input.run_method('focus')
 
-        async def change_source(source_label: Label, new_value: str, callback: Handler[ValueChangeEventArguments], prompt_input: Input, spinner: Spinner):
+        async def change_source(source_label: Label, sub_llm_label: Label, new_value: str,
+                                callback: Handler[ValueChangeEventArguments],
+                                prompt_input: Input, spinner: Spinner,
+                                idata: InstanceData):
             source_label.set_text(new_value)
+            if idata.source_is_rag(source_label.text):
+                sub_llm_label.set_text(f'{idata.llm_config().provider()}.{idata.llm_config().model_name}')
+            else:
+                sub_llm_label.set_text('...')
+
             await call_and_focus(callback, prompt_input, spinner)
 
         async def call_and_focus(callback: Handler[ValueChangeEventArguments], prompt_input: Input, spinner: Spinner):
@@ -353,7 +361,7 @@ class ChatPage:
             idata = InstanceData(self.all_llm_configs, self.init_llm_name, self.vectorstore, self.parms)
 
             # setup the standard "frame" for all pages
-            with (frame.frame(f'{config.name} {pagename}')):
+            with ((frame.frame(f'{config.name} {pagename}'))):
 
                 # this suppresses the enormous default(?) 8px top/bottom margins on every line of markdown
                 ui.add_css('div.nicegui-markdown p { margin-top: 0px; margin-bottom: 0px; }')
@@ -372,23 +380,26 @@ class ChatPage:
                     settings = idata.llm_config().settings() if idata.mode_is_llm() else idata.vectorstore().settings()
                     with ui.row().classes(f'w-full border-solid border border-white grid grid-cols-{len(settings.specs()) + 2} gap-0'):
                         sources = idata.all_sources()
-                        with ui.column().classes('border grid grid-rows-2 gap-0 col-span-2'):
-                            ui.label('source').classes('text-green text-[12px] font-[400] m-1')
-                            with ui.label(text=idata.llm_source(idata.llm_config())
-                                          ).classes('w-full m-1').tooltip('vs=vector search, llm=lang model chat, rag=rag') as source_label:
-                                with ui.menu():
-                                    for k, v in sources.items():
-                                        with ui.menu_item(k, auto_close=False):
-                                            with ui.item_section().props('side'):
-                                                ui.icon('keyboard_arrow_right')
-                                            with ui.menu().props('anchor="top end" self="top start" auto-close'):
-                                                for sub_k in v:
-                                                    ui.menu_item(sub_k, on_click=lambda ceargs: change_source(source_label,
-                                                                                                              ceargs.sender.default_slot.children[0].text,
-                                                                                                              lambda: idata.change_source(ceargs.sender.default_slot.children[0].text),
-                                                                                                              pinput,
-                                                                                                              spinner))
-                            # source_label = ui.label(idata.llm_source(idata.llm_config())).classes('w-full')
+                        with ui.row().classes('border col-span-2 grid grid-cols-2 grid-cols-[auto_1fr] gap-0'):
+                            with ui.column().classes('gap-0'):
+                                ui.label('source').classes('text-green text-[12px] font-[400] mx-[4px] my[1px]')
+                                source_label = ui.label(text=idata.llm_source(idata.llm_config())).classes('mx-[4px] my[1px]'
+                                                                                                           ).tooltip('vs=vector search, llm=lg lang model, rag=vs then llm')
+
+                                sub_llm_label = ui.label('...').classes('text-orange-400 text-[12px] font-[300] mx-[4px] my[1px] italic')
+                            with ui.column().classes('gap-0 self-center'):
+                                ui.icon('arrow_drop_down').classes('text-gray-100 text-2xl self-end')
+                            with ui.menu():
+                                for k, v in sources.items():
+                                    with ui.menu_item(k, auto_close=False):
+                                        with ui.item_section().props('side'):
+                                            ui.icon('keyboard_arrow_right')
+                                        with ui.menu().props('anchor="top end" self="top start" auto-close'):
+                                            for sub_k in v:
+                                                ui.menu_item(sub_k, on_click=lambda ceargs: change_source(source_label, sub_llm_label,
+                                                                                                          ceargs.sender.default_slot.children[0].text,
+                                                                                                          lambda: idata.change_source(ceargs.sender.default_slot.children[0].text),
+                                                                                                          pinput, spinner, idata))
 
                         for sinfo in settings.specs():
                             # vc.sender.props['label'] is 'n', 'temp', ...

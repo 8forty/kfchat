@@ -61,6 +61,9 @@ class InstanceData:
     def mode_is_rag(self) -> bool:
         return self._mode == self._rag_mode
 
+    def source_is_rag(self, source: str) -> bool:
+        return source.strip().startswith(self._rag_mode_prefix)
+
     def llm_source(self, llm_config: LLMConfig) -> str:
         """
         build full llm source title from an LLMConfig
