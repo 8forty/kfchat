@@ -28,6 +28,7 @@ from vectorstore.vssettings import VSSettings
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
+# todo: values overlap with lc_chunkers.chunks
 # function-name-string : {model-name : {function, create_parms: {model_name}, read_parms: {}}}
 chroma_embedding_types: dict[str, dict[str, dict[str, any]]] = {
     'SentenceTransformer-Embeddings': {
@@ -45,17 +46,17 @@ chroma_embedding_types: dict[str, dict[str, dict[str, any]]] = {
     'OpenAI-Embeddings': {
         'text-embedding-3-large': {
             'function': OpenAIEmbeddingFunction,
-            'create_parms': {'model_name': 'text-embedding-3-large', 'api_key': config.env.get('kfOPENAI_API_KEY')},
+            'create_parms': {'model_name': 'text-embedding-3-large', 'api_key': config.env.get('kfOPENAI_API_KEY'), 'api_base': config.env.get('kfOPENAI_ENDPOINT')},
             'read_parms': {'api_key': config.env.get('kfOPENAI_API_KEY')},
         },
         'text-embedding-ada-002': {
             'function': OpenAIEmbeddingFunction,
-            'create_parms': {'model_name': 'text-embedding-ada-002', 'api_key': config.env.get('kfOPENAI_API_KEY')},
+            'create_parms': {'model_name': 'text-embedding-ada-002', 'api_key': config.env.get('kfOPENAI_API_KEY'), 'api_base': config.env.get('kfOPENAI_ENDPOINT')},
             'read_parms': {'api_key': config.env.get('kfOPENAI_API_KEY')},
         },
         'text-embedding-3-small': {
             'function': OpenAIEmbeddingFunction,
-            'create_parms': {'model_name': 'text-embedding-3-small', 'api_key': config.env.get('kfOPENAI_API_KEY')},
+            'create_parms': {'model_name': 'text-embedding-3-small', 'api_key': config.env.get('kfOPENAI_API_KEY'), 'api_base': config.env.get('kfOPENAI_ENDPOINT')},
             'read_parms': {'api_key': config.env.get('kfOPENAI_API_KEY')},
         },
     },
@@ -102,17 +103,17 @@ chroma_embedding_types: dict[str, dict[str, dict[str, any]]] = {
     'Github-OpenAI-Embeddings': {
         'text-embedding-3-large': {
             'function': OpenAIEmbeddingFunction,
-            'create_parms': {'model_name': 'text-embedding-3-large', 'api_key': config.env.get('kfGITHUB_TOKEN')},
+            'create_parms': {'model_name': 'text-embedding-3-large', 'api_key': config.env.get('kfGITHUB_TOKEN'), 'api_base': config.env.get('kfGITHUB_ENDPOINT')},
             'read_parms': {'api_key': config.env.get('kfGITHUB_TOKEN')},
         },
         'text-embedding-ada-002': {
             'function': OpenAIEmbeddingFunction,
-            'create_parms': {'model_name': 'text-embedding-ada-002', 'api_key': config.env.get('kfGITHUB_TOKEN')},
+            'create_parms': {'model_name': 'text-embedding-ada-002', 'api_key': config.env.get('kfGITHUB_TOKEN'), 'api_base': config.env.get('kfGITHUB_ENDPOINT')},
             'read_parms': {'api_key': config.env.get('kfGITHUB_TOKEN')},
         },
         'text-embedding-3-small': {
             'function': OpenAIEmbeddingFunction,
-            'create_parms': {'model_name': 'text-embedding-3-small', 'api_key': config.env.get('kfGITHUB_TOKEN')},
+            'create_parms': {'model_name': 'text-embedding-3-small', 'api_key': config.env.get('kfGITHUB_TOKEN'), 'api_base': config.env.get('kfGITHUB_ENDPOINT')},
             'read_parms': {'api_key': config.env.get('kfGITHUB_TOKEN')},
         },
     },
@@ -625,7 +626,7 @@ class VSChroma(VSAPI):
 
                 # create tables needed for full-text search
                 # the content table
-                log.debug(f'create {config.sql_chunks_table_name}: {config.sql_chunks_create}')
+                log.debug(f'creating table {config.sql_chunks_table_name}')  # : {config.sql_chunks_create}')
                 cursor.execute(config.sql_chunks_create)
 
                 # need to combine statements for each trigger type (i/d/u) from every fts_type
@@ -634,19 +635,19 @@ class VSChroma(VSAPI):
                 update_trigger_stmts = []
                 for fts_type in fts_types:
                     # full-text search tables/collections
-                    log.debug(f'create fts5 {config.sql_chunks_fts5[fts_type].table_name}: {config.sql_chunks_fts5[fts_type].create}')
+                    log.debug(f'create fts5 table {config.sql_chunks_fts5[fts_type].table_name}')  # : {config.sql_chunks_fts5[fts_type].create}')
                     insert_trigger_stmts.append(config.sql_chunks_fts5[fts_type].insert_trigger)
                     delete_trigger_stmts.append(config.sql_chunks_fts5[fts_type].delete_trigger)
                     update_trigger_stmts.append(config.sql_chunks_fts5[fts_type].update_trigger)
                     cursor.execute(config.sql_chunks_fts5[fts_type].create)
                 itrigger = f"{config.sql_chunks_insert_trigger_create} begin\n{'\n'.join(insert_trigger_stmts)}\nend;"
-                log.debug(f'add insert trigger: {itrigger}')
+                log.debug(f'add insert trigger: {config.sql_chunks_insert_trigger_create}...')
                 cursor.execute(itrigger)
                 dtrigger = f"{config.sql_chunks_delete_trigger_create} begin\n{'\n'.join(delete_trigger_stmts)}\nend;"
-                log.debug(f'add delete trigger: {dtrigger}')
+                log.debug(f'add delete trigger: {config.sql_chunks_delete_trigger_create}...')
                 cursor.execute(dtrigger)
                 utrigger = f"{config.sql_chunks_update_trigger_create} begin\n{'\n'.join(update_trigger_stmts)}\nend;"
-                log.debug(f'add update trigger: {utrigger}')
+                log.debug(f'add update trigger: {config.sql_chunks_update_trigger_create}...')
                 cursor.execute(utrigger)
 
                 # insert the chunks
