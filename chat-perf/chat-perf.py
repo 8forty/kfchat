@@ -85,7 +85,7 @@ def run(model_sets_name: str, settings_sets_name: str, message_set_name: str, cs
                     llm_config = LLMAnthropicConfig(model_spec.name, model_spec.provider, LLMOpenAISettings.from_settings(Data.llm_settings_sets['ollama-warmup'][0]))
                 else:
                     raise ValueError(f'api must be "openai" or "anthropic"!')
-                llm_config.chat_messages([LLMMessagePair('user', 'How many galaxies are there?')])
+                llm_config.chat_messages(messages=[LLMMessagePair('user', 'How many galaxies are there?')])
                 warmup_secs = timeit.default_timer() - warmup_start
                 csv_data.append([llm_config.provider(), llm_config.model_name, '', '', '(warm-up)', '', '', str(warmup_secs)])
                 print(f'{config.secs_string(all_start)}: warmup: {warmup_secs:.1f}s')

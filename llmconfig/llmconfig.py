@@ -84,7 +84,7 @@ class LLMConfig(ABC):
         """
         pass
 
-    def chat_messages(self, messages: list[LLMMessagePair], context: list[str] | None, max_rate_limit_retries: int = 10) -> LLMExchange:
+    def chat_messages(self, messages: list[LLMMessagePair], context: list[str] | None = None, max_rate_limit_retries: int = 10) -> LLMExchange:
         """
         run chat-completion from a list of messages that includes the prompt as the final LLMMessagePair: {role': 'user', 'content': '...'}
         NOTE: this configuration's system message will be used instead of any supplied in messages
@@ -96,7 +96,7 @@ class LLMConfig(ABC):
         log.debug(f'{messages=}')
         return self._chat(messages, context, max_rate_limit_retries=max_rate_limit_retries)
 
-    def chat_convo(self, convo: list[LLMExchange], prompt: str, context: list[str] | None, max_rate_limit_retries: int = 10) -> LLMExchange:
+    def chat_convo(self, convo: list[LLMExchange], prompt: str, context: list[str] | None = None, max_rate_limit_retries: int = 10) -> LLMExchange:
         """
         run chat-completion with a conversation (list of LLMExchanges) and a prompt,
         NOTE: this configuration's system message will be used instead of any supplied in convo

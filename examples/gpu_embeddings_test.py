@@ -1,10 +1,12 @@
-#  print(onnxruntime.get_available_providers())
-# results on medusa:
-# ['TensorrtExecutionProvider', 'CUDAExecutionProvider', 'CPUExecutionProvider']
 import timeit
 
 from chromadb.utils.embedding_functions.onnx_mini_lm_l6_v2 import ONNXMiniLM_L6_V2
 from chromadb.utils.embedding_functions.sentence_transformer_embedding_function import SentenceTransformerEmbeddingFunction
+
+
+# results on medusa:
+# ['TensorrtExecutionProvider', 'CUDAExecutionProvider', 'CPUExecutionProvider']
+# print(onnxruntime.get_available_providers())
 
 
 def onnx_minilm(docs):
