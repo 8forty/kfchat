@@ -134,6 +134,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                 raise e
         except (Exception,) as e:
             errmsg = f'Error creating collection: {e.__class__.__name__}: {e}'
+            traceback.print_exc(file=sys.stdout)
             log.warning(errmsg)
             ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
 

@@ -2,10 +2,11 @@ import json
 import logging
 import sqlite3
 import timeit
-from typing import Annotated
+from typing import Annotated, Any
 
 import chromadb
 import chromadb.api.types as chroma_api_types
+import yaml
 from chromadb.api.models.Collection import Collection
 from chromadb.errors import InvalidCollectionException
 from chromadb.utils.embedding_functions.google_embedding_function import GoogleGenerativeAiEmbeddingFunction
@@ -28,110 +29,41 @@ from vectorstore.vssettings import VSSettings
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
-# todo: values overlap with lc_chunkers.chunks
-# function-name-string : {model-name : {function, create_parms: {model_name}, read_parms: {}}}
-chroma_embedding_types: dict[str, dict[str, dict[str, any]]] = {
-    'SentenceTransformer-Embeddings': {
-        'all-MiniLM-L6-v2': {
-            'function': SentenceTransformerEmbeddingFunction,
-            'create_parms': {'model_name': 'all-MiniLM-L6-v2'},
-            'read_parms': {},
-        },
-        'all-mpnet-base-v2': {
-            'function': SentenceTransformerEmbeddingFunction,
-            'create_parms': {'model_name': 'all-mpnet-base-v2'},
-            'read_parms': {},
-        },
-    },
-    'OpenAI-Embeddings': {
-        'text-embedding-3-large': {
-            'function': OpenAIEmbeddingFunction,
-            'create_parms': {'model_name': 'text-embedding-3-large', 'api_key': config.env.get('kfOPENAI_API_KEY'), 'api_base': config.env.get('kfOPENAI_ENDPOINT')},
-            'read_parms': {'api_key': config.env.get('kfOPENAI_API_KEY')},
-        },
-        'text-embedding-ada-002': {
-            'function': OpenAIEmbeddingFunction,
-            'create_parms': {'model_name': 'text-embedding-ada-002', 'api_key': config.env.get('kfOPENAI_API_KEY'), 'api_base': config.env.get('kfOPENAI_ENDPOINT')},
-            'read_parms': {'api_key': config.env.get('kfOPENAI_API_KEY')},
-        },
-        'text-embedding-3-small': {
-            'function': OpenAIEmbeddingFunction,
-            'create_parms': {'model_name': 'text-embedding-3-small', 'api_key': config.env.get('kfOPENAI_API_KEY'), 'api_base': config.env.get('kfOPENAI_ENDPOINT')},
-            'read_parms': {'api_key': config.env.get('kfOPENAI_API_KEY')},
-        },
-    },
-    'Google-GenerativeAI-Embeddings': {
-        # gemini-embedding-exp-03-07
-        'models/gemini-embedding-exp-03-07': {
-            'function': GoogleGenerativeAiEmbeddingFunction,
-            'create_parms': {'model_name': 'models/gemini-embedding-exp-03-07', 'api_key': config.env.get('kfGEMINI_API_KEY')},
-            'read_parms': {'api_key': config.env.get('kfGEMINI_API_KEY')},
-        },
-        'models/text-embedding-004': {
-            'function': GoogleGenerativeAiEmbeddingFunction,
-            'create_parms': {'model_name': 'models/text-embedding-004', 'api_key': config.env.get('kfGEMINI_API_KEY')},
-            'read_parms': {'api_key': config.env.get('kfGEMINI_API_KEY')},
-        },
-        'models/embedding-001': {
-            'function': GoogleGenerativeAiEmbeddingFunction,
-            'create_parms': {'model_name': 'models/embedding-001', 'api_key': config.env.get('kfGEMINI_API_KEY')},
-            'read_parms': {'api_key': config.env.get('kfGEMINI_API_KEY')},
-        },
-    },
-    'Ollama-Embeddings': {
-        'nomic-embed-text': {
-            'function': OllamaEmbeddingFunction,
-            'create_parms': {'model_name': 'nomic-embed-text', 'url': 'http://localhost:11434/api/embeddings'},
-            'read_parms': {},
-        },
-        'snowflake-arctic-embed2': {
-            'function': OllamaEmbeddingFunction,
-            'create_parms': {'model_name': 'snowflake-arctic-embed2', 'url': 'http://localhost:11434/api/embeddings'},
-            'read_parms': {},
-        },
-        'mxbai-embed-large': {
-            'function': OllamaEmbeddingFunction,
-            'create_parms': {'model_name': 'mxbai-embed-large', 'url': 'http://localhost:11434/api/embeddings'},
-            'read_parms': {},
-        },
-        # 'granite-embedding:278m': {
-        #     'function': OllamaEmbeddingFunction,
-        #     'create_parms': {'model_name': 'granite-embedding:278m', 'url': 'http://localhost:11434/api/embeddings'},
-        #     'read_parms': {},
-        # },
-    },
-    'Github-OpenAI-Embeddings': {
-        'text-embedding-3-large': {
-            'function': OpenAIEmbeddingFunction,
-            'create_parms': {'model_name': 'text-embedding-3-large', 'api_key': config.env.get('kfGITHUB_TOKEN'), 'api_base': config.env.get('kfGITHUB_ENDPOINT')},
-            'read_parms': {'api_key': config.env.get('kfGITHUB_TOKEN')},
-        },
-        'text-embedding-ada-002': {
-            'function': OpenAIEmbeddingFunction,
-            'create_parms': {'model_name': 'text-embedding-ada-002', 'api_key': config.env.get('kfGITHUB_TOKEN'), 'api_base': config.env.get('kfGITHUB_ENDPOINT')},
-            'read_parms': {'api_key': config.env.get('kfGITHUB_TOKEN')},
-        },
-        'text-embedding-3-small': {
-            'function': OpenAIEmbeddingFunction,
-            'create_parms': {'model_name': 'text-embedding-3-small', 'api_key': config.env.get('kfGITHUB_TOKEN'), 'api_base': config.env.get('kfGITHUB_ENDPOINT')},
-            'read_parms': {'api_key': config.env.get('kfGITHUB_TOKEN')},
-        },
-    },
-}
-
 
 def _fix(s: str) -> str:
     return s.replace('\'', '\'\'')
 
 
 class VSChroma(VSAPI):
+    chroma_embedding_functions = {
+        'SentenceTransformer': SentenceTransformerEmbeddingFunction,
+        'OpenAI': OpenAIEmbeddingFunction,
+        'GoogleGenerativeAi': GoogleGenerativeAiEmbeddingFunction,
+        'Ollama': OllamaEmbeddingFunction
+    }
+    chroma_embedding_types: dict[str, dict[str, dict[str, Any]]] = None  # loaded from config
 
-    @staticmethod
-    def embedding_types_list(embedding_type: str = None) -> list[str]:
+    @classmethod
+    def embedding_types_list(cls, embedding_type: str = None) -> list[str]:
+        if cls.chroma_embedding_types is None:
+            # load the embedding types config
+            with open('embeddings.yml', 'r') as efile:
+                cls.chroma_embedding_types = yaml.safe_load(efile)
+                cls.chroma_embedding_types.pop('metadata')
+
+                for et in cls.chroma_embedding_types:
+                    for subtype in cls.chroma_embedding_types[et]:
+                        # add the function reference
+                        st = cls.chroma_embedding_types[et][subtype]
+                        st['function'] = cls.chroma_embedding_functions[st['function_key']]
+                        if subtype == 'api_key_env':
+                            pass
+
+
         if embedding_type is None:
-            return list(chroma_embedding_types.keys())
+            return list(cls.chroma_embedding_types.keys())
         else:
-            return list(chroma_embedding_types[embedding_type].keys())
+            return list(cls.chroma_embedding_types[embedding_type].keys())
 
     @staticmethod
     def doc_loaders_list() -> list[str]:
@@ -196,9 +128,11 @@ class VSChroma(VSAPI):
                 ef_name: str = metadata['embedding_function_name'] if 'embedding_function_name' in metadata else 'unknown'
                 ef_parms: str = metadata['embedding_function_parms'] if 'embedding_function_parms' in metadata else 'unknown'
                 model_name = json.loads(ef_parms)['model_name']
-                ef: chroma_api_types.EmbeddingFunction[chroma_api_types.Documents] = chroma_embedding_types[ef_type][model_name]['function']
+                ef: chroma_api_types.EmbeddingFunction[chroma_api_types.Documents] = VSChroma.chroma_embedding_types[ef_type][model_name]['function']
                 ef_parms: dict[str, str] = json.loads(metadata['embedding_function_parms'])
-                ef_parms.update(chroma_embedding_types[ef_type][model_name]['read_parms'])  # adds e.g. a key
+                read_parms = VSChroma.chroma_embedding_types[ef_type][model_name]['read_parms']  # adds e.g. a key
+                if read_parms is not None:
+                    ef_parms.update(read_parms)
 
                 start = timeit.default_timer()
                 # noinspection PyTypeChecker
@@ -475,7 +409,7 @@ class VSChroma(VSAPI):
         #     "hnsw:M": 60
         # },
         # todo: CollectionConfiguration will eventually be implemented: https://github.com/chroma-core/chroma/pull/2495
-        embedding_function_info = chroma_embedding_types[embedding_type][subtype]  # default: 'all-MiniLM-L6-v2'
+        embedding_function_info = VSChroma.chroma_embedding_types[embedding_type][subtype]  # default: 'all-MiniLM-L6-v2'
         #  x: CollectionConfiguration = CollectionConfiguration(hnsw_configuration=HNSWConfiguration(space='cosine'))
         collection: Collection = self._client.create_collection(
             name=name,
@@ -502,7 +436,7 @@ class VSChroma(VSAPI):
         return collection
 
     @staticmethod
-    def fix_metadata_for_modify(md: dict[str, any]) -> dict[str, any]:
+    def fix_metadata_for_modify(md: dict[str, Any]) -> dict[str, Any]:
         """
         this is necessary b/c the hnsw parameters are passed as metadata currently and some (e.g. "hnsw:space") CAN'T BE CHANGED
         see: https://github.com/chroma-core/chroma/issues/2515
@@ -510,7 +444,7 @@ class VSChroma(VSAPI):
         :param md:
         :return:
         """
-        retval: dict[str, any] = {}
+        retval: dict[str, Any] = {}
         for k, v in md.items():
             retval[k if not k.startswith('hnsw') else f'org-{k}'] = v
         return retval
@@ -555,13 +489,13 @@ class VSChroma(VSAPI):
 
         return good_docs
 
-    def filter_metadata(self, metadata: dict[str, any]) -> dict[str, any]:
+    def filter_metadata(self, metadata: dict[str, Any]) -> dict[str, Any]:
         """
         removes values that aren't in allowed_types and
         :param metadata:
         :return:
         """
-        retval: dict[str, any] = {}
+        retval: dict[str, Any] = {}
         for key, value in metadata.items():
             if not isinstance(value, self.md_allowed_types):
                 continue

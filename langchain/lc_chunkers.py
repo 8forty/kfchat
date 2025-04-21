@@ -13,7 +13,6 @@ chunkers = {
     # rc-text-splitter
     f'{RecursiveCharacterTextSplitter.__name__}:1000/200': {'function': RecursiveCharacterTextSplitter, 'args': {'chunk_size': 1000, 'chunk_overlap': 200}},
 
-    # openai semantic chunker
     f'{SemanticChunker.__name__}:oai(ada002)/defaults': {'function': SemanticChunker,
                                                          'args': {'embeddings': OpenAIEmbeddings(model='text-embedding-ada-002',
                                                                                                  api_key=providers_config['OPENAI']['key'],
