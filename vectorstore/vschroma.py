@@ -19,6 +19,7 @@ from pydantic import Field, validate_call
 
 import config
 import logstuff
+import dotenv
 from chatexchanges import VectorStoreResponse, VectorStoreResult
 from config import FTSType
 from langchain import lc_docloaders, lc_chunkers
@@ -28,6 +29,9 @@ from vectorstore.vssettings import VSSettings
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
+
+dotenv.load_dotenv(override=True)
+env = dotenv.dotenv_values()
 
 
 def _fix(s: str) -> str:
@@ -44,6 +48,26 @@ class VSChroma(VSAPI):
     chroma_embedding_types: dict[str, dict[str, dict[str, Any]]] = None  # loaded from config
 
     @classmethod
+    def recurse_add_envs(cls, yaml_dict: dict[str, Any], new_dict: dict[str, Any]) -> dict[str, Any]:
+        """
+        build a dictionary from the given dict replacing any keys that end with '_env' with the same key with the _env removed and the env-var's value
+        :param yaml_dict:
+        :param new_dict:
+        :return:
+        """
+        for k in yaml_dict.keys():
+            if isinstance(yaml_dict[k], dict):
+                new_dict[k] = cls.recurse_add_envs(yaml_dict[k], {})
+            else:
+                if k.endswith('_env'):
+                    new_key = k[0:len(k) - 4]
+                    new_dict[new_key] = env.get(yaml_dict[k])
+                else:
+                    new_dict[k] = yaml_dict[k]
+
+        return new_dict
+
+    @classmethod
     def embedding_types_list(cls, embedding_type: str = None) -> list[str]:
         if cls.chroma_embedding_types is None:
             # load the embedding types config
@@ -56,9 +80,7 @@ class VSChroma(VSAPI):
                         # add the function reference
                         st = cls.chroma_embedding_types[et][subtype]
                         st['function'] = cls.chroma_embedding_functions[st['function_key']]
-                        if subtype == 'api_key_env':
-                            pass
-
+                        st.update(cls.recurse_add_envs(st, {}))
 
         if embedding_type is None:
             return list(cls.chroma_embedding_types.keys())

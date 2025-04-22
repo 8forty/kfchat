@@ -2,6 +2,8 @@ metadata:
   version: 2025-04-21.00:00:00PDT
 
 
+# embedding types
+# any node with a name that ends with _env triggers replacement by a node without the _env set to the corresponding env-var value
 'SentenceTransformer-Embeddings':
 
   'all-MiniLM-L6-v2':
