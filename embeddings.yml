@@ -1,106 +1,147 @@
 metadata:
   version: 2025-04-21.00:00:00PDT
 
+anchors:
+  oai-key-base: &oai-key-base
+    api_key_env: kfOPENAI_API_KEY
+    api_base_env: kfOPENAI_ENDPOINT
+
+  oai-key: &oai-key
+    api_key_env: kfOPENAI_API_KEY
+
+  ghoai-key-base: &ghoai-key-base
+    api_key_env: kfGITHUB_TOKEN
+    api_base_env: kfGITHUB_ENDPOINT
+
+  ghoai-key: &ghoai-key
+    api_key_env: kfGITHUB_TOKEN
+
+  ggai-key: &ggai-key
+    api_key_env: kfGEMINI_API_KEY
+
 
 # embedding types
 # any node with a name that ends with _env triggers replacement by a node without the _env set to the corresponding env-var value
-'SentenceTransformer-Embeddings':
+SentenceTransformer-Embeddings:
 
-  'all-MiniLM-L6-v2':
-    function_key: SentenceTransformer
-    'create_parms':
-      model_name: 'all-MiniLM-L6-v2'
-    read_parms:
-
-  'all-mpnet-base-v2':
-    function_key: SentenceTransformer
+  all-MiniLM-L6-v2:
+    embedding_function_key: SentenceTransformer
     create_parms:
-      model_name: 'all-mpnet-base-v2'
+      model_name: all-MiniLM-L6-v2
     read_parms:
 
-'OpenAI-Embeddings':
+  all-mpnet-base-v2:
+    embedding_function_key: SentenceTransformer
+    create_parms:
+      model_name: all-mpnet-base-v2
+    read_parms:
 
-  'text-embedding-3-large':
-    function_key: OpenAI
-    'create_parms':
-      'model_name': 'text-embedding-3-large'
-      'api_key_env': kfOPENAI_API_KEY
-      'api_base_env': kfOPENAI_ENDPOINT
-    'read_parms':
-      'api_key_env': kfOPENAI_API_KEY
+OpenAI-Embeddings:
 
-  'text-embedding-ada-002':
-    'function_key': OpenAI
-    'create_parms':
-      'model_name': 'text-embedding-ada-002'
-      'api_key_env': kfOPENAI_API_KEY
-      'api_base_env': kfOPENAI_ENDPOINT
-    'read_parms':
-      'api_key_env': kfOPENAI_API_KEY
+  text-embedding-3-large:
+    embedding_function_key: OpenAI
+    create_parms:
+      model_name: text-embedding-3-large
+      <<: *oai-key-base
+    read_parms:
+      <<: *oai-key
 
-  'text-embedding-3-small':
-    'function_key': OpenAI
-    'create_parms':
-      'model_name': 'text-embedding-3-small'
-      'api_key_env': kfOPENAI_API_KEY
-      'api_base_env': kfOPENAI_ENDPOINT
-    'read_parms':
-      'api_key_env': kfOPENAI_API_KEY
+  text-embedding-ada-002:
+    embedding_function_key: OpenAI
+    create_parms:
+      model_name: text-embedding-ada-002
+      <<: *oai-key-base
+    read_parms:
+      <<: *oai-key
 
-#    'Google-GenerativeAI-Embeddings': {
-#        # gemini-embedding-exp-03-07
-#        'models/gemini-embedding-exp-03-07': {
-#            'function': GoogleGenerativeAiEmbeddingFunction,
-#            'create_parms': {'model_name': 'models/gemini-embedding-exp-03-07', 'api_key': config.env.get('kfGEMINI_API_KEY')},
-#            'read_parms': {'api_key': config.env.get('kfGEMINI_API_KEY')},
-#        },
-#        'models/text-embedding-004': {
-#            'function': GoogleGenerativeAiEmbeddingFunction,
-#            'create_parms': {'model_name': 'models/text-embedding-004', 'api_key': config.env.get('kfGEMINI_API_KEY')},
-#            'read_parms': {'api_key': config.env.get('kfGEMINI_API_KEY')},
-#        },
-#        'models/embedding-001': {
-#            'function': GoogleGenerativeAiEmbeddingFunction,
-#            'create_parms': {'model_name': 'models/embedding-001', 'api_key': config.env.get('kfGEMINI_API_KEY')},
-#            'read_parms': {'api_key': config.env.get('kfGEMINI_API_KEY')},
-#        },
-#    },
-#    'Ollama-Embeddings': {
-#        'nomic-embed-text': {
-#            'function': OllamaEmbeddingFunction,
-#            'create_parms': {'model_name': 'nomic-embed-text', 'url': 'http://localhost:11434/api/embeddings'},
-#            'read_parms': {},
-#        },
-#        'snowflake-arctic-embed2': {
-#            'function': OllamaEmbeddingFunction,
-#            'create_parms': {'model_name': 'snowflake-arctic-embed2', 'url': 'http://localhost:11434/api/embeddings'},
-#            'read_parms': {},
-#        },
-#        'mxbai-embed-large': {
-#            'function': OllamaEmbeddingFunction,
-#            'create_parms': {'model_name': 'mxbai-embed-large', 'url': 'http://localhost:11434/api/embeddings'},
-#            'read_parms': {},
-#        },
-#        # 'granite-embedding:278m': {
-#        #     'function': OllamaEmbeddingFunction,
-#        #     'create_parms': {'model_name': 'granite-embedding:278m', 'url': 'http://localhost:11434/api/embeddings'},
-#        #     'read_parms': {},
-#        # },
-#    },
-#    'Github-OpenAI-Embeddings': {
-#        'text-embedding-3-large': {
-#            'function': OpenAIEmbeddingFunction,
-#            'create_parms': {'model_name': 'text-embedding-3-large', 'api_key': config.env.get('kfGITHUB_TOKEN'), 'api_base': config.env.get('kfGITHUB_ENDPOINT')},
-#            'read_parms': {'api_key': config.env.get('kfGITHUB_TOKEN')},
-#        },
-#        'text-embedding-ada-002': {
-#            'function': OpenAIEmbeddingFunction,
-#            'create_parms': {'model_name': 'text-embedding-ada-002', 'api_key': config.env.get('kfGITHUB_TOKEN'), 'api_base': config.env.get('kfGITHUB_ENDPOINT')},
-#            'read_parms': {'api_key': config.env.get('kfGITHUB_TOKEN')},
-#        },
-#        'text-embedding-3-small': {
-#            'function': OpenAIEmbeddingFunction,
-#            'create_parms': {'model_name': 'text-embedding-3-small', 'api_key': config.env.get('kfGITHUB_TOKEN'), 'api_base': config.env.get('kfGITHUB_ENDPOINT')},
-#            'read_parms': {'api_key': config.env.get('kfGITHUB_TOKEN')},
-#        },
-#    },
+  text-embedding-3-small:
+    embedding_function_key: OpenAI
+    create_parms:
+      model_name: text-embedding-3-small
+      <<: *oai-key-base
+    read_parms:
+      <<: *oai-key
+
+Google-GenerativeAI-Embeddings:
+
+  models/gemini-embedding-exp-03-07:
+    embedding_function_key: GoogleGenerativeAi
+    create_parms:
+      model_name: models/gemini-embedding-exp-03-07
+      <<: *ggai-key
+    read_parms:
+      <<: *ggai-key
+
+  models/text-embedding-004:
+    embedding_function_key: GoogleGenerativeAi
+    create_parms:
+      model_name: models/text-embedding-004
+      <<: *ggai-key
+    read_parms:
+      <<: *ggai-key
+
+  models/embedding-001:
+    embedding_function_key: GoogleGenerativeAi
+    create_parms:
+      model_name: models/embedding-001
+      <<: *ggai-key
+    read_parms:
+      <<: *ggai-key
+
+
+Ollama-Embeddings:
+
+  nomic-embed-text:
+    embedding_function_key: Ollama
+    create_parms:
+      model_name: nomic-embed-text
+      url: http://localhost:11434/api/embeddings
+    read_parms:
+
+  snowflake-arctic-embed2:
+    embedding_function_key: Ollama
+    create_parms:
+      model_name: snowflake-arctic-embed2
+      url: http://localhost:11434/api/embeddings
+    read_parms:
+
+  mxbai-embed-large:
+    embedding_function_key: Ollama
+    create_parms:
+      model_name: mxbai-embed-large
+      url: http://localhost:11434/api/embeddings
+    read_parms:
+
+#  granite-embedding:278m:
+#    embedding_function_key: Ollama
+#    create_parms:
+#      model_name: granite-embedding:278m
+#      url: http://localhost:11434/api/embeddings
+#    read_parms:
+
+
+Github-OpenAI-Embeddings:
+
+  text-embedding-3-large:
+    embedding_function_key: OpenAI
+    create_parms:
+      model_name: text-embedding-3-large
+      <<: *ghoai-key-base
+    read_parms:
+      <<: *ghoai-key
+
+  text-embedding-ada-002:
+    embedding_function_key: OpenAI
+    create_parms:
+      model_name: text-embedding-ada-002
+      <<: *ghoai-key-base
+    read_parms:
+      <<: *ghoai-key
+
+  text-embedding-3-small:
+    embedding_function_key: OpenAI
+    create_parms:
+      model_name: text-embedding-3-small
+      <<: *ghoai-key-base
+    read_parms:
+      <<: *ghoai-key

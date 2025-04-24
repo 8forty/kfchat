@@ -48,7 +48,7 @@ class VSChroma(VSAPI):
     chroma_embedding_types: dict[str, dict[str, dict[str, Any]]] = None  # loaded from config
 
     @classmethod
-    def recurse_add_envs(cls, yaml_dict: dict[str, Any], new_dict: dict[str, Any]) -> dict[str, Any]:
+    def _recurse_add_envs(cls, yaml_dict: dict[str, Any], new_dict: dict[str, Any]) -> dict[str, Any]:
         """
         build a dictionary from the given dict replacing any keys that end with '_env' with the same key with the _env removed and the env-var's value
         :param yaml_dict:
@@ -57,7 +57,7 @@ class VSChroma(VSAPI):
         """
         for k in yaml_dict.keys():
             if isinstance(yaml_dict[k], dict):
-                new_dict[k] = cls.recurse_add_envs(yaml_dict[k], {})
+                new_dict[k] = cls._recurse_add_envs(yaml_dict[k], {})
             else:
                 if k.endswith('_env'):
                     new_key = k[0:len(k) - 4]
@@ -71,16 +71,20 @@ class VSChroma(VSAPI):
     def embedding_types_list(cls, embedding_type: str = None) -> list[str]:
         if cls.chroma_embedding_types is None:
             # load the embedding types config
+            filename = 'embeddings.yml'
+            log.debug(f'loading embedding types from {filename}')
             with open('embeddings.yml', 'r') as efile:
                 cls.chroma_embedding_types = yaml.safe_load(efile)
-                cls.chroma_embedding_types.pop('metadata')
+                cls.chroma_embedding_types.pop('metadata')  # ignore
+                cls.chroma_embedding_types.pop('anchors')  # ignore
 
                 for et in cls.chroma_embedding_types:
+                    log.debug(f'added embedding type {et}')
                     for subtype in cls.chroma_embedding_types[et]:
                         # add the function reference
                         st = cls.chroma_embedding_types[et][subtype]
-                        st['function'] = cls.chroma_embedding_functions[st['function_key']]
-                        st.update(cls.recurse_add_envs(st, {}))
+                        st['function'] = cls.chroma_embedding_functions[st['embedding_function_key']]
+                        st.update(cls._recurse_add_envs(st, {}))
 
         if embedding_type is None:
             return list(cls.chroma_embedding_types.keys())
