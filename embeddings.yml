@@ -86,7 +86,7 @@ Google-GenerativeAI-Embeddings:
     create_parms:
       model_name: models/text-embedding-005
       <<: *ggai-key
-      # NOTE: lc embedding function doesn't support api_base args (yet?)
+      # NOTE: lc embedding function for ggai doesn't support api_base args (yet?)
       # <<: *ggai-key-base-v1beta
     read_parms:
       <<: *ggai-key

@@ -206,9 +206,6 @@ class LLMData:
 
         ModelSpec('RFI-Automate-GPT-4o-mini-2000k', provider='AZURE', api='openai'),
 
-        ModelSpec('gemini-2.5-flash', provider='GEMINI', api='openai'),
-        ModelSpec('gemini-2.5-flash-lite', provider='GEMINI', api='openai'),
-        ModelSpec('gemini-2.5-pro-preview-03-25', provider='GEMINI', api='openai'),
         ModelSpec('gemini-1.5-flash', provider='GEMINI', api='openai'),
         ModelSpec('gemini-1.5-flash-8b', provider='GEMINI', api='openai'),
         ModelSpec('gemini-1.5-pro', provider='GEMINI', api='openai'),
@@ -216,7 +213,9 @@ class LLMData:
         ModelSpec('gemini-2.0-flash-lite', provider='GEMINI', api='openai'),
         ModelSpec('gemini-2.0-pro', provider='GEMINI', api='openai'),
         ModelSpec('gemini-2.0-flash-thinking-exp-01-21', provider='GEMINI', api='openai'),
-        ModelSpec('gemini-2.5-pro-exp-03-25', provider='GEMINI', api='openai'),
+        #ModelSpec('gemini-2.5-flash', provider='GEMINI', api='openai'),
+        #ModelSpec('gemini-2.5-flash-lite', provider='GEMINI', api='openai'),
+        ModelSpec('gemini-2.5-pro-preview-03-25', provider='GEMINI', api='openai'),
         ModelSpec('gemma-3-27b-it', provider='GEMINI', api='openai'),
 
         ModelSpec('gpt-4o-mini', provider='GITHUB', api='openai'),
