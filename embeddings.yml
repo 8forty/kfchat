@@ -19,6 +19,15 @@ anchors:
   ggai-key: &ggai-key
     api_key_env: kfGEMINI_API_KEY
 
+  # NOTE: lc embedding function doesn't support api_base args (yet?)
+  ggai-key-base-v1beta: &ggai-key-base-v1beta
+    api_key_env: kfGEMINI_API_KEY
+    api_base_env: kfGEMINI_ENDPOINTv1beta
+
+  ggai-key-base-v1: &ggai-key-base-v1
+    api_key_env: kfGEMINI_API_KEY
+    api_base_env: kfGEMINI_ENDPOINTv1
+
 
 # embedding types
 # any node with a name that ends with _env triggers replacement by a node without the _env set to the corresponding env-var value
@@ -69,6 +78,16 @@ Google-GenerativeAI-Embeddings:
     create_parms:
       model_name: models/gemini-embedding-exp-03-07
       <<: *ggai-key
+    read_parms:
+      <<: *ggai-key
+
+  models/text-embedding-005:
+    embedding_function_key: GoogleGenerativeAi
+    create_parms:
+      model_name: models/text-embedding-005
+      <<: *ggai-key
+      # NOTE: lc embedding function doesn't support api_base args (yet?)
+      # <<: *ggai-key-base-v1beta
     read_parms:
       <<: *ggai-key
 

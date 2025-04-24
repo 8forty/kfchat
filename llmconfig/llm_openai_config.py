@@ -47,7 +47,7 @@ providers_config = {
     },
     'GEMINI': {
         'key': env.get('kfGEMINI_API_KEY'),
-        'kfGEMINI_ENDPOINT': env.get('kfGEMINI_ENDPOINT'),
+        'kfGEMINI_ENDPOINT': env.get('kfGEMINI_ENDPOINTv1beta'),
     },
     'GITHUB': {
         'key': env.get('kfGITHUB_TOKEN'),
@@ -182,7 +182,7 @@ class LLMOpenAIConfig(LLMConfig):
         #     log.info(f'building LLM API for [{self._provider}]: {endpoint=} key={redact(key)}')
         #     self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         # elif self._provider == 'gemini':
-        #     endpoint = providers_config[self._provider]['kfGEMINI_ENDPOINT']
+        #     endpoint = providers_config[self._provider]['kfGEMINI_ENDPOINTv1beta']
         #     key = providers_config[self._provider]['key']
         #     log.info(f'building LLM API for [{self._provider}]: {endpoint=} key={redact(key)}')
         #     self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
