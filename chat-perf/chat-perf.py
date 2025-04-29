@@ -18,7 +18,7 @@ class Data:
     llm_model_sets = {
         'base': [
             config.LLMData.models_by_pname['OLLAMA.llama3.2:1b'],
-            config.LLMData.models_by_pname['OLLAMA.llama3.2:3b']
+            config.LLMData.models_by_pname['OLLAMA.llama3.2:3b'],
         ],
 
         'groq-base': [
@@ -30,6 +30,36 @@ class Data:
             config.LLMData.models_by_pname['GROQ.qwen-qwq-32b'],
             config.LLMData.models_by_pname['GROQ.gemma2-9b-it'],
             config.LLMData.models_by_pname['GROQ.deepseek-r1-distill-llama-70b'],
+        ],
+
+        'gorbash-test': [
+            config.LLMData.models_by_pname['OLLAMA.llama3.2:3b'],
+            config.LLMData.models_by_pname['OLLAMA.mistral-nemo:12b'],
+            config.LLMData.models_by_pname['OLLAMA.mixtral:8x7b'],
+            config.LLMData.models_by_pname['OLLAMA.gemma2:9b-instruct-fp16'],
+            config.LLMData.models_by_pname['OLLAMA.gemma2:9b-text-fp16'],
+            config.LLMData.models_by_pname['OLLAMA.gemma3:1b'],
+            config.LLMData.models_by_pname['OLLAMA.gemma3:4b'],
+            config.LLMData.models_by_pname['OLLAMA.gemma3:12b'],
+            config.LLMData.models_by_pname['OLLAMA.gemma3:12b-it-fp16'],
+            config.LLMData.models_by_pname['OLLAMA.gemma3:27b'],
+            config.LLMData.models_by_pname['OLLAMA.gemma3:27b-it-fp16'],
+            config.LLMData.models_by_pname['OLLAMA.llama3.3:70b'],
+            config.LLMData.models_by_pname['OLLAMA.llama3.3:70b-instruct-q2_K'],
+            config.LLMData.models_by_pname['OLLAMA.deepseek-r1:32b'],
+            config.LLMData.models_by_pname['OLLAMA.deepseek-v2:16b'],
+            config.LLMData.models_by_pname['OLLAMA.qwq:latest'],
+            config.LLMData.models_by_pname['OLLAMA.phi4:14b'],
+            config.LLMData.models_by_pname['OLLAMA.phi4:14b-q8_0'],
+            config.LLMData.models_by_pname['OLLAMA.phi4:14b-fp16'],
+            config.LLMData.models_by_pname['OLLAMA.olmo2:13b'],
+            config.LLMData.models_by_pname['OLLAMA.command-r7b'],
+            config.LLMData.models_by_pname['OLLAMA.openthinker:32b'],
+            config.LLMData.models_by_pname['OLLAMA.qwen3:14b-q8_0'],
+            config.LLMData.models_by_pname['OLLAMA.qwen3:30b-a3b'],
+            config.LLMData.models_by_pname['OLLAMA.qwen3:30b-a3b-q4_K_M'],
+            config.LLMData.models_by_pname['OLLAMA.qwen3:32b-q4_K_M'],
+            config.LLMData.models_by_pname['OLLAMA.qwen3:32b'],
         ],
     }
 
@@ -79,6 +109,10 @@ class Data:
             LLMRawSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=400,
                            init_system_message_name='empty'),
         ],
+        'gorbash-test': [
+            LLMRawSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800,
+                           init_system_message_name='professional800'),
+        ],
         'ollama-warmup': [
             LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=800,
                            init_system_message_name='carl-sagan'),
@@ -86,7 +120,7 @@ class Data:
     }
 
 
-def run(model_sets_name: str, settings_sets_name: str, prompt_set_name: str, csv_data: list[list[str]]):
+def run(model_sets_name: str, settings_set_name: str, prompt_set_name: str, csv_data: list[list[str]]):
     run_start_time = timeit.default_timer()
     model_spec: config.ModelSpec
     csv_data.append(['provider', 'model', 'temp', 'max_tokens', 'sysmsg', 'prompt-set', 'tokens-in', 'tokens-out',
@@ -121,7 +155,7 @@ def run(model_sets_name: str, settings_sets_name: str, prompt_set_name: str, csv
 
         # llm_settings_sets
         response_line: str = ''
-        for settings in Data.llm_settings_sets[settings_sets_name]:
+        for settings in Data.llm_settings_sets[settings_set_name]:
             if model_spec.api == 'openai':
                 llm_config = LLMOpenAIConfig(model_spec.name, model_spec.provider, LLMOpenAISettings.from_settings(settings))
             elif model_spec.api == 'anthropic':
@@ -169,15 +203,15 @@ def run(model_sets_name: str, settings_sets_name: str, prompt_set_name: str, csv
                             )
 
     run_end_time = timeit.default_timer()
-    print(f'{config.secs_string(all_start)}: finished run {model_sets_name}/{settings_sets_name}/{prompt_set_name}: '
+    print(f'{config.secs_string(all_start)}: finished run {model_sets_name}/{settings_set_name}/{prompt_set_name}: '
           f'{run_end_time - run_start_time:.1f}s')
 
 
 def main():
     csv_data = []
 
-    run(model_sets_name='base', settings_sets_name='quick', prompt_set_name='space', csv_data=csv_data)
-    # run(model_sets_name='base2', settings_sets_name='quick', prompt_set_name='explain', csv_data=csv_data)
+    # run(model_sets_name='base', settings_sets_name='quick', prompt_set_name='space', csv_data=csv_data)
+    run(model_sets_name='gorbash-test', settings_set_name='gorbash-test', prompt_set_name='gorbash-test', csv_data=csv_data)
     # run(model_sets_name='groq-base', settings_sets_name='quick', prompt_set_name='space', csv_data=csv_data)
 
     print(f'{config.secs_string(all_start)}: finished all runs: {timeit.default_timer() - all_start:.1f}s')

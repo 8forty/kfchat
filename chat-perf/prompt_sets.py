@@ -42,4 +42,8 @@ llm_prompt_sets = {
     'drug': [
         [LLMMessagePair('user', teplizumab_prompt)]
     ],
+    'gorbash-test': [
+        # 'what data security does gorbash have?'
+        [LLMMessagePair('user', 'gorbash compliance hotline number?')]
+    ],
 }

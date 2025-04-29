@@ -285,7 +285,6 @@ class LLMData:
         ModelSpec('qwen3:30b-a3b-q4_K_M', provider='OLLAMA', api='openai'),
         ModelSpec('qwen3:32b-q4_K_M', provider='OLLAMA', api='openai'),
         ModelSpec('qwen3:32b', provider='OLLAMA', api='openai'),
-        # qwen3:14b-q8_0 qwen3:30b-a3b qwen3:30b-a3b-q4_K_M qwen3:32b-q4_K_M qwen3:32b
 
         ModelSpec('gpt-4.1', provider='OPENAI', api='openai'),
         ModelSpec('gpt-4o', provider='OPENAI', api='openai'),
