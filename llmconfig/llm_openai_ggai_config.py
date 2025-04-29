@@ -51,7 +51,7 @@ class LLMOpenAIGGAIConfig(LLMOpenAIConfig):
             max_tokens=self._settings.max_tokens,  # default 16?
             n=chat_n,
 
-            stream=False,
+            # stream=False,
 
         )
 

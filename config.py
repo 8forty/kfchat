@@ -246,10 +246,14 @@ class LLMData:
         ModelSpec('llama3.2:3b', provider='OLLAMA', api='openai'),
         ModelSpec('mistral-nemo:12b', provider='OLLAMA', api='openai'),
         ModelSpec('mixtral:8x7b', provider='OLLAMA', api='openai'),
+        ModelSpec('gemma2:9b-instruct-fp16', provider='OLLAMA', api='openai'),
+        ModelSpec('gemma2:9b-text-fp16', provider='OLLAMA', api='openai'),
         ModelSpec('gemma3:1b', provider='OLLAMA', api='openai'),
         ModelSpec('gemma3:4b', provider='OLLAMA', api='openai'),
         ModelSpec('gemma3:12b', provider='OLLAMA', api='openai'),
+        ModelSpec('gemma3:12b-it-fp16', provider='OLLAMA', api='openai'),
         ModelSpec('gemma3:27b', provider='OLLAMA', api='openai'),
+        ModelSpec('gemma3:27b-it-fp16', provider='OLLAMA', api='openai'),
         ModelSpec('llama3.3:70b', provider='OLLAMA', api='openai'),
         ModelSpec('llama3.3:70b-instruct-q2_K', provider='OLLAMA', api='openai'),
         ModelSpec('deepseek-r1:1.5b', provider='OLLAMA', api='openai'),
@@ -259,6 +263,8 @@ class LLMData:
         ModelSpec('deepseek-v2:16b', provider='OLLAMA', api='openai'),
         ModelSpec('qwq:latest', provider='OLLAMA', api='openai'),
         ModelSpec('phi4:14b', provider='OLLAMA', api='openai'),
+        ModelSpec('phi4:14b-q8_0', provider='OLLAMA', api='openai'),
+        ModelSpec('phi4:14b-fp16', provider='OLLAMA', api='openai'),
         ModelSpec('granite3.2:2b', provider='OLLAMA', api='openai'),
         ModelSpec('granite3.2:8b', provider='OLLAMA', api='openai'),
         ModelSpec('phi4-mini', provider='OLLAMA', api='openai'),
@@ -274,10 +280,19 @@ class LLMData:
         ModelSpec('qwen2.5:14b', provider='OLLAMA', api='openai'),
         ModelSpec('qwen2.5:32b', provider='OLLAMA', api='openai'),
         ModelSpec('qwen2.5:72b', provider='OLLAMA', api='openai'),
+        ModelSpec('qwen3:14b-q8_0', provider='OLLAMA', api='openai'),
+        ModelSpec('qwen3:30b-a3b', provider='OLLAMA', api='openai'),
+        ModelSpec('qwen3:30b-a3b-q4_K_M', provider='OLLAMA', api='openai'),
+        ModelSpec('qwen3:32b-q4_K_M', provider='OLLAMA', api='openai'),
+        ModelSpec('qwen3:32b', provider='OLLAMA', api='openai'),
+        # qwen3:14b-q8_0 qwen3:30b-a3b qwen3:30b-a3b-q4_K_M qwen3:32b-q4_K_M qwen3:32b
 
-        ModelSpec('gpt-4o-mini', provider='OPENAI', api='openai'),
+        ModelSpec('gpt-4.1', provider='OPENAI', api='openai'),
         ModelSpec('gpt-4o', provider='OPENAI', api='openai'),
-        ModelSpec('o1', provider='OPENAI', api='openai'),
+        ModelSpec('gpt-4o-mini', provider='OPENAI', api='openai'),
+        ModelSpec('chatgpt-4o-latest', provider='OPENAI', api='openai'),
+        ModelSpec('o4-mini', provider='OPENAI', api='openai'),
+        ModelSpec('o3', provider='OPENAI', api='openai'),
         ModelSpec('o3-mini', provider='OPENAI', api='openai'),
     ]
     models_by_pname = {f'{ms.provider}.{ms.name}': ms for ms in models}
@@ -300,6 +315,9 @@ class LLMData:
                               'Your responses must always be less than 800 tokens.')
     technical_sysmsg = ('You are an AI research assistant. '
                         'Respond in a tone that is technical and scientific.')
+    technical80_sysmsg = ('You are an AI research assistant. '
+                          'Respond in a tone that is technical and scientific.'
+                          'Your responses must always be less than 800 tokens.')
     technical800_sysmsg = ('You are an AI research assistant. Respond in a tone that is technical and scientific. '
                            'All math equations should be latex format delimited by $$. '
                            'Your responses must always be less than 800 tokens.')
@@ -308,12 +326,13 @@ class LLMData:
     empty_sysmsg = ''
 
     sysmsg_all = OrderedDict({
-        'generic': conversational_sysmsg,
-        'generic80': conversational80_sysmsg,
+        'convo': conversational_sysmsg,
+        'convo80': conversational80_sysmsg,
         'professional': professional_sysmsg,
         'professional80': professional80_sysmsg,
         'professional800': professional800_sysmsg,
         'technical': technical_sysmsg,
+        'technical80': technical80_sysmsg,
         'technical800': technical800_sysmsg,
         'text-sentiment': textclass_sysmsg,
         'carl-sagan': csagan_sysmsg,

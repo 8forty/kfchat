@@ -25,7 +25,7 @@ rag_lc_rlm_prompt = ("You are an assistant for question-answering tasks. Use the
                      "sentences maximum and keep the answer concise.  \nQuestion: {question}  \nContext: {context}  \nAnswer:")
 
 # each value is a list of message-sets (i.e. lists of LLMMessagePair's] to run
-llm_message_sets = {
+llm_prompt_sets = {
     'space': [
         [LLMMessagePair('user', galaxies_prompt)],
         [LLMMessagePair('user', blackholes_prompt)]
