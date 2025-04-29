@@ -24,7 +24,7 @@ name = 'kfchat'
 
 chat_exchanges_circular_list_count = 10
 
-sql_path = 'c:\\sqlite\\kfchat\\kfchat.sqlite3'
+sql_path = 'c:/sqlite/kfchat/kfchat.sqlite3'  # slashes work ok on windows
 sql_chunks_table_name = 'chunks'
 sql_chunks_create = f"""
         create table if not exists {sql_chunks_table_name} (
@@ -213,8 +213,8 @@ class LLMData:
         ModelSpec('gemini-2.0-flash-lite', provider='GEMINI', api='openai'),
         ModelSpec('gemini-2.0-pro', provider='GEMINI', api='openai'),
         ModelSpec('gemini-2.0-flash-thinking-exp-01-21', provider='GEMINI', api='openai'),
-        #ModelSpec('gemini-2.5-flash', provider='GEMINI', api='openai'),
-        #ModelSpec('gemini-2.5-flash-lite', provider='GEMINI', api='openai'),
+        # ModelSpec('gemini-2.5-flash', provider='GEMINI', api='openai'),
+        # ModelSpec('gemini-2.5-flash-lite', provider='GEMINI', api='openai'),
         ModelSpec('gemini-2.5-pro-preview-03-25', provider='GEMINI', api='openai'),
         ModelSpec('gemma-3-27b-it', provider='GEMINI', api='openai'),
 

@@ -1,7 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="main" type="Python.FastAPI">
     <option name="additionalOptions" />
-    <option name="file" value="C:\cygwin64\home\User\dev\kfchat\main.py" />
+    <option name="file" value="C:\cygwin64\home\kf\dev\kfchat\main.py" />
     <module name="kfchat" />
     <option name="ENV_FILES" value="" />
     <option name="INTERPRETER_OPTIONS" value="" />

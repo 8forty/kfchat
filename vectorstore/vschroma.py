@@ -1,11 +1,13 @@
 import json
 import logging
+import os
 import sqlite3
 import timeit
 from typing import Annotated, Any
 
 import chromadb
 import chromadb.api.types as chroma_api_types
+import dotenv
 import yaml
 from chromadb.api.models.Collection import Collection
 from chromadb.utils.embedding_functions.google_embedding_function import GoogleGenerativeAiEmbeddingFunction
@@ -18,7 +20,6 @@ from pydantic import Field, validate_call
 
 import config
 import logstuff
-import dotenv
 from chatexchanges import VectorStoreResponse, VectorStoreResult
 from config import FTSType
 from langchain import lc_docloaders, lc_chunkers
@@ -38,6 +39,12 @@ def _fix(s: str) -> str:
 
 
 class VSChroma(VSAPI):
+    class EmptyIngestError(Exception):
+        pass
+
+    class OllamaEmbeddingsError(Exception):
+        pass
+
     chroma_embedding_functions = {
         'SentenceTransformer': SentenceTransformerEmbeddingFunction,
         'OpenAI': OpenAIEmbeddingFunction,
@@ -67,7 +74,27 @@ class VSChroma(VSAPI):
         return new_dict
 
     @classmethod
+    def _load_embeddings(cls):
+        if cls.chroma_embedding_types is None:
+            # load the embedding types config
+            filename = 'embeddings.yml'
+            log.debug(f'loading embedding types from {filename}')
+            with open('embeddings.yml', 'r') as efile:
+                cls.chroma_embedding_types = yaml.safe_load(efile)
+                cls.chroma_embedding_types.pop('metadata')  # ignore
+                cls.chroma_embedding_types.pop('anchors')  # ignore
+
+                for et in cls.chroma_embedding_types:
+                    log.debug(f'added embedding type {et}')
+                    for subtype in cls.chroma_embedding_types[et]:
+                        # add the function reference
+                        st = cls.chroma_embedding_types[et][subtype]
+                        st['function'] = cls.chroma_embedding_functions[st['embedding_function_key']]
+                        st.update(cls._recurse_add_envs(st, {}))
+
+    @classmethod
     def embedding_types_list(cls, embedding_type: str = None) -> list[str]:
+        cls._load_embeddings()
         if cls.chroma_embedding_types is None:
             # load the embedding types config
             filename = 'embeddings.yml'
@@ -98,12 +125,6 @@ class VSChroma(VSAPI):
     def chunkers_list() -> list[str]:
         return list(lc_chunkers.chunkers.keys())
 
-    class EmptyIngestError(Exception):
-        pass
-
-    class OllamaEmbeddingsError(Exception):
-        pass
-
     def __init__(self, vs_type_name: str, vssettings: VSSettings, parms: dict[str, str]):
         super().__init__(vs_type_name, vssettings, parms)
         self._settings: VSChromaSettings = VSChromaSettings.from_settings(vssettings)
@@ -132,9 +153,9 @@ class VSChroma(VSAPI):
             collection = self._client.get_collection(name=collection_name)
             log.debug(f'{collection_name} metadata load {timeit.default_timer() - start: .1f}s')
             return collection
-        #except InvalidCollectionException:
+        # except InvalidCollectionException: kf
         except (Exception,) as e:
-            #errmsg = f'bad collection name: {self.collection_name}'
+            # errmsg = f'bad collection name: {self.collection_name}'
             errmsg = f'error on {self.collection_name}: {e}'
             log.warning(errmsg)
             raise ValueError(errmsg)
@@ -145,36 +166,35 @@ class VSChroma(VSAPI):
         :param collection_name:
         :return:
         """
-        try:
-            # first figure out the embedding function safely in case e.g. we need a key for it
-            start = timeit.default_timer()
-            metadata = self._client.get_collection(name=collection_name).metadata
-            log.debug(f'{collection_name} metadata load {timeit.default_timer() - start: .1f}s')
-            if 'embedding_function_name' in metadata:
-                ef_type: str = metadata['embedding_type'] if 'embedding_type' in metadata else 'unknown'
-                ef_name: str = metadata['embedding_function_name'] if 'embedding_function_name' in metadata else 'unknown'
-                ef_parms: str = metadata['embedding_function_parms'] if 'embedding_function_parms' in metadata else 'unknown'
-                model_name = json.loads(ef_parms)['model_name']
-                ef: chroma_api_types.EmbeddingFunction[chroma_api_types.Documents] = VSChroma.chroma_embedding_types[ef_type][model_name]['function']
-                ef_parms: dict[str, str] = json.loads(metadata['embedding_function_parms'])
-                read_parms = VSChroma.chroma_embedding_types[ef_type][model_name]['read_parms']  # adds e.g. a key
-                if read_parms is not None:
-                    ef_parms.update(read_parms)
+        start = timeit.default_timer()
+        self._load_embeddings()
+        # first figure out the embedding function safely in case e.g. we need a key for it
+        metadata = self._client.get_collection(name=collection_name).metadata
+        log.debug(f'{collection_name} metadata load {timeit.default_timer() - start: .1f}s')
+        if 'embedding_function_name' in metadata:
+            ef_type: str = metadata['embedding_type'] if 'embedding_type' in metadata else 'unknown'
+            ef_name: str = metadata['embedding_function_name'] if 'embedding_function_name' in metadata else 'unknown'
+            ef_parms: str = metadata['embedding_function_parms'] if 'embedding_function_parms' in metadata else 'unknown'
+            model_name = json.loads(ef_parms)['model_name']
+            log.debug(f'loading embedding function {ef_type}:{model_name}:function')
+            print(f'~~~ {VSChroma.chroma_embedding_types[ef_type][model_name]}')
+            ef: chroma_api_types.EmbeddingFunction[chroma_api_types.Documents] = \
+                VSChroma.chroma_embedding_types[ef_type][model_name]['function']
+            ef_parms: dict[str, str] = json.loads(metadata['embedding_function_parms'])
+            read_parms = VSChroma.chroma_embedding_types[ef_type][model_name]['read_parms']  # adds e.g. a key
+            if read_parms is not None:
+                ef_parms.update(read_parms)
 
-                start = timeit.default_timer()
-                # noinspection PyTypeChecker
-                full_collection = self._client.get_collection(
-                    name=collection_name,
-                    embedding_function=ef(**ef_parms)
-                )
-                log.debug(f'{collection_name} full load {timeit.default_timer() - start: .1f}s')
-                return full_collection
-            else:
-                raise ValueError(f'collection {collection_name} has no embedding_function_name in metadata!')
-        except InvalidCollectionException:
-            errmsg = f'bad collection name: {self.collection_name}'
-            log.warning(errmsg)
-            raise ValueError(errmsg)
+            start = timeit.default_timer()
+            # noinspection PyTypeChecker
+            full_collection = self._client.get_collection(
+                name=collection_name,
+                embedding_function=ef(**ef_parms)
+            )
+            log.debug(f'{collection_name} full load {timeit.default_timer() - start: .1f}s')
+            return full_collection
+        else:
+            raise ValueError(f'collection {collection_name} has no embedding_function_name in metadata!')
 
     def _build_clients(self):
         if self._client is not None:
@@ -186,7 +206,7 @@ class VSChroma(VSAPI):
 
     def list_collection_names(self) -> list[str]:
         self._build_clients()
-        return [name for name in self._client.list_collections()]
+        return [coll.name for coll in self._client.list_collections()]
 
     @validate_call()
     def embeddings_search(self, query: str, max_results: Annotated[int, Field(strict=True, ge=1)] = 10) -> VSAPI.SearchResponse:
@@ -198,8 +218,7 @@ class VSChroma(VSAPI):
         results: chroma_api_types.QueryResult = self._collection.query(
             query_texts=[query],  # chroma automatically creates embedding(s) for queries
             n_results=max_results,
-            include=[chroma_api_types.IncludeEnum('documents'), chroma_api_types.IncludeEnum('metadatas'), chroma_api_types.IncludeEnum('distances'),
-                     chroma_api_types.IncludeEnum('uris'), chroma_api_types.IncludeEnum('data')],
+            include=['documents', 'metadatas', 'distances', 'uris', 'data'],
         )
         results_keys = results.keys()  # 'documents', 'metadatas', ...
 
@@ -260,8 +279,9 @@ class VSChroma(VSAPI):
         if dense_weight < 1.0:
             try:
                 # todo: fresh connection every time necessary?
-                log.debug(f'connecting to sql: {config.sql_path}.{config.sql_chunks_table_name}')
-                with sqlite3.connect(config.sql_path) as sql:
+                log.debug(f'connecting to sql: {config.sql_path}')
+                os.makedirs(os.path.dirname(config.sql_path), exist_ok=True)
+                with sqlite3.connect(config.sql_path) as sql:  # this will create the db if it doesn't exist
                     cursor = sql.cursor()
 
                     # FTS5 table full-text search using MATCH operator, plus bm25 (smaller=better match)
@@ -280,6 +300,7 @@ class VSChroma(VSAPI):
                             metrics=metrics,
                             content=rowdict['content'],
                         ))
+
             except (Exception,) as e:
                 log.warning(f'SQL error! {e}')
                 raise e
@@ -329,27 +350,24 @@ class VSChroma(VSAPI):
         self._client.delete_collection(collection_name)
         self._collection = None
 
-        log.debug(f'connecting to sql: {config.sql_path}.{config.sql_chunks_table_name}')
-        sql = None
+        os.makedirs(os.path.dirname(config.sql_path), exist_ok=True)
         try:
             # todo: fresh connection every time necessary?
-            sql = sqlite3.connect(config.sql_path)
-            cursor = sql.cursor()
+            log.debug(f'connecting to sql: {config.sql_path}')
+            with sqlite3.connect(config.sql_path) as sql:  # this will create the db if it doesn't exist
+                cursor = sql.cursor()
 
-            delete = f"delete from {config.sql_chunks_table_name} where collection ='{collection_name}';"
-            log.debug(f'delete {config.sql_chunks_table_name}: {delete}')
-            cursor.execute(delete)
+                delete = f"delete from {config.sql_chunks_table_name} where collection ='{collection_name}';"
+                log.debug(f'delete {config.sql_chunks_table_name}: {delete}')
+                cursor.execute(delete)
 
-            # NOTE: fts tables are chroma "external content" with delete triggers so no need for explicit deletes
+                # NOTE: fts tables are chroma "external content" with delete triggers so no need for explicit deletes
 
-            sql.commit()
+                sql.commit()
 
         except (Exception,) as e:
             log.warning(f'SQL error! {e}')
             raise e
-        finally:
-            if sql is not None:
-                sql.close()
 
     def count(self):
         """
@@ -425,6 +443,7 @@ class VSChroma(VSAPI):
         :param subtype:
         """
         self._build_clients()
+        self._load_embeddings()
 
         # create the collection
         # todo: configure all this
@@ -578,11 +597,10 @@ class VSChroma(VSAPI):
 
             collection.add(documents=chunks_content, ids=ids, metadatas=metadata)
 
-            sql = None
-            try:
-                # todo: fresh connection every time
-                log.debug(f'connecting to sql: {config.sql_path}.{config.sql_chunks_table_name}')
-                sql = sqlite3.connect(config.sql_path)
+            # todo: fresh connection every time
+            os.makedirs(os.path.dirname(config.sql_path), exist_ok=True)
+            log.debug(f'connecting to sql: {config.sql_path}')
+            with sqlite3.connect(config.sql_path) as sql:  # this will create the db if it doesn't exist
                 cursor = sql.cursor()
 
                 # create tables needed for full-text search
@@ -619,13 +637,6 @@ class VSChroma(VSAPI):
                     cursor.execute(insert)
 
                 sql.commit()
-            except (Exception,) as e:
-                log.warning(f'SQL error! {e}')
-                raise e
-            finally:
-                if sql is not None:
-                    sql.close()
-
         except (Exception,) as e:
             collection_md = collection.metadata
             e_type: str = collection_md['embedding_type'] if 'embedding_type' in collection_md else 'unknown'
