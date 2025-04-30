@@ -119,7 +119,7 @@ class VSAzure(VSAPI):
                                                 sresp.results_raw[result_idx]['documents']))
         return VectorStoreResponse(vs_results)
 
-    def switch_collection(self, new_collection_name: str) -> None:
+    def set_collection(self, new_collection_name: str) -> None:
         log.info(f'changing index to [{new_collection_name}]')
         self._build_clients()
         self.index_name = new_collection_name

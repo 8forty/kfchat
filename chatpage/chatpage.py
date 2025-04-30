@@ -266,8 +266,10 @@ class ChatPage:
 
             # first get the vector results
             try:
-                # todo: configure max_results and dense_weight
-                vsresponse: VectorStoreResponse = await run.io_bound(lambda: idata.vectorstore().hybrid_search(query=prompt, max_results=0, dense_weight=0.5))
+                # todo: configure max_results and dense_weight, VSSettings maybe?
+                vsresponse: VectorStoreResponse = await run.io_bound(lambda: idata.vectorstore().hybrid_search(query=prompt,
+                                                                                                               max_results=0,
+                                                                                                               dense_weight=0.5))
                 log.debug(f'rag vector-search response: {vsresponse}')
                 context = [r.content for r in vsresponse.results]
                 if len(context) > 0:

@@ -650,8 +650,8 @@ class VSChroma(VSAPI):
 
         return collection
 
-    def switch_collection(self, new_collection_name: str) -> None:
+    def set_collection(self, new_collection_name: str) -> None:
         log.info(f'switching collection to [{new_collection_name}]')
         self._build_clients()
         self.collection_name = new_collection_name
-        self._collection: Collection = self.get_collection(self.collection_name)
+        self._collection = self.get_collection(self.collection_name)

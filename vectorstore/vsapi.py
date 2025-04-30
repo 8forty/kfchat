@@ -88,5 +88,9 @@ class VSAPI(ABC):
         pass
 
     @abstractmethod
-    def switch_collection(self, new_collection_name: str) -> None:
+    def set_collection(self, new_collection_name: str) -> None:
+        """
+        sets the given collection as the current/stored collection for this instance
+        :param new_collection_name:
+        """
         pass

@@ -18,7 +18,7 @@ def run(prompt: str, vs_type_name: str, collection_name: str, howmany: int):
     print(f'---- collection names from {vs.type()}:{collection_name}')
     print(f'     {vs.list_collection_names()}')
 
-    vs.switch_collection(collection_name)
+    vs.set_collection(collection_name)
     print(f'---- generating response from {vs.type()}:{collection_name}')
 
     # response = api.search(prompt, howmany)

@@ -4,7 +4,8 @@ import timeit
 import traceback
 
 import config
-from data import Data, CPRunType, CPRunSpec
+from cpfunctions import CPFunctions
+from cpdata import CPData, CPRunType, CPRunSpec
 from llmconfig.llm_anthropic_config import LLMAnthropicConfig
 from llmconfig.llm_openai_config import LLMOpenAIConfig, LLMOpenAISettings
 from llmconfig.llmexchange import LLMMessagePair, LLMExchange
@@ -21,12 +22,12 @@ def run(run_set_name: str, settings_set_name: str, prompt_set_name: str, csv_dat
                      'seconds', 'last-response-1line'])
 
     # llm_model_sets
-    for run_set in Data.run_sets[run_set_name]:
+    for run_set in CPData.run_sets[run_set_name]:
         print(f'{config.secs_string(all_start)}: running {run_set.run_type} {run_set.model.provider} {run_set.model.name}...')
 
         if run_set.run_type in [CPRunType.LLM, CPRunType.RAG]:
             model = run_set.model
-            settings: Data.LLMRawSettings
+            settings: CPData.LLMRawSettings
 
             # warmup the model if necessary
             if model.provider == 'OLLAMA':
@@ -35,10 +36,10 @@ def run(run_set_name: str, settings_set_name: str, prompt_set_name: str, csv_dat
                     print(f'{config.secs_string(all_start)}: warmup {model.provider} {model.name}...')
                     if model.api == 'openai':
                         llm_config = LLMOpenAIConfig(model.name, model.provider,
-                                                     LLMOpenAISettings.from_settings(Data.llm_settings_sets['ollama-warmup'][0]))
+                                                     LLMOpenAISettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
                     elif model.api == 'anthropic':
                         llm_config = LLMAnthropicConfig(model.name, model.provider,
-                                                        LLMOpenAISettings.from_settings(Data.llm_settings_sets['ollama-warmup'][0]))
+                                                        LLMOpenAISettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
                     else:
                         raise ValueError(f'api must be "openai" or "anthropic"!')
                     llm_config.chat_messages(messages=[LLMMessagePair('user', 'How many galaxies are there?')])
@@ -50,9 +51,9 @@ def run(run_set_name: str, settings_set_name: str, prompt_set_name: str, csv_dat
                     traceback.print_exc(file=sys.stderr)
                     break
 
-            # llm_settings_sets
+            # settings loop
             response_line: str = ''
-            for settings in Data.llm_settings_sets[settings_set_name]:
+            for settings in CPData.llm_settings_sets[settings_set_name]:
                 if model.api == 'openai':
                     llm_config = LLMOpenAIConfig(model.name, model.provider, LLMOpenAISettings.from_settings(settings))
                 elif model.api == 'anthropic':
@@ -64,9 +65,18 @@ def run(run_set_name: str, settings_set_name: str, prompt_set_name: str, csv_dat
                 ls_input_tokens = 0
                 ls_output_tokens = 0
                 # prompts loop
-                for idx, prompt_set in enumerate(Data.llm_prompt_sets[prompt_set_name]):
+                for idx, prompt_set in enumerate(CPData.llm_prompt_sets[prompt_set_name]):
+                    exchange: LLMExchange | None = None
                     try:
-                        exchange: LLMExchange = llm_config.chat_messages(messages=prompt_set, context=None)
+                        # exchange: LLMExchange = llm_config.chat_messages(messages=prompt_set, context=None)
+                        if run_set.run_type == CPRunType.LLM:
+                            exchange = CPFunctions.run_llm_prompt(prompt_set, None, llm_config, all_start)
+                        elif run_set.run_type == CPRunType.RAG:
+                            # todo: collection name duh
+                            exchange = CPFunctions.run_rag_prompt(prompt_set, 'gg1', llm_config,
+                                                                  0, 0.5, all_start)
+                        if exchange is None:
+                            raise ValueError(f'exchange is None!')
                     except (Exception,) as e:
                         print(f'run Exception! {llm_config.provider()}:{llm_config.model_name} '
                               f'{prompt_set_name}.{prompt_set}: {e.__class__.__name__}: {e} skipping...')
@@ -107,8 +117,8 @@ def run(run_set_name: str, settings_set_name: str, prompt_set_name: str, csv_dat
 def main():
     csv_data = []
 
-    run(run_set_name='base', settings_set_name='quick', prompt_set_name='space', csv_data=csv_data)
-    # run(model_sets_name='gorbash-test', settings_set_name='gorbash-test', prompt_set_name='gorbash-test', csv_data=csv_data)
+    # run(run_set_name='base', settings_set_name='quick', prompt_set_name='space', csv_data=csv_data)
+    run(run_set_name='gorbash-test', settings_set_name='gorbash-test', prompt_set_name='gorbash-test', csv_data=csv_data)
 
     print(f'{config.secs_string(all_start)}: finished all runs: {timeit.default_timer() - all_start:.1f}s')
 

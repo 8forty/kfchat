@@ -144,12 +144,12 @@ class InstanceData:
         elif selected_title.startswith(self._vs_mode_prefix):
             self._source = selected_title
             self._mode = self._vs_mode
-            await run.io_bound(lambda: self._vectorstore.switch_collection(new_collection_name=self._source.removeprefix(self._vs_mode_prefix)))
+            await run.io_bound(lambda: self._vectorstore.set_collection(new_collection_name=self._source.removeprefix(self._vs_mode_prefix)))
             log.debug(f'new vectorstore title: {self._source}')
         elif selected_title.startswith(self._rag_mode_prefix):
             self._source = selected_title
             self._mode = self._rag_mode
-            await run.io_bound(lambda: self._vectorstore.switch_collection(new_collection_name=self._source.removeprefix(self._rag_mode_prefix)))
+            await run.io_bound(lambda: self._vectorstore.set_collection(new_collection_name=self._source.removeprefix(self._rag_mode_prefix)))
             log.debug(f'new (rag) vectorstore title: {self._source}')
         else:
             raise ValueError(f'unknown selected title: {selected_title}')
