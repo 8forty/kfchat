@@ -16,6 +16,7 @@ class CPRunType(Enum):
 class CPRunSpec:
     run_type: CPRunType
     model: config.ModelSpec
+    collection_name: str = ''
 
 
 class CPData:
@@ -39,33 +40,33 @@ class CPData:
         ],
 
         'gorbash-test': [
-            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.llama3.2:3b']),
-            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.mistral-nemo:12b']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.mixtral:8x7b']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma2:9b-instruct-fp16']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma2:9b-text-fp16']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:1b']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:4b']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:12b']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:12b-it-fp16']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:27b']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:27b-it-fp16']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.llama3.3:70b']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.llama3.3:70b-instruct-q2_K']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.deepseek-r1:32b']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.deepseek-v2:16b']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwq:latest']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.phi4:14b']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.phi4:14b-q8_0']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.phi4:14b-fp16']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.olmo2:13b']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.command-r7b']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.openthinker:32b']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:14b-q8_0']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:30b-a3b']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:30b-a3b-q4_K_M']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:32b-q4_K_M']),
-            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:32b']),
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.llama3.2:3b'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.mistral-nemo:12b'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.mixtral:8x7b'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma2:9b-instruct-fp16'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma2:9b-text-fp16'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:1b'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:4b'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:12b'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:12b-it-fp16'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:27b'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:27b-it-fp16'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.llama3.3:70b'], 'gg1'),
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.llama3.3:70b-instruct-q2_K'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.deepseek-r1:32b'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.deepseek-v2:16b'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwq:latest'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.phi4:14b'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.phi4:14b-q8_0'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.phi4:14b-fp16'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.olmo2:13b'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.command-r7b'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.openthinker:32b'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:14b-q8_0'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:30b-a3b'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:30b-a3b-q4_K_M'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:32b-q4_K_M'], 'gg1'),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:32b'], 'gg1'),
         ],
     }
 

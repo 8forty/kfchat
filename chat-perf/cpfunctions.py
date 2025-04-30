@@ -45,7 +45,7 @@ class CPFunctions:
             vsresponse: VectorStoreResponse = vectorstore.hybrid_search(query=prompt, max_results=0, dense_weight=0.5)
             # log.debug(f'rag vector-search response: {vsresponse}')
             context = [r.content for r in vsresponse.results]
-            print(f'{config.secs_string(all_start)}: context {len(context)} from vs prompt: {prompt}')
+            print(f'{config.secs_string(all_start)}: {collection_name} had {len(context)} hits from vs prompt: {prompt}')
 
             # then get llm results
             if len(context) > 0:

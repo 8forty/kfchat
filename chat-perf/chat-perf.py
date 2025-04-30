@@ -1,4 +1,5 @@
 import logging
+import subprocess
 import sys
 import timeit
 import traceback
@@ -15,11 +16,20 @@ logging.disable(logging.INFO)
 all_start = timeit.default_timer()
 
 
+def ollama_ps(model: config.ModelSpec) -> str:
+    if model.provider == 'OLLAMA':
+        ollama_out = subprocess.run(['ollama', 'ps'], capture_output=True, text=True).stdout
+        o = ollama_out.splitlines()[1].split()
+        return f'{o[0]},{o[2]}{o[3]},{o[4]},{o[5]}'
+    else:
+        return ''
+
+
 def run(run_set_name: str, settings_set_name: str, prompt_set_name: str, csv_data: list[list[str]]):
     run_start_time = timeit.default_timer()
     run_set: CPRunSpec
     csv_data.append(['provider', 'model', 'temp', 'max_tokens', 'sysmsg', 'prompt-set', 'tokens-in', 'tokens-out',
-                     'seconds', 'last-response-1line'])
+                     'seconds', 'ollama', 'last-response-1line'])
 
     # llm_model_sets
     for run_set in CPData.run_sets[run_set_name]:
@@ -44,7 +54,8 @@ def run(run_set_name: str, settings_set_name: str, prompt_set_name: str, csv_dat
                         raise ValueError(f'api must be "openai" or "anthropic"!')
                     llm_config.chat_messages(messages=[LLMMessagePair('user', 'How many galaxies are there?')])
                     warmup_secs = timeit.default_timer() - warmup_start
-                    csv_data.append([llm_config.provider(), llm_config.model_name, '', '', '', '(warm-up)', '', '', f'{warmup_secs:.1f}', ''])
+                    csv_data.append([llm_config.provider(), llm_config.model_name, '', '', '', '(warm-up)', '', '',
+                                     f'{warmup_secs:.1f}', f'"{ollama_ps(model)}"', ''])
                     print(f'{config.secs_string(all_start)}: warmup: {warmup_secs:.1f}s')
                 except (Exception,) as e:
                     print(f'{config.secs_string(all_start)}: warmup Exception! {model.provider}:{model.name}: {e.__class__.__name__}: {e} skipping...')
@@ -72,8 +83,8 @@ def run(run_set_name: str, settings_set_name: str, prompt_set_name: str, csv_dat
                         if run_set.run_type == CPRunType.LLM:
                             exchange = CPFunctions.run_llm_prompt(prompt_set, None, llm_config, all_start)
                         elif run_set.run_type == CPRunType.RAG:
-                            # todo: collection name duh
-                            exchange = CPFunctions.run_rag_prompt(prompt_set, 'gg1', llm_config,
+                            # todo: configure
+                            exchange = CPFunctions.run_rag_prompt(prompt_set, run_set.collection_name, llm_config,
                                                                   0, 0.5, all_start)
                         if exchange is None:
                             raise ValueError(f'exchange is None!')
@@ -97,6 +108,7 @@ def run(run_set_name: str, settings_set_name: str, prompt_set_name: str, csv_dat
                       f'{llm_config.settings().value('system_message_name')}: '
                       f'{ls_input_tokens}+{ls_output_tokens} '
                       f'{timeit.default_timer() - ls:.1f}s')
+                print(f'{config.secs_string(all_start)}: ollama ps: {ollama_ps(model)}')
 
                 # csv
                 csv_data.append([llm_config.provider(), llm_config.model_name,
@@ -106,6 +118,7 @@ def run(run_set_name: str, settings_set_name: str, prompt_set_name: str, csv_dat
                                  f'{prompt_set_name}',
                                  str(ls_input_tokens), str(ls_output_tokens),
                                  f'{ms_end - ls:.1f}',
+                                 f'"{ollama_ps(model)}"',
                                  f'"{response_line}"']
                                 )
 
@@ -129,4 +142,5 @@ def main():
 
 
 if __name__ == "__main__":
+    # pydevd.settrace('localhost', port=5678, stdoutToServer=True, stderrToServer=True)
     main()

@@ -177,7 +177,6 @@ class VSChroma(VSAPI):
             ef_parms: str = metadata['embedding_function_parms'] if 'embedding_function_parms' in metadata else 'unknown'
             model_name = json.loads(ef_parms)['model_name']
             log.debug(f'loading embedding function {ef_type}:{model_name}:function')
-            print(f'~~~ {VSChroma.chroma_embedding_types[ef_type][model_name]}')
             ef: chroma_api_types.EmbeddingFunction[chroma_api_types.Documents] = \
                 VSChroma.chroma_embedding_types[ef_type][model_name]['function']
             ef_parms: dict[str, str] = json.loads(metadata['embedding_function_parms'])
