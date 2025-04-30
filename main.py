@@ -51,6 +51,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
         retry_wait_seconds = 15
         while True:
             try:
+                # todo: configure these
                 vssettings = VSChromaSettings(init_n=2, init_fts_type=FTSType.SQLITE3_TRIGRAM_IMPROVED)
                 vsparms = config.env.copy()
                 vectorstore = vsapi_factory.create_one('chroma', vssettings, parms=vsparms)  # todo: add to env

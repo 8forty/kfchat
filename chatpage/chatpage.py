@@ -271,6 +271,7 @@ class ChatPage:
                 log.debug(f'rag vector-search response: {vsresponse}')
                 context = [r.content for r in vsresponse.results]
                 if len(context) > 0:
+                    # then get llm results
                     exchange: LLMExchange | None = await run_llm_prompt(prompt, context, idata)
 
                     if exchange is not None:
