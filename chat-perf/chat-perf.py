@@ -79,7 +79,6 @@ def run(run_set_name: str, settings_set_name: str, prompt_set_name: str, csv_dat
                 for idx, prompt_set in enumerate(CPData.llm_prompt_sets[prompt_set_name]):
                     exchange: LLMExchange | None = None
                     try:
-                        # exchange: LLMExchange = llm_config.chat_messages(messages=prompt_set, context=None)
                         if run_set.run_type == CPRunType.LLM:
                             exchange = CPFunctions.run_llm_prompt(prompt_set, None, llm_config, all_start)
                         elif run_set.run_type == CPRunType.RAG:
