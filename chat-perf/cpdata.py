@@ -26,7 +26,7 @@ class CPData:
     run_sets: dict[str, list[CPRunSpec]] = {
         'base': [
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.llama3.2:1b']),
-            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.llama3.2:3b']),
+            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.llama3.2:3b']),
         ],
 
         'groq-base': [
@@ -90,6 +90,22 @@ class CPData:
             CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.phi4:14b'], 'gg1'),
             CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.phi4:14b-q8_0'], 'gg1'),
             CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.phi4:14b-fp16'], 'gg1'),
+
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:14b-q8_0'], 'gg1'),
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:30b-a3b'], 'gg1'),
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:30b-a3b-q4_K_M'], 'gg1'),
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:32b-q4_K_M'], 'gg1'),
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:32b'], 'gg1'),
+        ],
+
+        'gorbash-test-kf': [
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.llama3.2:3b'], 'gg1'),
+
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:1b'], 'gg1'),
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:4b'], 'gg1'),
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:12b'], 'gg1'),
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:12b-it-fp16'], 'gg1'),
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:27b'], 'gg1'),
 
             CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:14b-q8_0'], 'gg1'),
             CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:30b-a3b'], 'gg1'),

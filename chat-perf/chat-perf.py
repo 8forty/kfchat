@@ -4,12 +4,15 @@ import sys
 import timeit
 import traceback
 
+import ollamautils
+
 import config
 from cpfunctions import CPFunctions
 from cpdata import CPData, CPRunType, CPRunSpec
 from llmconfig.llm_anthropic_config import LLMAnthropicConfig
 from llmconfig.llm_openai_config import LLMOpenAIConfig, LLMOpenAISettings
 from llmconfig.llmexchange import LLMMessagePair, LLMExchange
+from ollamautils import OllamaUtils
 
 logging.disable(logging.INFO)
 
@@ -42,6 +45,10 @@ def run(run_set_name: str, settings_set_name: str, prompt_set_name: str, csv_dat
             # warmup the model if necessary
             if model.provider == 'OLLAMA':
                 warmup_start = timeit.default_timer()
+
+                ul_response = OllamaUtils.unload_all()
+                print(f'{config.secs_string(all_start)}: warmup: unloaded models {ul_response}')
+
                 try:
                     print(f'{config.secs_string(all_start)}: warmup {model.provider} {model.name}...')
                     if model.api == 'openai':
@@ -52,7 +59,17 @@ def run(run_set_name: str, settings_set_name: str, prompt_set_name: str, csv_dat
                                                         LLMOpenAISettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
                     else:
                         raise ValueError(f'api must be "openai" or "anthropic"!')
-                    llm_config.chat_messages(messages=[LLMMessagePair('user', 'How many galaxies are there?')])
+
+                    while True:
+                        # run the llm
+                        llm_config.chat_messages(messages=[LLMMessagePair('user', 'How many galaxies are there?')])
+
+                        # check that the correct model is running
+                        if not OllamaUtils.is_model_running(model.name):
+                            print(f'{config.secs_string(all_start)}: warmup: !! model {model.name} isn''t running!  retrying warmup...')
+                        else:
+                            break
+
                     warmup_secs = timeit.default_timer() - warmup_start
                     csv_data.append([llm_config.provider(), llm_config.model_name, '', '', '', '(warm-up)', '', '',
                                      f'{warmup_secs:.1f}', f'"{ollama_ps(model)}"', ''])
@@ -130,7 +147,7 @@ def main():
     csv_data = []
 
     # run(run_set_name='base', settings_set_name='quick', prompt_set_name='space', csv_data=csv_data)
-    run(run_set_name='gorbash-test', settings_set_name='gorbash-test', prompt_set_name='gorbash-test', csv_data=csv_data)
+    run(run_set_name='gorbash-test-kf', settings_set_name='gorbash-test', prompt_set_name='gorbash-test', csv_data=csv_data)
 
     print(f'{config.secs_string(all_start)}: finished all runs: {timeit.default_timer() - all_start:.1f}s')
 

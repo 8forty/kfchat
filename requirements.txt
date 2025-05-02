@@ -6,6 +6,8 @@ fastapi
 nicegui
 pandas
 chardet
+requests
+
 
 pyodbc
 sqlalchemy
