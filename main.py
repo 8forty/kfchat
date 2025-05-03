@@ -10,15 +10,14 @@ from typing_extensions import OrderedDict
 import chromadbpage
 import config
 import logstuff
+from chatpage import chatpage
 from config import FTSType
 from llmconfig import llmconfig_factory
-from llmconfig.llm_anthropic_config import LLMAnthropicSettings, LLMAnthropicConfig
+from llmconfig.llm_anthropic_config import LLMAnthropicSettings
+from llmconfig.llm_openai_config import LLMOpenAISettings
 from llmconfig.llmconfig import LLMConfig
 from vectorstore import vsapi_factory
-from chatpage import chatpage
-from llmconfig.llm_openai_config import LLMOpenAIConfig, LLMOpenAISettings
 from vectorstore.vschroma_settings import VSChromaSettings
-from vectorstore.vssettings import VSSettings
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)

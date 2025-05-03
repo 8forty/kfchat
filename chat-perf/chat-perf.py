@@ -4,12 +4,11 @@ import sys
 import timeit
 import traceback
 
-import ollamautils
-
 import config
-from cpfunctions import CPFunctions
 from cpdata import CPData, CPRunType, CPRunSpec
+from cpfunctions import CPFunctions
 from llmconfig.llm_anthropic_config import LLMAnthropicConfig
+from llmconfig.llm_ollama_config import LLMOllamaConfig
 from llmconfig.llm_openai_config import LLMOpenAIConfig, LLMOpenAISettings
 from llmconfig.llmexchange import LLMMessagePair, LLMExchange
 from ollamautils import OllamaUtils
@@ -46,19 +45,19 @@ def run(run_set_name: str, settings_set_name: str, prompt_set_name: str, csv_dat
             if model.provider == 'OLLAMA':
                 warmup_start = timeit.default_timer()
 
-                ul_response = OllamaUtils.unload_all()
-                print(f'{config.secs_string(all_start)}: warmup: unloaded models {ul_response}')
-
                 try:
                     print(f'{config.secs_string(all_start)}: warmup {model.provider} {model.name}...')
-                    if model.api == 'openai':
+                    if model.api.upper() == 'OPENAI':
                         llm_config = LLMOpenAIConfig(model.name, model.provider,
                                                      LLMOpenAISettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
-                    elif model.api == 'anthropic':
+                    elif model.api.upper() == 'ANTHROPIC':
                         llm_config = LLMAnthropicConfig(model.name, model.provider,
                                                         LLMOpenAISettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
+                    elif model.api.upper() == 'OLLAMA':
+                        llm_config = LLMOllamaConfig(model.name, model.provider,
+                                                     LLMOpenAISettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
                     else:
-                        raise ValueError(f'api must be "openai" or "anthropic"!')
+                        raise ValueError(f'api must be "openai" or "anthropic" or "ollama"!')
 
                     while True:
                         # run the llm
@@ -82,12 +81,14 @@ def run(run_set_name: str, settings_set_name: str, prompt_set_name: str, csv_dat
             # settings loop
             response_line: str = ''
             for settings in CPData.llm_settings_sets[settings_set_name]:
-                if model.api == 'openai':
+                if model.api.upper() == 'OPENAI':
                     llm_config = LLMOpenAIConfig(model.name, model.provider, LLMOpenAISettings.from_settings(settings))
-                elif model.api == 'anthropic':
+                elif model.api.upper() == 'ANTHROPIC':
                     llm_config = LLMAnthropicConfig(model.name, model.provider, LLMOpenAISettings.from_settings(settings))
+                elif model.api.upper() == 'OLLAMA':
+                    llm_config = LLMOllamaConfig(model.name, model.provider, LLMOpenAISettings.from_settings(settings))
                 else:
-                    raise ValueError(f'api must be "openai" or "anthropic"!')
+                    raise ValueError(f'api must be "openai" or "anthropic" or "ollama"!')
 
                 ls = timeit.default_timer()
                 ls_input_tokens = 0
@@ -111,6 +112,7 @@ def run(run_set_name: str, settings_set_name: str, prompt_set_name: str, csv_dat
 
                     ls_input_tokens += exchange.input_tokens
                     ls_output_tokens += exchange.output_tokens
+                    # play nice with CSV: get rid of newlines and double any double-quotes
                     response_line = (str(exchange.responses[0].content).replace("\n", "  ")
                                      .replace('"', '""'))
                     print(f'{config.secs_string(all_start)}: {prompt_set_name}[{idx}]: '
@@ -137,6 +139,10 @@ def run(run_set_name: str, settings_set_name: str, prompt_set_name: str, csv_dat
                                  f'"{ollama_ps(model)}"',
                                  f'"{response_line}"']
                                 )
+
+                if model.provider == 'OLLAMA':
+                    ul_response = OllamaUtils.unload_all()
+                    print(f'{config.secs_string(all_start)}: warmup: unloaded models {ul_response}')
 
     run_end_time = timeit.default_timer()
     print(f'{config.secs_string(all_start)}: finished run {run_set_name}/{settings_set_name}/{prompt_set_name}: '

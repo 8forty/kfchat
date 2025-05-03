@@ -27,7 +27,7 @@ class LLMExchange(ABC):
 
     :ivar prompt: the prompt
     :type prompt: str
-    :ivar provider: the LLM provider name, e.g. 'OPENAI' or 'ANTHROMPIC'
+    :ivar provider: the LLM provider name, e.g. 'OPENAI' or 'ANTHROMPIC' or 'OLLAMA'
     :type provider: str
     :ivar model_name: the model
     :type model_name: str

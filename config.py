@@ -192,7 +192,7 @@ sql_chunks_fts5 = {
 class ModelSpec:
     name: str
     provider: str
-    api: Literal['openai', 'anthropic']
+    api: Literal['openai', 'anthropic', 'ollama']
     supported_parms: list = field(default_factory=list)  # ['temperature', 'top_p', 'max_tokens', 'n', 'seed', 'system']
     # todo: handle supported_parms, and do so generically
 

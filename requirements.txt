@@ -12,6 +12,7 @@ requests
 pyodbc
 sqlalchemy
 pydantic
+ollama
 openai
 anthropic
 

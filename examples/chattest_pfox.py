@@ -2,8 +2,9 @@ import dotenv
 from dotenv import load_dotenv
 
 from llmconfig.llm_anthropic_config import LLMAnthropicSettings
-from llmconfig.llmconfig import LLMConfig
+from llmconfig.llm_ollama_config import LLMOllamaSettings
 from llmconfig.llm_openai_config import LLMOpenAISettings, LLMOpenAIConfig
+from llmconfig.llmconfig import LLMConfig
 
 load_dotenv(override=True)
 
@@ -24,6 +25,7 @@ def run(cfg: LLMConfig):
 
 settings_openai = LLMOpenAISettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=80, init_system_message_name='carl-sagan')
 settings_anthropic = LLMAnthropicSettings(init_temp=0.7, init_top_p=1.0, init_max_tokens=80, init_system_message_name='carl-sagan')
+settings_ollama = LLMOllamaSettings(init_temp=0.7, init_top_p=1.0, init_max_tokens=80, init_system_message_name='carl-sagan')
 models = {
     # 'openai': ['gpt-3.5-turbo', 'gpt-4o', 'gpt-4o-mini'],
     # 'groq': ['llama-3.2-1b-preview', 'llama-3.3-70b-versatile', 'mixtral-8x7b-32768', 'gemma2-9b-it'],
