@@ -155,7 +155,7 @@ class CPData:
                            init_system_message_name='empty'),
         ],
         'quick': [
-            LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=80,
+            LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=40,
                            init_system_message_name='empty'),
         ],
         'std4': [
@@ -211,6 +211,15 @@ class CPData:
     llm_prompt_sets = {
         'wakeup': [
             [LLMMessagePair('user', wakeup_prompt)],
+        ],
+        'galaxies': [
+            [LLMMessagePair('user', galaxies_prompt)],
+        ],
+        'galaxies4': [
+            [LLMMessagePair('user', galaxies_prompt)],
+            [LLMMessagePair('user', galaxies_prompt)],
+            [LLMMessagePair('user', galaxies_prompt)],
+            [LLMMessagePair('user', galaxies_prompt)],
         ],
         'space': [
             [LLMMessagePair('user', galaxies_prompt)],

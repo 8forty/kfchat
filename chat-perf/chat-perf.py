@@ -54,7 +54,6 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
             # warmup the model if necessary
             if model.provider == 'OLLAMA':
                 warmup_start = timeit.default_timer()
-
                 try:
                     print(f'{config.secs_string(all_start)}: warmup {model.provider} {model.name}...')
                     # todo: factory this shit
@@ -72,7 +71,7 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
 
                     while True:
                         # run the llm
-                        llm_config.chat_messages(messages=[LLMMessagePair('user', 'How many galaxies are there?')])
+                        CPFunctions.run_llm_prompt(CPData.llm_prompt_sets['galaxies'][0], None, llm_config, all_start)
 
                         # check that the correct model is running
                         if not OllamaUtils.is_model_running(model.name):
@@ -83,7 +82,7 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
                     warmup_secs = timeit.default_timer() - warmup_start
                     csv_data.append([llm_config.provider(), llm_config.model_name, '', '', '', '(warm-up)', '', '',
                                      f'{warmup_secs:.1f}', f'"{ollama_ps(model)}"', ''])
-                    print(f'{config.secs_string(all_start)}: warmup: {warmup_secs:.1f}s')
+                    print(f'{config.secs_string(all_start)}: warmup done: {warmup_secs:.1f}s')
                 except (Exception,) as e:
                     print(f'{config.secs_string(all_start)}: warmup Exception! {model.provider}:{model.name}: {e.__class__.__name__}: {e} skipping...')
                     traceback.print_exc(file=sys.stderr)
@@ -165,7 +164,7 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
 def main():
     csv_data = []
 
-    run(run_set_name='kf', settings_set_name='1:800', sysmsg_name='professional800', prompt_set_name='wakeup', csv_data=csv_data)
+    run(run_set_name='kf', settings_set_name='quick', sysmsg_name='professional800', prompt_set_name='galaxies4', csv_data=csv_data)
     # run(run_set_name='base', settings_set_name='quick', sysmsg_name='professional800', prompt_set_name='space', csv_data=csv_data)
     # run(run_set_name='gorbash-test-kf', settings_set_name='gorbash-test', sysmsg_name='professional800', prompt_set_name='gorbash-test', csv_data=csv_data)
 

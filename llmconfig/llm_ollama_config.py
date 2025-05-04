@@ -156,22 +156,23 @@ class LLMOllamaConfig(LLMConfig):
                 chat_response: ChatResponse = self._client().chat(
                     model=self.model_name,
                     messages=messages_list,
+                    stream=False,  # todo: allow streaming
 
-                    # temperature=self._settings.temp,  # default 1.0, 0.0->1.0
-                    # top_p=self._settings.top_p,  # default 1, ~0.01->1.0
-                    # max_tokens=self._settings.max_tokens,  # default 16?
-                    # system=sysmsg,
-                    #
-                    # n=self._settings.n,
-
-                    # stream=False,  # todo: allow streaming
-
-                    # seed=27,
-                    # frequency_penalty=1,  # default 0, -2.0->2.0
-                    # presence_penalty=1,  # default 0, -2.0->2.0
-                    # stop=[],
+                    # https://github.com/ollama/ollama/blob/main/docs/modelfile.md#valid-parameters-and-values
+                    options={
+                        'num_predict': self._settings.max_tokens,  # default -1 (infinite)
+                        # 'seed': 27,  # default 0
+                        'temperature': self._settings.temp,  # default 0.8
+                        'top_p': self._settings.top_p,  # default 0.9
+                        # 'min_p': , # default 0.0
+                        # 'top_k': ,  # default 40
+                        # 'num_ctx': 0,  # default 2048
+                        # 'repeat_last_n': , # default 64, 0=disabled, -1=num_ctx
+                        # 'repeat_penalty': , # default 1.1
+                        # 'stop': [],
+                        # mirostat*
+                    },
                 )
-                breakpoint()
                 return LLMOllamaExchange(prompt=prompt, chat_response=chat_response, provider=self._provider,
                                          model_name=self.model_name, settings=self._settings,
                                          response_duration_seconds=timeit.default_timer() - start)
