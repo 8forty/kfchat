@@ -9,10 +9,10 @@ import ollama
 import config
 from cpdata import CPData, CPRunType, CPRunSpec
 from cpfunctions import CPFunctions
-from llmconfig.llm_anthropic_config import LLMAnthropicConfig
-from llmconfig.llm_ollama_config import LLMOllamaConfig
+from llmconfig.llm_anthropic_config import LLMAnthropicConfig, LLMAnthropicSettings
+from llmconfig.llm_ollama_config import LLMOllamaConfig, LLMOllamaSettings
 from llmconfig.llm_openai_config import LLMOpenAIConfig, LLMOpenAISettings
-from llmconfig.llmexchange import LLMMessagePair, LLMExchange
+from llmconfig.llmexchange import LLMExchange
 from ollamautils import OllamaUtils
 
 logging.disable(logging.INFO)
@@ -62,10 +62,10 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
                                                      LLMOpenAISettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
                     elif model.api.upper() == 'ANTHROPIC':
                         llm_config = LLMAnthropicConfig(model.name, model.provider,
-                                                        LLMOpenAISettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
+                                                        LLMAnthropicSettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
                     elif model.api.upper() == 'OLLAMA':
                         llm_config = LLMOllamaConfig(model.name, model.provider,
-                                                     LLMOpenAISettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
+                                                     LLMOllamaSettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
                     else:
                         raise ValueError(f'api must be "openai" or "anthropic" or "ollama"!')
 
@@ -93,11 +93,15 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
             for settings in CPData.llm_settings_sets[settings_set_name]:
                 # todo: factory this shit
                 if model.api.upper() == 'OPENAI':
+                    settings.seed = run_set.seed
                     llm_config = LLMOpenAIConfig(model.name, model.provider, LLMOpenAISettings.from_settings(settings))
                 elif model.api.upper() == 'ANTHROPIC':
-                    llm_config = LLMAnthropicConfig(model.name, model.provider, LLMOpenAISettings.from_settings(settings))
+                    settings.seed = run_set.seed
+                    llm_config = LLMAnthropicConfig(model.name, model.provider, LLMAnthropicSettings.from_settings(settings))
                 elif model.api.upper() == 'OLLAMA':
-                    llm_config = LLMOllamaConfig(model.name, model.provider, LLMOpenAISettings.from_settings(settings))
+                    settings.ctx = run_set.ollama_ctx_size
+                    settings.seed = run_set.seed
+                    llm_config = LLMOllamaConfig(model.name, model.provider, LLMOllamaSettings.from_settings(settings))
                 else:
                     raise ValueError(f'api must be "openai" or "anthropic" or "ollama"!')
 
@@ -164,9 +168,9 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
 def main():
     csv_data = []
 
-    run(run_set_name='kf', settings_set_name='quick', sysmsg_name='professional800', prompt_set_name='galaxies4', csv_data=csv_data)
+    # run(run_set_name='kf', settings_set_name='quick', sysmsg_name='professional800', prompt_set_name='galaxies4', csv_data=csv_data)
     # run(run_set_name='base', settings_set_name='quick', sysmsg_name='professional800', prompt_set_name='space', csv_data=csv_data)
-    # run(run_set_name='gorbash-test-kf', settings_set_name='gorbash-test', sysmsg_name='professional800', prompt_set_name='gorbash-test', csv_data=csv_data)
+    run(run_set_name='gorbash-test', settings_set_name='gorbash-test', sysmsg_name='professional800', prompt_set_name='gorbash-test', csv_data=csv_data)
 
     print(f'{config.secs_string(all_start)}: finished all runs: {timeit.default_timer() - all_start:.1f}s')
 

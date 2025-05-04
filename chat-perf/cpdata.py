@@ -2,8 +2,9 @@ from dataclasses import dataclass
 from enum import Enum
 
 import config
-from llmconfig.llm_openai_config import LLMOpenAISettings
+from basesettings import BaseSettings
 from llmconfig.llmexchange import LLMMessagePair
+from llmconfig.llmsettings import LLMSettings
 
 
 class CPRunType(Enum):
@@ -17,6 +18,8 @@ class CPRunSpec:
     run_type: CPRunType
     model: config.ModelSpec
     collection_name: str = ''
+    ollama_ctx_size: int = 2048
+    seed: int = 0
 
 
 class CPData:
@@ -44,6 +47,7 @@ class CPData:
         ],
 
         'gorbash-test': [
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.llama3.2:1b'], 'gg1'),
             CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.llama3.2:3b'], 'gg1'),
 
             CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['CEREBRAS.llama-3.3-70b'], 'gg1'),
@@ -103,40 +107,85 @@ class CPData:
         ],
 
         'gorbash-test-kf': [
-            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.llama3.2:3b'], 'gg1'),
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.llama3.2:3b'], 'gg1', 32768),
 
-            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:1b'], 'gg1'),
-            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:4b'], 'gg1'),
-            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:12b'], 'gg1'),
-            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:12b-it-fp16'], 'gg1'),
-            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:27b'], 'gg1'),
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:1b'], 'gg1', 32768),
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:4b'], 'gg1', 32768),
 
-            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:14b-q8_0'], 'gg1'),
-            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:30b-a3b'], 'gg1'),
-            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:30b-a3b-q4_K_M'], 'gg1'),
-            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:32b-q4_K_M'], 'gg1'),
-            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:32b'], 'gg1'),
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.phi4:14b'], 'gg1'),
+
         ],
     }
 
     ##############################################################
     # llm settings
     ##############################################################
-    class LLMRawSettings(LLMOpenAISettings):
+    class LLMRawSettings(LLMSettings):
         def __init__(self, init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int,
+                     init_seed: int, init_ctx: int,
                      init_system_message_name: str):
             """
-            (almost) standard set of settings for LLMs
-            todo: some LLMs/providers don't support n
+            union of settings for LLMs
             :param init_n:
             :param init_temp:
             :param init_top_p:
             :param init_max_tokens:
+            :param init_seed:
+            :param init_ctx:
             :param init_system_message_name:
 
             """
-            super().__init__(init_n=init_n, init_temp=init_temp, init_top_p=init_top_p,
-                             init_max_tokens=init_max_tokens, init_system_message_name=init_system_message_name)
+            super().__init__()
+            self.n = init_n
+            self.temp = init_temp
+            self.top_p = init_top_p
+            self.max_tokens = init_max_tokens
+            self.seed = init_seed
+            self.ctx = init_ctx
+            self.system_message_name = init_system_message_name
+            self.system_message = config.LLMData.sysmsg_all[init_system_message_name]
+
+        def __repr__(self) -> str:
+            return f'{self.__class__!s}:{self.__dict__!r}'
+            # return f'{self.__class__!s}:{self.result_id=!r},{self.metrics=!r},self.content="{self.content[0:20]}{"..." if len(self.content) > 20 else ""}"'
+
+        def numbers_oneline_logging_str(self) -> str:
+            return f'n:{self.n},temp:{self.temp},top_p:{self.top_p},max_tokens:{self.max_tokens}'
+
+        def texts_oneline_logging_str(self) -> str:
+            return f'sysmsg:{self.system_message}'
+
+        def specs(self) -> list[BaseSettings.SettingsSpec]:
+            sysmsg_names = [key for key in config.LLMData.sysmsg_all]
+            return [
+                BaseSettings.SettingsSpec(label='n', options=[i for i in range(1, 10)], value=self.n, tooltip='number of results per query'),
+                BaseSettings.SettingsSpec(label='temp', options=[float(t) / 10.0 for t in range(0, 21)], value=self.temp, tooltip='responses: 0=very predictable, 2=very random/creative'),
+                BaseSettings.SettingsSpec(label='top_p', options=[float(t) / 10.0 for t in range(0, 11)], value=self.top_p, tooltip='responses: 0=less random, 1 more random'),
+                BaseSettings.SettingsSpec(label='max_tokens', options=[80, 200, 400, 800, 1000, 1500, 2000], value=self.max_tokens, tooltip='max tokens in response'),
+                BaseSettings.SettingsSpec(label='seed', options=[0, 27, 42], value=self.seed, tooltip='random number generator seed'),
+                BaseSettings.SettingsSpec(label='ctx', options=[0, 2048, 4096, 8192, 16384, 32768, 65536], value=self.ctx,
+                                          tooltip='size of the context window'),
+                BaseSettings.SettingsSpec(label='system_message_name', options=sysmsg_names, value=self.system_message_name, tooltip='system/setup text sent with each prompt'),
+            ]
+
+        async def change(self, label: str, value: any) -> None:
+            if label == 'n':
+                self.n = value
+            elif label == 'temp':
+                self.temp = value
+            elif label == 'top_p':
+                self.top_p = value
+            elif label == 'max_tokens':
+                self.max_tokens = value
+            elif label == 'seed':
+                self.seed = value
+            elif label == 'ctx':
+                self.ctx = value
+            elif label == 'system_message_name':
+                self.system_message_name = value
+                self.system_message = config.LLMData.sysmsg_all[value]
+            else:
+                raise ValueError(f'bad label! {label}')
 
     #         'convo': conversational_sysmsg,
     #         'convo80': conversational80_sysmsg,
@@ -152,28 +201,36 @@ class CPData:
     llm_settings_sets = {
         '1:800': [
             LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=800,
+                           init_seed=0, init_ctx=2048,
                            init_system_message_name='empty'),
         ],
         'quick': [
             LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=40,
+                           init_seed=0, init_ctx=2048,
                            init_system_message_name='empty'),
         ],
         'std4': [
             LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=800,
+                           init_seed=0, init_ctx=2048,
                            init_system_message_name='empty'),
             LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=400,
+                           init_seed=0, init_ctx=2048,
                            init_system_message_name='empty'),
             LLMRawSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800,
+                           init_seed=0, init_ctx=2048,
                            init_system_message_name='empty'),
             LLMRawSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=400,
+                           init_seed=0, init_ctx=2048,
                            init_system_message_name='empty'),
         ],
         'gorbash-test': [
             LLMRawSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800,
+                           init_seed=0, init_ctx=2048,
                            init_system_message_name='professional800'),
         ],
         'ollama-warmup': [
             LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=800,
+                           init_seed=0, init_ctx=2048,
                            init_system_message_name='carl-sagan'),
         ]
     }

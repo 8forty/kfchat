@@ -28,12 +28,22 @@ providers_config = {
 
 class LLMOllamaSettings(LLMSettings):
 
-    def __init__(self, init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int, init_system_message_name: str):
+    def __init__(self, init_temp: float, init_top_p: float, init_max_tokens: int, init_seed: int, init_ctx: int, init_system_message_name: str):
+        """
+
+        :param init_temp: The temperature of the model. Increasing the temperature will make the model answer more creatively. (Default: 0.8)
+        :param init_top_p: Works together with top-k. A higher value (e.g., 0.95) will lead to more diverse text, while a lower value (e.g., 0.5) will generate more focused and conservative text. (Default: 0.9)
+        :param init_max_tokens: Maximum number of tokens to predict when generating text. (Default: -1, infinite generation)
+        :param init_seed: Sets the random number seed to use for generation. Setting this to a specific number will make the model generate the same text for the same prompt. (Default: 0)
+        :param init_ctx: Sets the size of the context window used to generate the next token. (Default: 2048)
+        :param init_system_message_name: system message name
+        """
         super().__init__()
-        self.n = init_n
         self.temp = init_temp
         self.top_p = init_top_p
         self.max_tokens = init_max_tokens
+        self.seed = init_seed
+        self.ctx = init_ctx
         self.system_message_name = init_system_message_name
         self.system_message = config.LLMData.sysmsg_all[init_system_message_name]
 
@@ -43,11 +53,12 @@ class LLMOllamaSettings(LLMSettings):
 
     @classmethod
     def from_settings(cls, rhs):
-        return cls(init_n=rhs.n, init_temp=rhs.temp, init_top_p=rhs.top_p, init_max_tokens=rhs.max_tokens,
+        return cls(init_temp=rhs.temp, init_top_p=rhs.top_p, init_max_tokens=rhs.max_tokens,
+                   init_seed=rhs.seed, init_ctx=rhs.ctx,
                    init_system_message_name=rhs.system_message_name)
 
     def numbers_oneline_logging_str(self) -> str:
-        return f'n:{self.n},temp:{self.temp},top_p:{self.top_p},max_tokens:{self.max_tokens}'
+        return f'temp:{self.temp},top_p:{self.top_p},max_tokens:{self.max_tokens},seed:{self.seed},ctx:{self.ctx}'
 
     def texts_oneline_logging_str(self) -> str:
         return f'sysmsg:{self.system_message}'
@@ -55,27 +66,30 @@ class LLMOllamaSettings(LLMSettings):
     def specs(self) -> list[BaseSettings.SettingsSpec]:
         sysmsg_names = [key for key in config.LLMData.sysmsg_all]
         return [
-            BaseSettings.SettingsSpec(label='n', options=[i for i in range(1, 10)], value=self.n,
-                                      tooltip='number of results per query'),
             BaseSettings.SettingsSpec(label='temp', options=[float(t) / 10.0 for t in range(0, 21)], value=self.temp,
                                       tooltip='responses: 0=very predictable, 2=very random/creative'),
             BaseSettings.SettingsSpec(label='top_p', options=[float(t) / 10.0 for t in range(0, 11)], value=self.top_p,
                                       tooltip='responses: 0=less random, 1 more random'),
             BaseSettings.SettingsSpec(label='max_tokens', options=[80, 200, 400, 800, 1000, 1500, 2000], value=self.max_tokens,
                                       tooltip='max tokens in response'),
+            BaseSettings.SettingsSpec(label='seed', options=[0, 27, 42], value=self.seed, tooltip='random number generator seed'),
+            BaseSettings.SettingsSpec(label='ctx', options=[0, 2048, 4096, 8192, 16384, 32768, 65536], value=self.ctx,
+                                      tooltip='size of the context window'),
             BaseSettings.SettingsSpec(label='system_message_name', options=sysmsg_names, value=self.system_message_name,
                                       tooltip='system/setup text sent with each prompt'),
         ]
 
     async def change(self, label: str, value: any) -> None:
-        if label == 'n':
-            self.n = value
         if label == 'temp':
             self.temp = value
         elif label == 'top_p':
             self.top_p = value
         elif label == 'max_tokens':
             self.max_tokens = value
+        elif label == 'seed':
+            self.seed = value
+        elif label == 'ctx':
+            self.ctx = value
         elif label == 'system_message_name':
             self.system_message_name = value
             self.system_message = config.LLMData.sysmsg_all[value]
@@ -96,7 +110,6 @@ class LLMOllamaConfig(LLMConfig):
 
         self._settings = settings
 
-        # todo: this is duplicated in openai config
         if self._provider not in list(providers_config.keys()):
             raise ValueError(f'{__class__.__name__}: invalid provider! {provider}')
         self._api_client = None
@@ -113,7 +126,8 @@ class LLMOllamaConfig(LLMConfig):
         return self._settings
 
     def copy_settings(self) -> LLMSettings:
-        return LLMOllamaSettings(self._settings.n, self._settings.temp, self._settings.top_p, self._settings.max_tokens,
+        return LLMOllamaSettings(self._settings.temp, self._settings.top_p, self._settings.max_tokens,
+                                 self._settings.seed, self._settings.ctx,
                                  self._settings.system_message_name)
 
     def _client(self) -> ollama.Client:
@@ -148,9 +162,10 @@ class LLMOllamaConfig(LLMConfig):
             try:
                 messages_list: list[dict] = [{'role': 'system', 'content': sysmsg}]
                 messages_list.extend([{'role': pair.role, 'content': pair.content} for pair in messages])
-                log.debug(f'{self._provider}.{self.model_name} n:{self._settings.n} temp:{self._settings.temp} '
-                          f'top_p:{self._settings.top_p}, max_tok:{self._settings.max_tokens} prompt:"{prompt}" '
-                          f'msgs:{messages_list}')
+                log.debug(f'{self._provider}.{self.model_name} temp:{self._settings.temp} '
+                          f'top_p:{self._settings.top_p}, max_tok:{self._settings.max_tokens} '
+                          f'seed:{self._settings.seed} ctx:{self._settings.ctx} '
+                          f'prompt:"{prompt}" msgs:{messages_list}')
 
                 start = timeit.default_timer()
                 chat_response: ChatResponse = self._client().chat(
@@ -161,12 +176,12 @@ class LLMOllamaConfig(LLMConfig):
                     # https://github.com/ollama/ollama/blob/main/docs/modelfile.md#valid-parameters-and-values
                     options={
                         'num_predict': self._settings.max_tokens,  # default -1 (infinite)
-                        # 'seed': 27,  # default 0
+                        'seed': self._settings.seed,  # default 0
                         'temperature': self._settings.temp,  # default 0.8
                         'top_p': self._settings.top_p,  # default 0.9
+                        'num_ctx': self._settings.ctx,  # default 2048
                         # 'min_p': , # default 0.0
                         # 'top_k': ,  # default 40
-                        # 'num_ctx': 0,  # default 2048
                         # 'repeat_last_n': , # default 64, 0=disabled, -1=num_ctx
                         # 'repeat_penalty': , # default 1.1
                         # 'stop': [],
