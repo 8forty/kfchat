@@ -28,10 +28,6 @@ providers_config = {
         'AZURE_AI_SEARCH_ENDPOINT': env.get('AZURE_AI_SEARCH_ENDPOINT'),
         'ai-search-api-key': env.get('AZURE_AI_SEARCH_API_KEY'),
     },
-    'OLLAMA': {
-        'key': 'nokeyneeded',
-        'kfOLLAMA_ENDPOINT': env.get('kfOLLAMA_ENDPOINT'),
-    },
     'OPENAI': {
         'key': env.get('kfOPENAI_API_KEY'),
         'kfOPENAI_CHAT_COMPLETIONS_ENDPOINT': env.get('kfOPENAI_CHAT_COMPLETIONS_ENDPOINT'),
@@ -166,11 +162,6 @@ class LLMOpenAIConfig(LLMConfig):
             key = providers_config[self._provider]['key']
             log.info(f'building LLM API for [{self._provider}]: {endpoint=} key={redact(key)}')
             self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
-        # if self._provider == 'ollama':
-        #     endpoint = providers_config[self._provider]['kfOLLAMA_ENDPOINT']
-        #     key = providers_config[self._provider]['key']
-        #     log.info(f'building LLM API for [{self._provider}]: {endpoint=} key={redact(key)}')
-        #     self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         # elif self._provider == 'openai':
         #     endpoint = providers_config[self._provider]['kfOPENAI_ENDPOINT']
         #     key = providers_config[self._provider]['key']

@@ -14,6 +14,7 @@ from chatpage import chatpage
 from config import FTSType
 from llmconfig import llmconfig_factory
 from llmconfig.llm_anthropic_config import LLMAnthropicSettings
+from llmconfig.llm_ollama_config import LLMOllamaSettings
 from llmconfig.llm_openai_config import LLMOpenAISettings
 from llmconfig.llmconfig import LLMConfig
 from vectorstore import vsapi_factory
@@ -36,9 +37,11 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
 
     # setup llm
     # todo: these should come from somewhere, e.g. pref screen
-    # todo: init_n: openai,azure,gemini:any(?) value works; ollama: only 1 resp for any value; groq: requires 1;
-    settings = { 'openai': LLMOpenAISettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_system_message_name='professional800'),
-                 'anthropic': LLMAnthropicSettings(init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_system_message_name='professional800')}
+    # todo: init_n: openai,azure,gemini:any(?) value works; groq: requires 1;
+    settings = {'openai': LLMOpenAISettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_system_message_name='professional800'),
+                'anthropic': LLMAnthropicSettings(init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_system_message_name='professional800'),
+                # todo? ollama: only 1 resp for any value?
+                'ollama': LLMOllamaSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_system_message_name='professional800')}
     llm_configs_list: list[LLMConfig] = []
     for model_spec in config.LLMData.models:
         llm_configs_list.append(llmconfig_factory.create_one(model_spec=model_spec, settings=settings))

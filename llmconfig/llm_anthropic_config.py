@@ -57,10 +57,10 @@ class LLMAnthropicSettings(LLMSettings):
     def specs(self) -> list[BaseSettings.SettingsSpec]:
         sysmsg_names = [key for key in config.LLMData.sysmsg_all]
         return [
-            BaseSettings.SettingsSpec(label='temp', options=[float(t) / 10.0 for t in range(0, 21)], value=self.temp),
-            BaseSettings.SettingsSpec(label='top_p', options=[float(t) / 10.0 for t in range(0, 11)], value=self.top_p),
-            BaseSettings.SettingsSpec(label='max_tokens', options=[80, 200, 400, 800, 1000, 1500, 2000], value=self.max_tokens),
-            BaseSettings.SettingsSpec(label='system_message_name', options=sysmsg_names, value=self.system_message_name),
+            BaseSettings.SettingsSpec(label='temp', options=[float(t) / 10.0 for t in range(0, 21)], value=self.temp, tooltip='responses: 0=very predictable, 2=very random/creative'),
+            BaseSettings.SettingsSpec(label='top_p', options=[float(t) / 10.0 for t in range(0, 11)], value=self.top_p, tooltip='responses: 0=less random, 1 more random'),
+            BaseSettings.SettingsSpec(label='max_tokens', options=[80, 200, 400, 800, 1000, 1500, 2000], value=self.max_tokens, tooltip='max tokens in response'),
+            BaseSettings.SettingsSpec(label='system_message_name', options=sysmsg_names, value=self.system_message_name, tooltip='system/setup text sent with each prompt'),
         ]
 
     async def change(self, label: str, value: any) -> None:

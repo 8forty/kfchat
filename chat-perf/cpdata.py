@@ -24,6 +24,10 @@ class CPData:
     # run sets
     ##############################################################
     run_sets: dict[str, list[CPRunSpec]] = {
+        'kf': [
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.gemma3:1b']),
+        ],
+
         'base': [
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.llama3.2:1b']),
             # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.llama3.2:3b']),
@@ -178,6 +182,7 @@ class CPData:
     # prompt sets
     ##############################################################
 
+    wakeup_prompt = 'wake up'
     galaxies_prompt = 'How many galaxies are there?'
     explain_prompt = 'Explain antibiotics'
     onesentence_prompt = ('Antibiotics are a type of medication used to treat bacterial infections. They work by either killing '
@@ -204,6 +209,9 @@ class CPData:
 
     # each value is a list of message-sets (i.e. lists of LLMMessagePair's] to run
     llm_prompt_sets = {
+        'wakeup': [
+            [LLMMessagePair('user', wakeup_prompt)],
+        ],
         'space': [
             [LLMMessagePair('user', galaxies_prompt)],
             [LLMMessagePair('user', blackholes_prompt)]

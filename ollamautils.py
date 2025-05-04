@@ -1,3 +1,4 @@
+import ollama
 import requests
 
 
@@ -11,11 +12,11 @@ class OllamaUtils:
 
     @staticmethod
     def is_model_running(model_name: str) -> bool:
-        return model_name in [m['name'] for m in OllamaUtils.ps()['models']]
+        return model_name in [m.name for m in ollama.ps().models]
 
     @staticmethod
     def unload_all() -> list[dict]:
-        models = [m['name'] for m in OllamaUtils.ps()['models']]
+        models = [m.name for m in ollama.ps().models]
         responses = []
         for model in models:
             url = 'http://localhost:11434/api/generate'

@@ -1,8 +1,10 @@
+import asyncio
 import logging
-import subprocess
 import sys
 import timeit
 import traceback
+
+import ollama
 
 import config
 from cpdata import CPData, CPRunType, CPRunSpec
@@ -20,14 +22,22 @@ all_start = timeit.default_timer()
 
 def ollama_ps(model: config.ModelSpec) -> str:
     if model.provider == 'OLLAMA':
-        ollama_out = subprocess.run(['ollama', 'ps'], capture_output=True, text=True).stdout
-        o = ollama_out.splitlines()[1].split()
-        return f'{o[0]},{o[2]}{o[3]},{o[4]},{o[5]}'
+        # ProcessResponse(models=[Model(model='gemma3:1b', name='gemma3:1b',
+        # digest='8648f39daa8fbf5b18c7b4e6a8fb4990c692751d49917417b8842ca5758e7ffc',
+        # expires_at=datetime.datetime(2025, 5, 4, 11, 5, 25, 506872, tzinfo=TzInfo(-07:00)), size=1907176448, size_vram=1907176448,
+        # details=ModelDetails(parent_model='', format='gguf', family='gemma3', families=['gemma3'], parameter_size='999.89M',
+        # quantization_level='Q4_K_M'))])
+        retval = ''
+        for m in ollama.ps().models:
+            gpu = float(m.size) / float(m.size_vram)
+            cpu = 1.0 - gpu
+            load = f'{cpu * 100.0:.0f}%/{gpu * 100.0:.0f}%,CPU/GPU' if cpu > 0.0 else f'100%,GPU'
+            retval += f'{m.name},{float(m.size) / (1024.0 * 1024.0 * 1024.0):.1f}GB,{load} '
     else:
         return ''
 
 
-def run(run_set_name: str, settings_set_name: str, prompt_set_name: str, csv_data: list[list[str]]):
+def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_name: str, csv_data: list[list[str]]):
     run_start_time = timeit.default_timer()
     run_set: CPRunSpec
     csv_data.append(['provider', 'model', 'temp', 'max_tokens', 'sysmsg', 'prompt-set', 'tokens-in', 'tokens-out',
@@ -47,6 +57,7 @@ def run(run_set_name: str, settings_set_name: str, prompt_set_name: str, csv_dat
 
                 try:
                     print(f'{config.secs_string(all_start)}: warmup {model.provider} {model.name}...')
+                    # todo: factory this shit
                     if model.api.upper() == 'OPENAI':
                         llm_config = LLMOpenAIConfig(model.name, model.provider,
                                                      LLMOpenAISettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
@@ -81,6 +92,7 @@ def run(run_set_name: str, settings_set_name: str, prompt_set_name: str, csv_dat
             # settings loop
             response_line: str = ''
             for settings in CPData.llm_settings_sets[settings_set_name]:
+                # todo: factory this shit
                 if model.api.upper() == 'OPENAI':
                     llm_config = LLMOpenAIConfig(model.name, model.provider, LLMOpenAISettings.from_settings(settings))
                 elif model.api.upper() == 'ANTHROPIC':
@@ -90,6 +102,7 @@ def run(run_set_name: str, settings_set_name: str, prompt_set_name: str, csv_dat
                 else:
                     raise ValueError(f'api must be "openai" or "anthropic" or "ollama"!')
 
+                asyncio.run(llm_config.change_sysmsg(sysmsg_name))
                 ls = timeit.default_timer()
                 ls_input_tokens = 0
                 ls_output_tokens = 0
@@ -152,8 +165,9 @@ def run(run_set_name: str, settings_set_name: str, prompt_set_name: str, csv_dat
 def main():
     csv_data = []
 
-    # run(run_set_name='base', settings_set_name='quick', prompt_set_name='space', csv_data=csv_data)
-    run(run_set_name='gorbash-test-kf', settings_set_name='gorbash-test', prompt_set_name='gorbash-test', csv_data=csv_data)
+    run(run_set_name='kf', settings_set_name='1:800', sysmsg_name='professional800', prompt_set_name='wakeup', csv_data=csv_data)
+    # run(run_set_name='base', settings_set_name='quick', sysmsg_name='professional800', prompt_set_name='space', csv_data=csv_data)
+    # run(run_set_name='gorbash-test-kf', settings_set_name='gorbash-test', sysmsg_name='professional800', prompt_set_name='gorbash-test', csv_data=csv_data)
 
     print(f'{config.secs_string(all_start)}: finished all runs: {timeit.default_timer() - all_start:.1f}s')
 
