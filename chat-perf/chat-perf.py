@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import sys
+import time
 import timeit
 import traceback
 
@@ -32,7 +33,9 @@ def ollama_ps(model: config.ModelSpec) -> str:
             gpu = float(m.size) / float(m.size_vram)
             cpu = 1.0 - gpu
             load = f'{cpu * 100.0:.0f}%/{gpu * 100.0:.0f}%,CPU/GPU' if cpu > 0.0 else f'100%,GPU'
-            retval += f'{m.name},{float(m.size) / (1024.0 * 1024.0 * 1024.0):.1f}GB,{load} '
+            retval += f'{m.name},{m.details.quantization_level},{float(m.size) / (1024.0 * 1024.0 * 1024.0):.1f}GB,{load} '
+
+        return retval
     else:
         return ''
 
@@ -53,40 +56,58 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
 
             # warmup the model if necessary
             if model.provider == 'OLLAMA':
+                warmup_retries = 0
+                warmup_retry_wait_secs = 1.0
                 warmup_start = timeit.default_timer()
                 try:
-                    print(f'{config.secs_string(all_start)}: warmup {model.provider} {model.name}...')
-                    # todo: factory this shit
-                    if model.api.upper() == 'OPENAI':
-                        llm_config = LLMOpenAIConfig(model.name, model.provider,
-                                                     LLMOpenAISettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
-                    elif model.api.upper() == 'ANTHROPIC':
-                        llm_config = LLMAnthropicConfig(model.name, model.provider,
-                                                        LLMAnthropicSettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
-                    elif model.api.upper() == 'OLLAMA':
-                        llm_config = LLMOllamaConfig(model.name, model.provider,
-                                                     LLMOllamaSettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
-                    else:
-                        raise ValueError(f'api must be "openai" or "anthropic" or "ollama"!')
-
                     while True:
-                        # run the llm
-                        CPFunctions.run_llm_prompt(CPData.llm_prompt_sets['galaxies'][0], None, llm_config, all_start)
-
-                        # check that the correct model is running
-                        if not OllamaUtils.is_model_running(model.name):
-                            print(f'{config.secs_string(all_start)}: warmup: !! model {model.name} isn''t running!  retrying warmup...')
+                        print(f'{config.secs_string(all_start)}: warmup {model.provider} {model.name}...')
+                        # todo: factory this shit
+                        if model.api.upper() == 'OPENAI':
+                            llm_config = LLMOpenAIConfig(model.name, model.provider,
+                                                         LLMOpenAISettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
+                        elif model.api.upper() == 'ANTHROPIC':
+                            llm_config = LLMAnthropicConfig(model.name, model.provider,
+                                                            LLMAnthropicSettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
+                        elif model.api.upper() == 'OLLAMA':
+                            llm_config = LLMOllamaConfig(model.name, model.provider,
+                                                         LLMOllamaSettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
                         else:
-                            break
+                            raise ValueError(f'api must be "openai" or "anthropic" or "ollama"!')
 
-                    warmup_secs = timeit.default_timer() - warmup_start
-                    csv_data.append([llm_config.provider(), llm_config.model_name, '', '', '', '(warm-up)', '', '',
-                                     f'{warmup_secs:.1f}', f'"{ollama_ps(model)}"', ''])
-                    print(f'{config.secs_string(all_start)}: warmup done: {warmup_secs:.1f}s')
+                        while True:
+                            # run the llm
+                            CPFunctions.run_llm_prompt(CPData.llm_prompt_sets['galaxies'][0], None, llm_config, all_start)
+
+                            # check that the correct model is running
+                            if not OllamaUtils.is_model_running(model.name):
+                                running = [m.name for m in ollama.ps().models]
+                                warmup_retries += 1
+                                print(f'{config.secs_string(all_start)}: warmup: !! model {model.name} isnt running! [{running}]')
+                                if warmup_retries < 4:
+                                    print('retrying warmup...')
+                                else:
+                                    print('retries exhausted, skipping...')
+                                    break
+                            else:
+                                break
+
+                        warmup_secs = timeit.default_timer() - warmup_start
+                        csv_data.append([llm_config.provider(), llm_config.model_name, '', '', '', '(warm-up)', '', '',
+                                         f'{warmup_secs:.1f}', f'"{ollama_ps(model)}"', ''])
+                        print(f'{config.secs_string(all_start)}: warmup done: {warmup_secs:.1f}s')
+                        break
                 except (Exception,) as e:
-                    print(f'{config.secs_string(all_start)}: warmup Exception! {model.provider}:{model.name}: {e.__class__.__name__}: {e} skipping...')
+                    warmup_retries += 1
+                    print(f'{config.secs_string(all_start)}: warmup attempt {warmup_retries}: Exception! '
+                          f'{model.provider}:{model.name}: {e.__class__.__name__}: {e}')
                     traceback.print_exc(file=sys.stderr)
-                    break
+                    if warmup_retries < 4:
+                        print(f"will retry in {warmup_retry_wait_secs}s")
+                        time.sleep(warmup_retry_wait_secs)
+                        warmup_retry_wait_secs = warmup_retries * warmup_retries
+                    else:
+                        break
 
             # settings loop
             response_line: str = ''
@@ -112,19 +133,30 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
                 # prompts loop
                 for idx, prompt_set in enumerate(CPData.llm_prompt_sets[prompt_set_name]):
                     exchange: LLMExchange | None = None
+                    run_retries = 0
+                    run_retry_wait_secs = 1.0
                     try:
-                        if run_set.run_type == CPRunType.LLM:
-                            exchange = CPFunctions.run_llm_prompt(prompt_set, None, llm_config, all_start)
-                        elif run_set.run_type == CPRunType.RAG:
-                            # todo: configure
-                            exchange = CPFunctions.run_rag_prompt(prompt_set, run_set.collection_name, llm_config,
-                                                                  0, 0.5, all_start)
-                        if exchange is None:
-                            raise ValueError(f'exchange is None!')
+                        while True:
+                            if run_set.run_type == CPRunType.LLM:
+                                exchange = CPFunctions.run_llm_prompt(prompt_set, None, llm_config, all_start)
+                            elif run_set.run_type == CPRunType.RAG:
+                                # todo: configure
+                                exchange = CPFunctions.run_rag_prompt(prompt_set, run_set.collection_name, llm_config,
+                                                                      0, 0.5, all_start)
+                            if exchange is None:
+                                raise ValueError(f'exchange is None!')
+                            break
                     except (Exception,) as e:
-                        print(f'run Exception! {llm_config.provider()}:{llm_config.model_name} '
-                              f'{prompt_set_name}.{prompt_set}: {e.__class__.__name__}: {e} skipping...')
-                        break
+                        run_retries += 1
+                        print(f'{config.secs_string(all_start)} run Exception! {llm_config.provider()}:{llm_config.model_name} '
+                              f'{prompt_set_name}.{prompt_set}: {e.__class__.__name__}: {e}')
+                        traceback.print_exc(file=sys.stderr)
+                        if run_retries < 4:
+                            print(f"will retry in {run_retry_wait_secs}s")
+                            time.sleep(run_retry_wait_secs)
+                            warmup_retry_wait_secs = run_retries * run_retries
+                        else:
+                            break
 
                     ls_input_tokens += exchange.input_tokens
                     ls_output_tokens += exchange.output_tokens
