@@ -30,7 +30,7 @@ def ollama_ps(model: config.ModelSpec) -> str:
         # quantization_level='Q4_K_M'))])
         retval = ''
         for m in ollama.ps().models:
-            gpu = float(m.size) / float(m.size_vram)
+            gpu = float(m.size) / float(m.size_vram) if m.size_vram > 0 else 0.0
             cpu = 1.0 - gpu
             load = f'{cpu * 100.0:.0f}%/{gpu * 100.0:.0f}%,CPU/GPU' if cpu > 0.0 else f'100%,GPU'
             retval += f'{m.name},{m.details.quantization_level},{float(m.size) / (1024.0 * 1024.0 * 1024.0):.1f}GB,{load} '
