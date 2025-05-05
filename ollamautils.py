@@ -27,7 +27,7 @@ class OllamaUtils:
         return responses
 
     @staticmethod
-    def g():
+    def dump_models():
         # ListResponse(models=[
         #   Model(model='hf.co/unsloth/gemma-3-27b-it-GGUF:Q4_K_M', modified_at=datetime.datetime(2025, 5, 4, 10, 27, 28, 85371,
         #     tzinfo=TzInfo(-07:00)), digest='58c5b400d159a6bcce6581cf42b99fbe3d885610a87b70871a21f9298e1bcde4', size=17404429440,
@@ -65,11 +65,12 @@ class OllamaUtils:
         # parameters='stop                           "<|START_OF_TURN_TOKEN|>"\nstop                           "<|END_OF_TURN_TOKEN|>"\nstop                           "<|END_RESPONSE|>"')
         for model in models.models:
             minfo: ShowResponse = ollama.show(model.model)
-            context_length = [f'{k}:{v}' for k,v in minfo.modelinfo.items() if 'context_length' in k]
+            # context_length = [f'{k}:{v}' for k,v in minfo.modelinfo.items() if 'context_length' in k]
+            context_length_key = f'{minfo.details.family}.context_length'
             print(f'{model.model}: {float(model.size) / (1024.0 * 1024.0 * 1024.0):.1f}GB, {minfo.details.parameter_size}, '
-                  f'{model.details.quantization_level}, {context_length}')
+                  f'{model.details.quantization_level}, {minfo.modelinfo[context_length_key]}')
 
 
 # print(f'currently loaded: {[m['name'] for m in ps()['models']]}')
 # print(f'unload responses: {unload_all()}')
-OllamaUtils.g()
+OllamaUtils.dump_models()
