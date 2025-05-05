@@ -93,7 +93,7 @@ class CPData:
             CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.phi4:14b-q8_0'], 'gg1', 32768),
             CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.phi4:14b-fp16'], 'gg1', 32768),
             CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.olmo2:13b'], 'gg1', 32768),
-            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.command-r7b'], 'gg1', 32768),
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.command-r7b:latest'], 'gg1', 32768),
             CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.openthinker:32b'], 'gg1', 32768),
             CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:14b-q8_0'], 'gg1', 32768),
             CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:30b-a3b'], 'gg1', 32768),

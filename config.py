@@ -270,7 +270,7 @@ class LLMData:
         ModelSpec('phi4-mini', provider='OLLAMA', api='ollama'),
         ModelSpec('olmo2:7b', provider='OLLAMA', api='ollama'),
         ModelSpec('olmo2:13b', provider='OLLAMA', api='ollama'),
-        ModelSpec('command-r7b', provider='OLLAMA', api='ollama'),
+        ModelSpec('command-r7b:latest', provider='OLLAMA', api='ollama'),
         ModelSpec('openthinker:7b', provider='OLLAMA', api='ollama'),
         ModelSpec('openthinker:32b', provider='OLLAMA', api='ollama'),
         ModelSpec('qwen2.5:0.5b', provider='OLLAMA', api='ollama'),
