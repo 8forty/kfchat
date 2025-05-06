@@ -62,25 +62,16 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
                 try:
                     while True:
                         print(f'{config.secs_string(all_start)}: warmup {model.provider} {model.name}...')
-                        # todo: factory this shit
-                        if model.api.upper() == 'OPENAI':
-                            llm_config = LLMOpenAIConfig(model.name, model.provider,
-                                                         LLMOpenAISettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
-                        elif model.api.upper() == 'ANTHROPIC':
-                            llm_config = LLMAnthropicConfig(model.name, model.provider,
-                                                            LLMAnthropicSettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
-                        elif model.api.upper() == 'OLLAMA':
-                            llm_config = LLMOllamaConfig(model.name, model.provider,
-                                                         LLMOllamaSettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
-                        else:
-                            raise ValueError(f'api must be "openai" or "anthropic" or "ollama"!')
+                        llm_config = LLMOllamaConfig(model.name, model.provider,
+                                                     LLMOllamaSettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
 
                         while True:
-                            # run the llm
-                            CPFunctions.run_llm_prompt(CPData.llm_prompt_sets['galaxies'][0], None, llm_config, all_start)
+                            # run the llm to warm it up
+                            # CPFunctions.run_llm_prompt(CPData.llm_prompt_sets['galaxies'][0], None, llm_config, all_start)
+                            llm_config.load(model.name)
 
                             # check that the correct model is running
-                            if not OllamaUtils.is_model_running(model.name):
+                            if not llm_config.is_model_running(model.name):
                                 running = [m.name for m in ollama.ps().models]
                                 warmup_retries += 1
                                 print(f'{config.secs_string(all_start)}: warmup: !! model {model.name} isnt running! [{running}]')
@@ -95,7 +86,7 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
                         warmup_secs = timeit.default_timer() - warmup_start
                         csv_data.append([llm_config.provider(), llm_config.model_name, '', '', '', '(warm-up)', '', '',
                                          f'{warmup_secs:.1f}', f'"{ollama_ps(model)}"', ''])
-                        print(f'{config.secs_string(all_start)}: warmup done: {warmup_secs:.1f}s')
+                        print(f'{config.secs_string(all_start)}: warmup done: {warmup_secs:.0f}s')
                         break
                 except (Exception,) as e:
                     warmup_retries += 1
@@ -189,8 +180,7 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
                                 )
 
                 if model.provider == 'OLLAMA':
-                    ul_response = OllamaUtils.unload_all()
-                    print(f'{config.secs_string(all_start)}: warmup: unloaded models {ul_response}')
+                    llm_config.unload(model.name)
 
     run_end_time = timeit.default_timer()
     print(f'{config.secs_string(all_start)}: finished run {run_set_name}/{settings_set_name}/{prompt_set_name}: '
@@ -202,7 +192,7 @@ def main():
 
     # run(run_set_name='kf', settings_set_name='quick', sysmsg_name='professional800', prompt_set_name='galaxies4', csv_data=csv_data)
     # run(run_set_name='base', settings_set_name='quick', sysmsg_name='professional800', prompt_set_name='space', csv_data=csv_data)
-    run(run_set_name='gorbash-test', settings_set_name='gorbash-test', sysmsg_name='professional800', prompt_set_name='gorbash-test', csv_data=csv_data)
+    run(run_set_name='gorbash-test-kf', settings_set_name='gorbash-test', sysmsg_name='professional800', prompt_set_name='gorbash-test', csv_data=csv_data)
 
     print(f'{config.secs_string(all_start)}: finished all runs: {timeit.default_timer() - all_start:.1f}s')
 

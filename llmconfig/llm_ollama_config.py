@@ -194,3 +194,20 @@ class LLMOllamaConfig(LLMConfig):
             except (Exception,) as e:
                 log.warning(f'chat error! {self._provider}:{self.model_name}: {e.__class__.__name__}: {e}')
                 raise e
+
+    def load(self, model_name: str):
+        """
+        ollama function to load a model
+        :param model_name:
+        """
+        self._client().generate(model=model_name, keep_alive='5m')
+
+    def unload(self, model_name: str):
+        """
+        ollama function to load a model
+        :param model_name:
+        """
+        self._client().generate(model=model_name, keep_alive=0.0)
+
+    def is_model_running(self, model_name: str) -> bool:
+        return model_name in [m.name for m in self._client().ps().models]

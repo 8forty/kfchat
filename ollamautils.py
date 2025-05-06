@@ -12,21 +12,6 @@ class OllamaUtils:
         return response.json()
 
     @staticmethod
-    def is_model_running(model_name: str) -> bool:
-        return model_name in [m.name for m in ollama.ps().models]
-
-    @staticmethod
-    def unload_all() -> list[dict]:
-        models = [m.name for m in ollama.ps().models]
-        responses = []
-        for model in models:
-            url = 'http://localhost:11434/api/generate'
-            responses.append(requests.post(url,
-                                           headers={'Content-Type': 'application/x-www-form-urlencoded', },
-                                           data=f'{{  "model": "{model}",  "keep_alive": 0}}'))
-        return responses
-
-    @staticmethod
     def dump_models():
         # ListResponse(models=[
         #   Model(model='hf.co/unsloth/gemma-3-27b-it-GGUF:Q4_K_M', modified_at=datetime.datetime(2025, 5, 4, 10, 27, 28, 85371,
@@ -75,7 +60,6 @@ class OllamaUtils:
             print(f'{model_basename},{parameters:.1f},{model.model},{float(model.size) / (1024.0 * 1024.0 * 1024.0):.1f},'
                   f'{model.details.quantization_level},{minfo.modelinfo[context_length_key]}')
 
-
 # print(f'currently loaded: {[m['name'] for m in ps()['models']]}')
 # print(f'unload responses: {unload_all()}')
-OllamaUtils.dump_models()
+# OllamaUtils.dump_models()
