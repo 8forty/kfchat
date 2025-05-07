@@ -103,8 +103,10 @@ class CPData:
         ],
 
         'gorbash-test-kf': [
-            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.llama3.2:1b'], 'gg1', 32768),
-            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.llama3.2:3b'], 'gg1', 32768),
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.llama3.2:1b'], 'gg1', 16384),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.llama3.2:3b'], 'gg1', 32768),
+
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:12b-it-fp16'], 'gg1', 32768),
         ],
     }
 

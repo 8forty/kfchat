@@ -29,8 +29,10 @@ class OllamaUtils:
             try:
                 os.kill(pid, signal.SIGTERM)
             except OSError as e:
-                if 'The parameter is incorrect' not in str(e):
+                if 'The parameter is incorrect' not in str(e) and 'Access is denied' not in str(e):
                     raise e
+                else:
+                    print(f'!!! suppressing kill error pid {pid}: {e}')
 
     @staticmethod
     def dump_models():

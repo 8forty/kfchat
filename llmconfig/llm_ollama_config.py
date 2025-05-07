@@ -195,7 +195,6 @@ class LLMOllamaConfig(LLMConfig):
             except ConnectionError as e:
                 # todo: refactor this!
                 connection_retries += 1
-                print(f'~~~~ conerr {connection_retries}')
                 log.debug(f'{self._provider}:{self.model_name}: connection error, attempt {connection_retries}/{max_rate_limit_retries}, '
                           f'{(f"will retry in {retry_wait_secs}s" if connection_retries <= max_rate_limit_retries else "")}')
                 if connection_retries > max_rate_limit_retries:
@@ -223,7 +222,6 @@ class LLMOllamaConfig(LLMConfig):
             except ConnectionError as e:
                 # todo: refactor this!
                 connection_retries += 1
-                print(f'~~~~ load conerr {connection_retries}')
                 log.debug(f'{self._provider}:{self.model_name}: connection error, attempt {connection_retries}/{max_rate_limit_retries}, '
                           f'{(f"will retry in {retry_wait_secs}s" if connection_retries <= max_rate_limit_retries else "")}')
                 if connection_retries > max_rate_limit_retries:
@@ -248,7 +246,6 @@ class LLMOllamaConfig(LLMConfig):
             except ConnectionError as e:
                 # todo: refactor this!
                 connection_retries += 1
-                print(f'~~~~ unload conerr {connection_retries}')
                 log.debug(f'{self._provider}:{self.model_name}: connection error, attempt {connection_retries}/{max_rate_limit_retries}, '
                           f'{(f"will retry in {retry_wait_secs}s" if connection_retries <= max_rate_limit_retries else "")}')
                 if connection_retries > max_rate_limit_retries:
@@ -267,7 +264,6 @@ class LLMOllamaConfig(LLMConfig):
             except ConnectionError as e:
                 # todo: refactor this!
                 connection_retries += 1
-                print(f'~~~~ ismodel conerr {connection_retries}')
                 log.debug(f'{self._provider}:{self.model_name}: connection error, attempt {connection_retries}/{max_rate_limit_retries}, '
                           f'{(f"will retry in {retry_wait_secs}s" if connection_retries <= max_rate_limit_retries else "")}')
                 if connection_retries > max_rate_limit_retries:
