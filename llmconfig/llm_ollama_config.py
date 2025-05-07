@@ -118,6 +118,10 @@ class LLMOllamaConfig(LLMConfig):
     def __repr__(self) -> str:
         return f'{self.__class__!s}:{self.__dict__!r}'
 
+    async def change_ctx(self, new_ctx_length: int):
+        log.info(f'{self.model_name} changing ctx to: {new_ctx_length}')
+        self.settings().ctx = new_ctx_length
+
     def change_settings(self, new_settings: LLMSettings) -> LLMSettings:
         old = self._settings
         self._settings = new_settings

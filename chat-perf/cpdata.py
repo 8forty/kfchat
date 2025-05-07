@@ -97,7 +97,9 @@ class CPData:
             # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.llama3.2:3b'], 'gg1', 16384),
 
             # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.huggingface.co/mradermacher/Benchmaxx-Llama-3.2-1B-Instruct-GGUF:latest'], 'gg1', 16384),
-            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.hf.co/mradermacher/Benchmaxx-Llama-3.2-1B-Instruct-GGUF:F16'], 'gg1', 16384),
+            # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.hf.co/mradermacher/Benchmaxx-Llama-3.2-1B-Instruct-GGUF:F16'], 'gg1', 16384),
+
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.command-r7b:latest'], 'gg1', 16384),
         ],
     }
 

@@ -31,6 +31,7 @@ class CPFunctions:
                        max_results: int, dense_weight: float, all_start: float) -> LLMExchange | None:
         # log.info(f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.mode()}:{idata.source()}): "{prompt}"')
 
+        # todo: configure
         vssettings = VSChromaSettings(init_n=2, init_fts_type=FTSType.SQLITE3_TRIGRAM_IMPROVED)
         vsparms = config.env.copy()
         vectorstore = vsapi_factory.create_one('chroma', vssettings, parms=vsparms)  # todo: add to env
@@ -42,7 +43,7 @@ class CPFunctions:
 
             vectorstore.set_collection(collection_name)
             # todo: configure max_results and dense_weight, VSSettings maybe?
-            vsresponse: VectorStoreResponse = vectorstore.hybrid_search(query=prompt, max_results=0, dense_weight=0.5)
+            vsresponse: VectorStoreResponse = vectorstore.hybrid_search(query=prompt, max_results=max_results, dense_weight=dense_weight)
             # log.debug(f'rag vector-search response: {vsresponse}')
             context = [r.content for r in vsresponse.results]
             context_len = sum(len(s) for s in context)
