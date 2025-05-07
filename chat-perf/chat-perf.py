@@ -145,7 +145,7 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
                         if run_retries < 4:
                             print(f"will retry in {run_retry_wait_secs}s")
                             time.sleep(run_retry_wait_secs)
-                            warmup_retry_wait_secs = run_retries * run_retries
+                            run_retry_wait_secs = run_retries * run_retries
                         else:
                             break
 
@@ -181,6 +181,7 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
 
                 if model.provider == 'OLLAMA':
                     llm_config.unload(model.name)
+                    OllamaUtils.kill_ollama_servers()
 
     run_end_time = timeit.default_timer()
     print(f'{config.secs_string(all_start)}: finished run {run_set_name}/{settings_set_name}/{prompt_set_name}: '

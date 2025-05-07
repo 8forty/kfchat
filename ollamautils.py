@@ -1,4 +1,8 @@
+import os
+import signal
+
 import ollama
+import psutil
 import requests
 from ollama import ShowResponse, ListResponse
 
@@ -7,9 +11,22 @@ class OllamaUtils:
 
     # {'models': [{'name': 'llama3.2:1b', 'model': 'llama3.2:1b', 'size': 2712725504, 'digest': 'baf6a787fdffd633537aa2eb51cfd54cb93ff08e28040095462bb63daf552878', 'details': {'parent_model': '', 'format': 'gguf', 'family': 'llama', 'families': ['llama'], 'parameter_size': '1.2B', 'quantization_level': 'Q8_0'}, 'expires_at': '2025-05-01T10:53:51.3747775-07:00', 'size_vram': 2712725504}]}
     @staticmethod
-    def ps() -> dict:
+    def olps() -> dict:
         response = requests.get('http://localhost:11434/api/ps')
         return response.json()
+
+    @staticmethod
+    def get_ollama_servers_pids() -> list[int]:
+        retval: list[int] = []
+        for process in psutil.process_iter(['pid', 'name']):
+            if process.info['name'] == 'ollama.exe':
+                retval.append(process.info['pid'])
+        return retval
+
+    @staticmethod
+    def kill_ollama_servers():
+        for pid in OllamaUtils.get_ollama_servers_pids():
+            os.kill(pid, signal.SIGTERM)
 
     @staticmethod
     def dump_models():
