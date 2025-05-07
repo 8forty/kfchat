@@ -1,4 +1,6 @@
 import os
+import time
+from time import sleep
 
 import dotenv
 import ollama
@@ -48,15 +50,23 @@ def chat_ollama_api(model_name: str, sysmsg: str):
         {'role': 'user', 'content': 'where is paris?'},
     ]
 
-    client = ollama.Client(host='http://localhost:11434')
-    chat_response: ChatResponse = client.chat(
-        model=model_name,
-        messages=messages,
-        stream=False,  # todo: allow streaming
-    )
-    print(f'response: {chat_response.message.content}')
-    client.generate(model=model_name, keep_alive=0.0)  # unload the model
-    OllamaUtils.kill_ollama_servers()  # todo: really!?
+    tries = 0
+    while True:
+        try:
+            tries += 1
+            client = ollama.Client(host='http://localhost:11434')  # remake this every time when killing
+            chat_response: ChatResponse = client.chat(
+                model=model_name,
+                messages=messages,
+                stream=False,  # todo: allow streaming
+            )
+            tries_message = '' if tries == 1 else f' ({tries} tries)'
+            print(f'response{tries_message}: {chat_response.message.content}')
+            client.generate(model=model_name, keep_alive=0.0)  # unload the model
+            OllamaUtils.kill_ollama_servers()  # todo: really!?
+            break
+        except ConnectionError as e:
+            pass  # print(f'!!! ConnectionError on try {tries}, will retry: {e}')
 
 
 def run():

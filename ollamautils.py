@@ -26,7 +26,11 @@ class OllamaUtils:
     @staticmethod
     def kill_ollama_servers():
         for pid in OllamaUtils.get_ollama_servers_pids():
-            os.kill(pid, signal.SIGTERM)
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except OSError as e:
+                if 'The parameter is incorrect' not in str(e):
+                    raise e
 
     @staticmethod
     def dump_models():

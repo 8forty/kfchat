@@ -1,4 +1,5 @@
 import logging
+import time
 import timeit
 
 import dotenv
@@ -156,7 +157,7 @@ class LLMOllamaConfig(LLMConfig):
         else:
             sysmsg = config.LLMData.rag1_sysmsg.format(sysmsg=self._settings.system_message, context=context)
 
-        rate_limit_retries = 0
+        connection_retries = 0
         retry_wait_secs = 1.0
         while True:
             try:
@@ -191,23 +192,87 @@ class LLMOllamaConfig(LLMConfig):
                 return LLMOllamaExchange(prompt=prompt, chat_response=chat_response, provider=self._provider,
                                          model_name=self.model_name, settings=self._settings,
                                          response_duration_seconds=timeit.default_timer() - start)
+            except ConnectionError as e:
+                # todo: refactor this!
+                connection_retries += 1
+                print(f'~~~~ conerr {connection_retries}')
+                log.debug(f'{self._provider}:{self.model_name}: connection error, attempt {connection_retries}/{max_rate_limit_retries}, '
+                          f'{(f"will retry in {retry_wait_secs}s" if connection_retries <= max_rate_limit_retries else "")}')
+                if connection_retries > max_rate_limit_retries:
+                    log.warning(f'chat {self._provider}:{self.model_name}: connection error limit exceeded, all {connection_retries} retries failed')
+                    raise e
+                else:
+                    time.sleep(retry_wait_secs)
+                    retry_wait_secs = connection_retries * connection_retries
             except (Exception,) as e:
                 log.warning(f'chat error! {self._provider}:{self.model_name}: {e.__class__.__name__}: {e}')
                 raise e
 
-    def load(self, model_name: str):
+    def load(self, model_name: str, max_rate_limit_retries: int = 10):
         """
         ollama function to load a model
         :param model_name:
+        :param max_rate_limit_retries:
         """
-        self._client().generate(model=model_name, keep_alive='5m')
+        connection_retries = 0
+        retry_wait_secs = 1.0
+        while True:
+            try:
+                self._client().generate(model=model_name, keep_alive='5m')
+                break
+            except ConnectionError as e:
+                # todo: refactor this!
+                connection_retries += 1
+                print(f'~~~~ load conerr {connection_retries}')
+                log.debug(f'{self._provider}:{self.model_name}: connection error, attempt {connection_retries}/{max_rate_limit_retries}, '
+                          f'{(f"will retry in {retry_wait_secs}s" if connection_retries <= max_rate_limit_retries else "")}')
+                if connection_retries > max_rate_limit_retries:
+                    log.warning(f'chat {self._provider}:{self.model_name}: connection error limit exceeded, all {connection_retries} retries failed')
+                    raise e
+                else:
+                    time.sleep(retry_wait_secs)
+                    retry_wait_secs = connection_retries * connection_retries
 
-    def unload(self, model_name: str):
+    def unload(self, model_name: str, max_rate_limit_retries: int = 10):
         """
         ollama function to load a model
         :param model_name:
+        :param max_rate_limit_retries:
         """
-        self._client().generate(model=model_name, keep_alive=0.0)
+        connection_retries = 0
+        retry_wait_secs = 1.0
+        while True:
+            try:
+                self._client().generate(model=model_name, keep_alive=0.0)
+                break
+            except ConnectionError as e:
+                # todo: refactor this!
+                connection_retries += 1
+                print(f'~~~~ unload conerr {connection_retries}')
+                log.debug(f'{self._provider}:{self.model_name}: connection error, attempt {connection_retries}/{max_rate_limit_retries}, '
+                          f'{(f"will retry in {retry_wait_secs}s" if connection_retries <= max_rate_limit_retries else "")}')
+                if connection_retries > max_rate_limit_retries:
+                    log.warning(f'chat {self._provider}:{self.model_name}: connection error limit exceeded, all {connection_retries} retries failed')
+                    raise e
+                else:
+                    time.sleep(retry_wait_secs)
+                    retry_wait_secs = connection_retries * connection_retries
 
-    def is_model_running(self, model_name: str) -> bool:
-        return model_name in [m.name for m in self._client().ps().models]
+    def is_model_running(self, model_name: str, max_rate_limit_retries: int = 10) -> bool:
+        connection_retries = 0
+        retry_wait_secs = 1.0
+        while True:
+            try:
+                return model_name in [m.name for m in self._client().ps().models]
+            except ConnectionError as e:
+                # todo: refactor this!
+                connection_retries += 1
+                print(f'~~~~ ismodel conerr {connection_retries}')
+                log.debug(f'{self._provider}:{self.model_name}: connection error, attempt {connection_retries}/{max_rate_limit_retries}, '
+                          f'{(f"will retry in {retry_wait_secs}s" if connection_retries <= max_rate_limit_retries else "")}')
+                if connection_retries > max_rate_limit_retries:
+                    log.warning(f'chat {self._provider}:{self.model_name}: connection error limit exceeded, all {connection_retries} retries failed')
+                    raise e
+                else:
+                    time.sleep(retry_wait_secs)
+                    retry_wait_secs = connection_retries * connection_retries
