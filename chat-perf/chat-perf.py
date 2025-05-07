@@ -69,6 +69,10 @@ def ollama_ps(model_spec: config.ModelSpec, run_set: CPRunSpec) -> str:
             #   parameters=None)
             show_info: ShowResponse = ollama.show(model_name)
 
+            parmsb = ps_dict[model_name].details.parameter_size[:-1]
+            if ps_dict[model_name].details.parameter_size[-1] == 'M':
+                parmsb *= 1024
+            context_length_key = f'{show_info.details.family}.context_length'
             model_size = list_dict[model_name].size
             model_run_size = ps_dict[model_name].size
             vram = ps_dict[model_name].size_vram
@@ -76,12 +80,11 @@ def ollama_ps(model_spec: config.ModelSpec, run_set: CPRunSpec) -> str:
             cpu = 1.0 - gpu
             load = f'{cpu * 100.0:.0f}%/{gpu * 100.0:.0f}% CPU/GPU' if cpu > 0.0 else f'100% GPU*'
             # load += f' (vsize: {float(ps_dict[model_name].size) / (1024.0 * 1024.0 * 1024.0):.1f} vram: {float(vram) / (1024.0 * 1024.0 * 1024.0):.1f} model: {float(model_size) / (1024.0 * 1024.0 * 1024.0):.1f})'
-            retval += (f'{model_name},'
-                       f'{ps_dict[model_name].details.parameter_size},'
+            retval += (f'{parmsb},'
                        f'{ps_dict[model_name].details.quantization_level},'
-                       f'{float(model_size) / (1024.0 * 1024.0 * 1024.0):.1f}GB,'
-                       f'{run_set.ollama_ctx_size}/{show_info.modelinfo['llama.context_length']},'
-                       f'{float(model_run_size) / (1024.0 * 1024.0 * 1024.0):.1f}GB/{float(vram) / (1024.0 * 1024.0 * 1024.0):.1f}GB,'
+                       f'{float(model_size) / (1024.0 * 1024.0 * 1024.0):.1f},'
+                       f'{run_set.ollama_ctx_size},{show_info.modelinfo.get(context_length_key, -1)},'
+                       f'{float(model_run_size) / (1024.0 * 1024.0 * 1024.0):.1f},{float(vram) / (1024.0 * 1024.0 * 1024.0):.1f},'
                        f'{load} ')
 
         return retval
@@ -90,10 +93,19 @@ def ollama_ps(model_spec: config.ModelSpec, run_set: CPRunSpec) -> str:
 
 
 def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_name: str, csv_data: list[list[str]]):
+    """
+
+    :param run_set_name: model, collection, run-type
+    :param settings_set_name: llm/vs settings
+    :param sysmsg_name: system message for llm
+    :param prompt_set_name: prompt(s) to run
+    :param csv_data: where to put hte csv output
+    """
     run_start_time = timeit.default_timer()
     run_set: CPRunSpec
     csv_data.append(['provider', 'model', 'temp', 'max_tokens', 'sysmsg', 'prompt-set', 'tokens-in', 'tokens-out',
-                     'warmup-secs', 'run-secs', 'ollama', 'last-response-1line'])
+                     'warmup-secs', 'run-secs', 'parmsB', 'quant', 'modelGB', 'run-ctxt', 'model-ctxt',
+                     'run-sizeGB', 'vramGB', 'cpu/gpu', 'last-response-1line'])
 
     # llm_model_sets
     for run_set in CPData.run_sets[run_set_name]:
@@ -229,7 +241,7 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
                                  str(ls_input_tokens), str(ls_output_tokens),
                                  f'{warmup_secs:.1f}',
                                  f'{ms_end - ls:.1f}',
-                                 f'"{ollama_ps(model, run_set)}"',
+                                 f'{ollama_ps(model, run_set)}',
                                  f'"{response_line}"']
                                 )
 
@@ -248,7 +260,7 @@ def main():
 
     # run(run_set_name='kf', settings_set_name='quick', sysmsg_name='professional800', prompt_set_name='galaxies4', csv_data=csv_data)
     # run(run_set_name='base', settings_set_name='quick', sysmsg_name='professional800', prompt_set_name='space', csv_data=csv_data)
-    run(run_set_name='gorbash-test',
+    run(run_set_name='gorbash-test-kf',
         settings_set_name='gorbash-test', sysmsg_name='professional800', prompt_set_name='gorbash-test', csv_data=csv_data)
 
     print(f'{config.secs_string(all_start)}: finished all runs: {timeit.default_timer() - all_start:.1f}s')

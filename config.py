@@ -285,6 +285,8 @@ class LLMData:
         ModelSpec('qwen3:30b-a3b-q4_K_M', provider='OLLAMA', api='ollama'),
         ModelSpec('qwen3:32b-q4_K_M', provider='OLLAMA', api='ollama'),
         ModelSpec('qwen3:32b', provider='OLLAMA', api='ollama'),
+        ModelSpec('huggingface.co/mradermacher/Benchmaxx-Llama-3.2-1B-Instruct-GGUF:latest', provider='OLLAMA', api='ollama'),
+        ModelSpec('hf.co/mradermacher/Benchmaxx-Llama-3.2-1B-Instruct-GGUF:F16', provider='OLLAMA', api='ollama'),
 
         ModelSpec('gpt-4.1', provider='OPENAI', api='openai'),
         ModelSpec('gpt-4o', provider='OPENAI', api='openai'),

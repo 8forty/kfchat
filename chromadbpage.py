@@ -5,7 +5,6 @@ import sys
 import tempfile
 import timeit
 import traceback
-from typing import AnyStr
 
 import chromadb
 from chromadb.types import Collection
@@ -90,7 +89,7 @@ class UploadFileDialog(Dialog):
             local_file_name = ulargs.name
             log.info(f'uploading local file {local_file_name} for {self.collection.name}...')
             with tempfile.NamedTemporaryFile(delete=False) as tmpfile:
-                contents: AnyStr = await run.io_bound(ulargs.content.read)
+                contents = await run.io_bound(ulargs.content.read)
                 log.debug(f'loaded {local_file_name}...')
                 await run.io_bound(lambda: tmpfile.write(contents))
                 log.debug(f'saved file {local_file_name} to server file {tmpfile.name}...')
@@ -179,11 +178,13 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
         write_count = 0
         with tempfile.NamedTemporaryFile(prefix=f'{coll_name}_', suffix='.csv', mode='w+', delete=False) as tfile:
             while True:
-                gr: chromadb.GetResult = collection.get(offset=offset, limit=max_read_count, include=[chromadb.api.types.IncludeEnum.documents])
+                gr: chromadb.GetResult = collection.get(offset=offset, limit=max_read_count, include=['documents'])
                 for chunk_id, doc in zip(gr["ids"], gr["documents"]):
-                    doc = doc.encode('ascii', errors='replace').decode('ascii')  # options for a dump that's essentially for debugging
+                    # options for a dump that's essentially for debugging
+                    doc = doc.encode('ascii', errors='replace').decode('ascii')
                     doc = doc.replace('"', "'")
-                    tfile.write(f'{chunk_id},"{doc}"\n')
+
+                    tfile.write(f'\n{chunk_id}: "{doc}"\n')
                     write_count += 1
                 if len(gr['ids']) < max_read_count:
                     break

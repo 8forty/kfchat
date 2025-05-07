@@ -1,6 +1,6 @@
 import asyncio
+
 import chromadb
-from chromadb.api.types import IncludeEnum
 
 
 async def main():
@@ -40,7 +40,7 @@ async def main():
     results = await collection.query(
         query_texts=[query],  # Chroma will embed this for you
         n_results=2,  # how many results to return
-        include=[IncludeEnum('documents'), IncludeEnum('metadatas'), IncludeEnum('distances'), IncludeEnum('uris'), IncludeEnum('data')],
+        include=['documents', 'metadatas', 'distances', 'uris', 'data'],
     )
     print(f'results: {results}')
 
