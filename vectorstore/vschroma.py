@@ -232,7 +232,8 @@ class VSChroma(VSAPI):
             for k in results_keys:
                 if k != 'included':  # we ignore the 'included' key, it just lists the keys that were included in the results
                     # noinspection PyTypedDict
-                    rdict[k] = results[k][query_idx][i] if results[k] is not None and len(results[k]) > 0 and len(results[k][query_idx]) > i else None
+                    rdict[k] = results[k][query_idx][i] if (results[k] is not None and len(results[k]) > 0
+                                                            and len(results[k][query_idx]) > i) else None
             raw_results.append(rdict)
 
         return VSAPI.SearchResponse(
@@ -242,18 +243,21 @@ class VSChroma(VSAPI):
         )
 
     @validate_call
-    def hybrid_search(self, query: str, max_results: int = 0, dense_weight: Annotated[float, Field(strict=True, ge=0.0, le=1.0)] = 0.5) -> VectorStoreResponse | None:
+    def hybrid_search(self, query: str,
+                      max_results: int = 0,
+                      dense_weight: Annotated[float, Field(strict=True, ge=0.0, le=1.0)] = 0.5) -> VectorStoreResponse | None:
         self._build_clients()
 
         dense_results: list[VectorStoreResult] = []
         sparse_results: list[VectorStoreResult] = []
 
-        # load embeddings results (aka "dense")
+        # embeddings search (aka "dense")
         if dense_weight > 0.0:
             try:
                 # get more than max so we have some to choose from
-                # todo: 20?
-                sresp: VSAPI.SearchResponse = self.embeddings_search(query, max_results=min(max_results * 2, 20) if max_results > 0 else 20)
+                # todo: 20? configure this
+                sresp: VSAPI.SearchResponse = self.embeddings_search(
+                    query, max_results=min(max_results * 2, 20) if max_results > 0 else 20)
                 for result_idx in range(0, len(sresp.results_raw)):
                     metrics = {
                         VSAPI.search_type_metric_name: VSAPI.search_type_embeddings,
@@ -270,12 +274,12 @@ class VSChroma(VSAPI):
                 raise e
             log.debug(f'dense_results: {len(dense_results)}')
 
-        # clean the query so it will work with sql/full-text searches
-        query = query.replace('?', ' ')  # remove all "?"
-        query = query.replace("'", " ")  # remove all single-quotes
-
-        # load full-text results (aka "sparse")
+        # full-text search (aka "sparse")
         if dense_weight < 1.0:
+            # clean the query so it will work with sql/full-text searches
+            query = query.replace('?', ' ')  # remove all "?"
+            query = query.replace("'", " ")  # remove all single-quotes
+
             try:
                 # todo: fresh connection every time necessary?
                 log.debug(f'connecting to sql: {config.sql_path}')
@@ -305,6 +309,7 @@ class VSChroma(VSAPI):
                 raise e
             log.debug(f'sparse_results: {len(sparse_results)}')
 
+        # build dicts of both result sets, and a set of ids
         dense_map = {vsr.result_id: vsr for vsr in dense_results}
         sparse_map = {vsr.result_id: vsr for vsr in sparse_results}
         all_ids = set(list(dense_map.keys()) + list(sparse_map.keys()))  # list?
@@ -339,6 +344,7 @@ class VSChroma(VSAPI):
             vsr.metrics['rrank'] = combined_reciprocal_ranks[doc_id]
             vs_results.append(vsr)
 
+        # return on the top-<max_results> results
         if max_results > 0:
             vs_results = vs_results[:max_results]
         return VectorStoreResponse(vs_results)

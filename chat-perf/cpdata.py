@@ -46,7 +46,7 @@ class CPData:
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['GROQ.deepseek-r1-distill-llama-70b']),
         ],
 
-        'gorbash-test': [
+        'gorbash-test-gg1': [
             CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.llama3.2:1b'], 'gg1', 16384),
             CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.llama3.2:3b'], 'gg1', 16384),
 
@@ -88,11 +88,21 @@ class CPData:
             CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.qwen3:32b'], 'gg1', 16384),
         ],
 
-        'gorbash-test-reduced': [
+        'gorbash-test-fast-ones-gg1': [
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.llama3.2:3b'], 'gg1', 16384),
 
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.huggingface.co/mradermacher/Benchmaxx-Llama-3.2-1B-Instruct-GGUF:latest'], 'gg1', 16384),
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.hf.co/mradermacher/Benchmaxx-Llama-3.2-1B-Instruct-GGUF:F16'], 'gg1', 16384),
+
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:12b'], 'gg1', 16384),
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.gemma3:27b'], 'gg1', 16384),
+
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.phi4:14b'], 'gg1', 16384),
+
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.command-r7b:latest'], 'gg1', 16384),
         ],
 
-        'gorbash-test-kf': [
+        'gorbash-test-kf-gg1': [
             # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.llama3.2:1b'], 'gg1', 16384),
             # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.llama3.2:3b'], 'gg1', 16384),
 
@@ -100,6 +110,11 @@ class CPData:
             # CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.hf.co/mradermacher/Benchmaxx-Llama-3.2-1B-Instruct-GGUF:F16'], 'gg1', 16384),
 
             CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.command-r7b:latest'], 'gg1', 16384),
+        ],
+
+        'gorbash-test-dorrit-kf': [
+
+            CPRunSpec(CPRunType.RAG, config.LLMData.models_by_pname['OLLAMA.command-r7b:latest'], 'gg1-dorrit', 16384),
         ],
     }
 
@@ -280,8 +295,11 @@ class CPData:
         'drug': [
             [LLMMessagePair('user', teplizumab_prompt)]
         ],
-        'gorbash-test': [
-            # 'what data security does gorbash have?'
+        'gorbash-compliance-hotline': [
             [LLMMessagePair('user', 'gorbash compliance hotline number?')]
+        ],
+        'gorbash-security': [
+            # ''
+            [LLMMessagePair('user', 'what data security does gorbash have?')]
         ],
     }

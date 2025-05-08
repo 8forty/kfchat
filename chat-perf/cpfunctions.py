@@ -32,7 +32,7 @@ class CPFunctions:
         # log.info(f'(exchanges[{idata.chat_exchange_id()}]) prompt({idata.mode()}:{idata.source()}): "{prompt}"')
 
         # todo: configure
-        vssettings = VSChromaSettings(init_n=2, init_fts_type=FTSType.SQLITE3_TRIGRAM_IMPROVED)
+        vssettings = VSChromaSettings(init_n=1, init_fts_type=FTSType.SQLITE3_TRIGRAM_IMPROVED)
         vsparms = config.env.copy()
         vectorstore = vsapi_factory.create_one('chroma', vssettings, parms=vsparms)  # todo: add to env
         vectorstore.warmup()

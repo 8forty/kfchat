@@ -74,7 +74,7 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
                      'warmup-secs', 'run-secs', 'parmsB', 'quant', 'modelGB', 'run-ctxt', 'model-ctxt',
                      'run-sizeGB', 'vramGB', 'cpu/gpu', 'last-response-1line'])
 
-    # llm_model_sets
+    # loop run specs from run_set
     for run_spec in CPData.run_sets[run_set_name]:
         print(f'{config.secs_string(all_start)}: running {run_spec.run_type} {run_spec.model.provider} {run_spec.model.name}...')
 
@@ -95,10 +95,8 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
                     llm_config = LLMOllamaConfig(model_name, model.provider,
                                                  LLMOllamaSettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
 
-                    # until model is known to be running
+                    # until ollama reports the model as running
                     while True:
-                        # run the llm to warm it up
-                        # CPFunctions.run_llm_prompt(CPData.llm_prompt_sets['galaxies'][0], None, llm_config, all_start)
                         llm_config.load(model_name)
 
                         # check that the correct model is running
@@ -107,10 +105,10 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
                             warmup_retries += 1
                             print(f'{config.secs_string(all_start)}: warmup: !! model {model_name} isnt running! [{running}]')
                             if warmup_retries < 4:
-                                print('retrying warmup...')
+                                print(f'{config.secs_string(all_start)}: retrying warmup...')
                                 continue
                             else:
-                                print('retries exhausted, skipping...')
+                                print(f'{config.secs_string(all_start)}: retries exhausted, skipping...')
                                 break
                         else:
                             warmup_done = True
@@ -127,7 +125,7 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
                           f'{model.provider}:{model_name}: {e.__class__.__name__}: {e}')
                     traceback.print_exc(file=sys.stderr)
                     if warmup_retries < 4:
-                        print(f"will retry in {warmup_retry_wait_secs}s")
+                        print(f'{config.secs_string(all_start)}: will retry in {warmup_retry_wait_secs}s')
                         time.sleep(warmup_retry_wait_secs)
                         warmup_retry_wait_secs = warmup_retries * warmup_retries
                     else:
@@ -239,8 +237,12 @@ def main():
 
     # run(run_set_name='kf', settings_set_name='quick', sysmsg_name='professional800', prompt_set_name='galaxies4', csv_data=csv_data)
     # run(run_set_name='base', settings_set_name='quick', sysmsg_name='professional800', prompt_set_name='space', csv_data=csv_data)
-    run(run_set_name='gorbash-test-kf',
-        settings_set_name='gorbash-test', sysmsg_name='professional800', prompt_set_name='gorbash-test', csv_data=csv_data)
+    run(run_set_name='gorbash-test-fast-ones-gg1',  # model, collection, run-type
+        settings_set_name='gorbash-test',  # llm/vs settings
+        sysmsg_name='professional800',
+        prompt_set_name='gorbash-compliance-hotline',
+        # prompt_set_name='gorbash-security',
+        csv_data=csv_data)
 
     print(f'{config.secs_string(all_start)}: finished all runs: {timeit.default_timer() - all_start:.1f}s')
 
