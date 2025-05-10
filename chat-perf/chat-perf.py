@@ -241,7 +241,7 @@ def main():
     run(run_set_name='kf',  # 'gorbash-test-fast-ones-gg1',  # model, collection, run-type
         settings_set_name='gorbash-test',  # llm/vs settings
         sysmsg_name='professional800',
-        prompt_set_name='benchmark-prompts',  # 'gorbash-compliance-hotline',
+        prompt_set_name='awesome-chatgpt-prompts',  # 'benchmark-prompts',  # 'gorbash-compliance-hotline',
         # prompt_set_name='gorbash-security',
         csv_data=csv_data)
 
