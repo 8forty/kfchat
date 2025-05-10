@@ -29,6 +29,7 @@ class CPData:
     run_sets: dict[str, list[CPRunSpec]] = {
         'kf': [
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.gemma3:1b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.llama3.2:3b']),
         ],
 
         'base': [
@@ -302,4 +303,42 @@ class CPData:
             # ''
             [LLMMessagePair('user', 'what data security does gorbash have?')]
         ],
+        'benchmark-prompts': [
+            [LLMMessagePair('user', 'Argue for and against the use of kubernetes in the style of a haiku.'), ],
+            [LLMMessagePair('user', "Give two concise bullet-point arguments against the Münchhausen trilemma (don't explain what it is)"), ],
+            [LLMMessagePair('user',
+                            "I went to the market and bought 10 apples. I gave 2 apples to the neighbor and 2 to the repairman. I then went and bought 5 more apples and ate 1. I also gave 3 bananas to my brother. How many apples did I remain with?"), ],
+            [LLMMessagePair('user', "Sally (a girl) has 3 brothers. Each brother has 2 sisters. How many sisters does Sally have?"), ],
+            [LLMMessagePair('user', "Sally (a girl) has 3 brothers. Each brother has 2 sisters. How many sisters does Sally have? Let's think step by step."), ],
+            [LLMMessagePair('user', "Explain in a short paragraph quantum field theory to a high-school student."), ],
+            [LLMMessagePair('user', "Is Taiwan an independent country?"), ],
+            [LLMMessagePair('user', 'Translate this to French, you can take liberties so that it sounds nice: "blossoms paint the spring, nature’s rebirth brings delight and beauty fills the air."'), ],
+            [LLMMessagePair('user', "Extract the name of the vendor from the invoice: PURCHASE #0521 NIKE XXX3846. Reply with only the name."), ],
+            [LLMMessagePair('user',
+                            'Help me find out if this customer review is more "positive" or "negative".\nQ: This movie was watchable but had terrible acting.\nA: negative\nQ: The staff really left us our privacy, we’ll be back.\nA:'), ],
+            [LLMMessagePair('user',
+                            'What are the 5 planets closest to the sun? Reply with only a valid JSON array of objects formatted like this:\n```\n[{\n"planet": string,\n"distanceFromEarth": number,\n"diameter": number,\n"moons": number\n}]\n```'), ],
+            [LLMMessagePair('user', 'Give me the SVG code for a smiley. It should be simple. Reply with only the valid SVG code and nothing else.'), ],
+            [LLMMessagePair('user', 'Tell a joke about going on vacation.'), ],
+            [LLMMessagePair('user', 'Write a 12-bar blues chord progression in the key of E'), ],
+            [LLMMessagePair('user', 'Write me a product description for a 100W wireless fast charger for my website.'), ],
+            [LLMMessagePair('user', 'Explain antibiotics'), ],
+            [LLMMessagePair('user',
+                            'Antibiotics are a type of medication used to treat bacterial infections. They work by either killing the bacteria or preventing them from reproducing, allowing the body’s immune system to fight off the infection. Antibiotics are usually taken orally in the form of pills, capsules, or liquid solutions, or sometimes administered intravenously. They are not effective against viral infections, and using them inappropriately can lead to antibiotic resistance.\nExplain the above in one sentence:'), ],
+            [LLMMessagePair('user',
+                            'Author-contribution statements and acknowledgements in research papers should state clearly and specifically whether, and to what extent, the authors used AI technologies such as ChatGPT in the preparation of their manuscript and analysis. They should also indicate which LLMs were used. This will alert editors and reviewers to scrutinize manuscripts more carefully for potential biases, inaccuracies and improper source crediting. Likewise, scientific journals should be transparent about their use of LLMs, for example when selecting submitted manuscripts.\nMention the large language model based product mentioned in the paragraph above:'), ],
+            [LLMMessagePair('user',
+                            'Answer the question based on the context below. Keep the answer short and concise. Respond "Unsure about answer" if not sure about the answer.\nContext: Teplizumab traces its roots to a New Jersey drug company called Ortho Pharmaceutical. There, scientists generated an early version of the antibody, dubbed OKT3. Originally sourced from mice, the molecule was able to bind to the surface of T cells and limit their cell-killing potential. In 1986, it was approved to help prevent organ rejection after kidney transplants, making it the first therapeutic antibody allowed for human use.\nQuestion: What was OKT3 originally sourced from?'), ],
+            [LLMMessagePair('user', 'Classify the text into neutral, negative or positive.\nText: I think the food was okay.\nSentiment:'), ],
+            [LLMMessagePair('user', 'Classify the text into neutral, negative or positive.\nText: I think the vacation is okay.\nSentiment: neutral\nText: I think the food was okay.\nSentiment:'), ],
+            [LLMMessagePair('user', 'Classify the text into nutral, negative or positive.\nText: I think the vacation is okay.\nSentiment:'), ],
+            [LLMMessagePair('user',
+                            'The following is a conversation with an AI research assistant. The assistant tone is technical and scientific.\nHuman: Hello, who are you?\nAI: Greeting! I am an AI research assistant. How can I help you today?\nHuman: Can you tell me about the creation of blackholes?\nAI:'), ],
+            [LLMMessagePair('user',
+                            'The following is a conversation with an AI research assistant. The assistant answers should be easy to understand even by primary school students.\nHuman: Hello, who are you?\nAI: Greeting! I am an AI research assistant. How can I help you today?\nHuman: Can you tell me about the creation of black holes?\nAI:'), ],
+            [LLMMessagePair('user', 'What is 9,000 * 9,000?'), ],
+            [LLMMessagePair('user', 'The odd numbers in this group add up to an even number: 15, 32, 5, 13, 82, 7, 1.\nA:'), ],
+            [LLMMessagePair('user', 'The odd numbers in this group add up to an even number: 15, 32, 5, 13, 82, 7, 1.'), ],
+            [LLMMessagePair('user', 'Solve by breaking the problem into steps. First, identify the odd numbers, add them, and indicate whether the result is odd or even.'), ],
+        ]
     }

@@ -6,7 +6,6 @@ import timeit
 import traceback
 
 import ollama
-from ollama import ShowResponse
 
 import config
 from cpdata import CPData, CPRunType, CPRunSpec
@@ -38,9 +37,11 @@ def ollama_ps(model_spec: config.ModelSpec, run_spec: CPRunSpec) -> str:
         retval = ''
         for model_name in ps_dict.keys():
 
-            parmsb = ps_dict[model_name].details.parameter_size[:-1]
+            parm_size = float(ps_dict[model_name].details.parameter_size[:-1])
             if ps_dict[model_name].details.parameter_size[-1] == 'M':
-                parmsb *= 1024
+                parmsb: int = int(round(parm_size / 1024.0, 1))
+            else:
+                parmsb = int(parm_size)
             model_run_size = ps_dict[model_name].size
             vram = ps_dict[model_name].size_vram
             gpu = float(vram) / float(model_run_size) if model_run_size > vram else 1.0
@@ -237,10 +238,10 @@ def main():
 
     # run(run_set_name='kf', settings_set_name='quick', sysmsg_name='professional800', prompt_set_name='galaxies4', csv_data=csv_data)
     # run(run_set_name='base', settings_set_name='quick', sysmsg_name='professional800', prompt_set_name='space', csv_data=csv_data)
-    run(run_set_name='gorbash-test-fast-ones-gg1',  # model, collection, run-type
+    run(run_set_name='kf',  # 'gorbash-test-fast-ones-gg1',  # model, collection, run-type
         settings_set_name='gorbash-test',  # llm/vs settings
         sysmsg_name='professional800',
-        prompt_set_name='gorbash-compliance-hotline',
+        prompt_set_name='benchmark-prompts',  # 'gorbash-compliance-hotline',
         # prompt_set_name='gorbash-security',
         csv_data=csv_data)
 
