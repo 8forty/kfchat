@@ -276,11 +276,11 @@ class CPData:
                            init_seed=0, init_ctx=2048,
                            init_system_message_name='empty'),
         ],
-        '.7:800:2048:pro800': [
+        '.7:800:2048:empty': [
             LLMRawSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800,
                            init_seed=0,
                            init_ctx=2048,  # 2048 is the ollama default
-                           init_system_message_name='professional800'),
+                           init_system_message_name='empty'),
         ],
         'ollama-warmup': [
             LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=800,

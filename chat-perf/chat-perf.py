@@ -77,8 +77,9 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
                      'run-sizeGB', 'vramGB', 'cpu/gpu', 'last-response-1line'])
 
     # run-setup: run specs loop
-    for run_spec in CPData.run_specs[run_specs_name]:
-        print(f'{config.secs_string(all_start)}: running {run_spec.run_type} {run_spec.model.provider} {run_spec.model.name}...')
+    for rs_idx, run_spec in enumerate(CPData.run_specs[run_specs_name]):
+        print(f'{config.secs_string(all_start)}: running run-spec {run_specs_name}[{rs_idx}] '
+              f'{run_spec.run_type} {run_spec.model.provider} {run_spec.model.name}...')
 
         if run_spec.run_type in [CPRunType.LLM, CPRunType.RAG]:
             model = run_spec.model
@@ -139,7 +140,8 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
 
             # settings loop
             response_line: str = ''
-            for settings in CPData.llm_settings_sets[settings_set_name]:
+            for settings_idx, settings in enumerate(CPData.llm_settings_sets[settings_set_name]):
+                print(f'{config.secs_string(all_start)}: running settings {settings_set_name}[{settings_idx}] ')
                 # todo: factory this shit
                 if model.api.upper() == 'OPENAI':
                     settings.seed = run_spec.seed
@@ -168,10 +170,12 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
                     asyncio.run(llm_config.change_ctx(run_spec.ollama_ctx_size))
 
                 # prompts loop
-                ls = timeit.default_timer()
-                ls_input_tokens = 0
-                ls_output_tokens = 0
-                for idx, prompt_set in enumerate(CPData.llm_prompt_sets[prompt_set_name]):
+                ploop_start = timeit.default_timer()
+                ploop_input_tokens = 0
+                ploop_output_tokens = 0
+                for prompts_idx, prompt_set in enumerate(CPData.llm_prompt_sets[prompt_set_name]):
+                    print(f'{config.secs_string(all_start)}: running prompts {prompt_set_name}[{prompts_idx}] ')
+                    prompts_start = timeit.default_timer()
                     exchange: LLMExchange | None = None
                     run_retries = 0
                     run_retry_wait_secs = 1.0
@@ -198,22 +202,22 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
                         else:
                             break
 
-                    ls_input_tokens += exchange.input_tokens
-                    ls_output_tokens += exchange.output_tokens
+                    ploop_input_tokens += exchange.input_tokens
+                    ploop_output_tokens += exchange.output_tokens
                     # play nice with CSV: get rid of newlines and double any double-quotes
                     response_line = (str(exchange.responses[0].content).replace("\n", "  ")
                                      .replace('"', '""'))
-                    print(f'{config.secs_string(all_start)}: {prompt_set_name}[{idx}]: '
+                    print(f'{config.secs_string(all_start)}: {model_name}:{prompt_set_name}[{prompts_idx}]: '
                           f'{exchange.input_tokens}->{exchange.output_tokens} '
-                          f'{timeit.default_timer() - ls:.1f}s  {response_line}')
+                          f'{timeit.default_timer() - prompts_start:.1f}s  {response_line}')
 
                 ms_end = timeit.default_timer()
-                print(f'{config.secs_string(all_start)}: {prompt_set_name}: '
+                print(f'{config.secs_string(all_start)}: {model_name}:{prompt_set_name}: '
                       f'[{llm_config.provider()}:{llm_config.model_name}] '
                       f'{llm_config.settings().value('temp')}/{llm_config.settings().value('max_tokens')} '
                       f'{llm_config.settings().value('system_message_name')}: '
-                      f'{ls_input_tokens}+{ls_output_tokens} '
-                      f'{timeit.default_timer() - ls:.1f}s')
+                      f'{ploop_input_tokens}+{ploop_output_tokens} '
+                      f'{timeit.default_timer() - ploop_start:.1f}s')
                 print(f'{config.secs_string(all_start)}: ollama ps: {ollama_ps(model, run_spec)}')
 
                 # csv
@@ -222,9 +226,9 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
                                  str(llm_config.settings().value('max_tokens')),
                                  str(llm_config.settings().value('system_message_name')),
                                  f'{prompt_set_name}',
-                                 str(ls_input_tokens), str(ls_output_tokens),
+                                 str(ploop_input_tokens), str(ploop_output_tokens),
                                  f'{warmup_secs:.1f}',
-                                 f'{ms_end - ls:.1f}',
+                                 f'{ms_end - ploop_start:.1f}',
                                  f'{ollama_ps(model, run_spec)}',
                                  f'"{response_line}"']
                                 )
@@ -248,30 +252,37 @@ class RunSet:
 def main():
     run_sets = {
         'quick': RunSet('kf', 'quick', 'professional800', 'space'),
-        'base': RunSet('base', 'base', 'professional800', 'space'),
+        'base': RunSet('base', 'quick', 'professional800', 'space'),
 
-        'kf': RunSet('kf', '.7:800:2048:pro800', 'professional800', 'benchmark-awesome-prompts-20'),
+        'kf': RunSet('kf', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
 
-        'bm-20-gemma': RunSet('ollama-gemma', '.7:800:2048:pro800', 'professional800', 'benchmark-awesome-prompts-20'),
-        'bm-20-llama3.2': RunSet('ollama-llama3.2', '.7:800:2048:pro800', 'professional800', 'benchmark-awesome-prompts-20'),
-        'bm-20-llama3.3': RunSet('ollama-llama3.3', '.7:800:2048:pro800', 'professional800', 'benchmark-awesome-prompts-20'),
-        'bm-20-phi': RunSet('ollama-phi', '.7:800:2048:pro800', 'professional800', 'benchmark-awesome-prompts-20'),
-        'bm-20-qwen': RunSet('ollama-qwen', '.7:800:2048:pro800', 'professional800', 'benchmark-awesome-prompts-20'),
-        'bm-20-other': RunSet('ollama-other', '.7:800:2048:pro800', 'professional800', 'benchmark-awesome-prompts-20'),
+        'bm-20-gemma': RunSet('ollama-gemma', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'bm-20-llama3.2': RunSet('ollama-llama3.2', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'bm-20-llama3.3': RunSet('ollama-llama3.3', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'bm-20-phi': RunSet('ollama-phi', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'bm-20-qwen': RunSet('ollama-qwen', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'bm-20-other': RunSet('ollama-other', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
     }
 
-    run_set_name = 'bm-20-gemma'
+    run_set_names = ['quick', 'base', 'kf']
+    # run_set_names = ['bm-20-llama3.3', 'bm-20-phi', 'bm-20-qwen', 'bm-20-other']
 
     csv_data = []
-    run(run_specs_name=run_sets[run_set_name].run_specs_name,  # model, collection, run-type
-        settings_set_name=run_sets[run_set_name].settings_set_name,  # llm/vs settings
-        sysmsg_name=run_sets[run_set_name].sysmsg_name,
-        prompt_set_name=run_sets[run_set_name].prompt_set_name,
-        csv_data=csv_data)
+    for rsn in run_set_names:
+        run(run_specs_name=run_sets[rsn].run_specs_name,  # model, collection, run-type
+            settings_set_name=run_sets[rsn].settings_set_name,  # llm/vs settings
+            sysmsg_name=run_sets[rsn].sysmsg_name,
+            prompt_set_name=run_sets[rsn].prompt_set_name,
+            csv_data=csv_data)
 
-    print(f'{config.secs_string(all_start)}: finished all runs: {timeit.default_timer() - all_start:.1f}s')
+        print('\n')
+        for line in csv_data:
+            print(','.join(line))
+        print('\n')
 
-    # now make CSV lines from results
+    print(f'{config.secs_string(all_start)}: finished all run-sets: {timeit.default_timer() - all_start:.1f}s')
+
+    # final CSV
     print('\n\n')
     for line in csv_data:
         print(','.join(line))
