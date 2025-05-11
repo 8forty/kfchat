@@ -226,8 +226,8 @@ class LLMOllamaConfig(LLMConfig):
             except ConnectionError as e:
                 # todo: refactor this!
                 connection_retries += 1
-                log.debug(f'{self._provider}:{self.model_name}: connection error, attempt {connection_retries}/{max_rate_limit_retries}, '
-                          f'{(f"will retry in {retry_wait_secs}s" if connection_retries <= max_rate_limit_retries else "")}')
+                log.info(f'{self._provider}:{self.model_name}: connection error, attempt {connection_retries}/{max_rate_limit_retries}, '
+                         f'{(f"will retry in {retry_wait_secs}s" if connection_retries <= max_rate_limit_retries else "")}')
                 if connection_retries > max_rate_limit_retries:
                     log.warning(f'chat {self._provider}:{self.model_name}: connection error limit exceeded, all {connection_retries} retries failed')
                     raise e

@@ -4,6 +4,7 @@ import sys
 import time
 import timeit
 import traceback
+from dataclasses import dataclass
 
 import ollama
 
@@ -60,10 +61,10 @@ def ollama_ps(model_spec: config.ModelSpec, run_spec: CPRunSpec) -> str:
         return ''
 
 
-def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_name: str, csv_data: list[list[str]]):
+def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_name: str, csv_data: list[list[str]]):
     """
 
-    :param run_set_name: model, collection, run-type
+    :param run_specs_name: model, collection, run-type
     :param settings_set_name: llm/vs settings
     :param sysmsg_name: system message for llm
     :param prompt_set_name: prompt(s) to run
@@ -75,8 +76,8 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
                      'warmup-secs', 'run-secs', 'parmsB', 'quant', 'modelGB', 'run-ctxt', 'model-ctxt',
                      'run-sizeGB', 'vramGB', 'cpu/gpu', 'last-response-1line'])
 
-    # loop run specs from run_set
-    for run_spec in CPData.run_sets[run_set_name]:
+    # run-setup: run specs loop
+    for run_spec in CPData.run_specs[run_specs_name]:
         print(f'{config.secs_string(all_start)}: running {run_spec.run_type} {run_spec.model.provider} {run_spec.model.name}...')
 
         if run_spec.run_type in [CPRunType.LLM, CPRunType.RAG]:
@@ -87,6 +88,10 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
             # warmup the model if necessary
             warmup_secs = 0
             if model.provider == 'OLLAMA':
+
+                # the only way to GPU memory of any previous ollama runs
+                OllamaUtils.kill_ollama_servers()
+
                 warmup_retries = 0
                 warmup_retry_wait_secs = 1.0
                 warmup_done = False
@@ -98,7 +103,7 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
 
                     # until ollama reports the model as running
                     while True:
-                        llm_config.load(model_name)
+                        llm_config.load(model_name, max_rate_limit_retries=3)
 
                         # check that the correct model is running
                         if not llm_config.is_model_running(model_name):
@@ -150,7 +155,8 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
                     raise ValueError(f'api must be "openai" or "anthropic" or "ollama"!')
 
                 # update values in the default config
-                asyncio.run(llm_config.change_sysmsg(sysmsg_name))
+                if sysmsg_name is not None:
+                    asyncio.run(llm_config.change_sysmsg(sysmsg_name))
                 # todo: enum?
                 if model.api.upper() == 'OLLAMA':
                     # adjust the context length in the run_spec if it's too long for the model
@@ -224,25 +230,50 @@ def run(run_set_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_
                                 )
 
                 if model.provider == 'OLLAMA':
-                    # print(subprocess.run(['ollama', 'ps'], capture_output=True, text=True).stdout)
                     llm_config.unload(model_name)
-                    OllamaUtils.kill_ollama_servers()
 
     run_end_time = timeit.default_timer()
-    print(f'{config.secs_string(all_start)}: finished run {run_set_name}/{settings_set_name}/{prompt_set_name}: '
+    print(f'{config.secs_string(all_start)}: finished run {run_specs_name}/{settings_set_name}/{prompt_set_name}: '
           f'{run_end_time - run_start_time:.1f}s')
 
 
-def main():
-    csv_data = []
+@dataclass
+class RunSet:
+    run_specs_name: str  # model, collection, run-type
+    settings_set_name: str  # llm/vs settings
+    sysmsg_name: str
+    prompt_set_name: str
 
-    # run(run_set_name='kf', settings_set_name='quick', sysmsg_name='professional800', prompt_set_name='galaxies4', csv_data=csv_data)
-    # run(run_set_name='base', settings_set_name='quick', sysmsg_name='professional800', prompt_set_name='space', csv_data=csv_data)
-    run(run_set_name='kf',  # 'gorbash-test-fast-ones-gg1',  # model, collection, run-type
-        settings_set_name='gorbash-test',  # llm/vs settings
-        sysmsg_name='professional800',
-        prompt_set_name='awesome-chatgpt-prompts',  # 'benchmark-prompts',  # 'gorbash-compliance-hotline',
-        # prompt_set_name='gorbash-security',
+
+def main():
+    #         'ollama-gemma': [
+    #         'ollama-llama3.2': [
+    #         'ollama-llama3.3': [
+    #         'ollama-phi': [
+    #         'ollama-qwen': [
+    #         'ollama-other': [
+
+    run_sets = {
+        'quick': RunSet('kf', 'quick', 'professional800', 'space'),
+        'base': RunSet('base', 'base', 'professional800', 'space'),
+
+        'kf': RunSet('kf', '.7:800:2048:pro800', 'professional800', 'benchmark-awesome-prompts-20'),
+
+        'bm-20-gemma': RunSet('ollama-gemma', '.7:800:2048:pro800', 'professional800', 'benchmark-awesome-prompts-20'),
+        'bm-20-llama3.2': RunSet('ollama-llama3.2', '.7:800:2048:pro800', 'professional800', 'benchmark-awesome-prompts-20'),
+        'bm-20-llama3.3': RunSet('ollama-llama3.3', '.7:800:2048:pro800', 'professional800', 'benchmark-awesome-prompts-20'),
+        'bm-20-phi': RunSet('ollama-phi', '.7:800:2048:pro800', 'professional800', 'benchmark-awesome-prompts-20'),
+        'bm-20-qwen': RunSet('ollama-qwen', '.7:800:2048:pro800', 'professional800', 'benchmark-awesome-prompts-20'),
+        'bm-20-other': RunSet('ollama-other', '.7:800:2048:pro800', 'professional800', 'benchmark-awesome-prompts-20'),
+    }
+
+    run_set_name = 'bm-20-gemma'
+
+    csv_data = []
+    run(run_specs_name=run_sets[run_set_name].run_specs_name,  # model, collection, run-type
+        settings_set_name=run_sets[run_set_name].settings_set_name,  # llm/vs settings
+        sysmsg_name=run_sets[run_set_name].sysmsg_name,
+        prompt_set_name=run_sets[run_set_name].prompt_set_name,
         csv_data=csv_data)
 
     print(f'{config.secs_string(all_start)}: finished all runs: {timeit.default_timer() - all_start:.1f}s')

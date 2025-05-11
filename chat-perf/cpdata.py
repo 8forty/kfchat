@@ -24,19 +24,70 @@ class CPRunSpec:
 
 class CPData:
     ##############################################################
-    # run sets
+    # run specs
     ##############################################################
-    run_sets: dict[str, list[CPRunSpec]] = {
+    run_specs: dict[str, list[CPRunSpec]] = {
         'kf': [
-            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.gemma3:1b']),
+            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.gemma3:1b']),
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.llama3.2:3b']),
         ],
 
         'base': [
+            # todo: just use model names here
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.llama3.2:1b']),
             # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.llama3.2:3b']),
         ],
 
+        # ollama ###############################################################################################
+        'ollama-gemma': [
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.gemma2:9b-instruct-fp16']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.gemma3:1b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.gemma3:4b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.gemma3:12b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.gemma3:12b-it-fp16']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.gemma3:27b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.gemma3:27b-it-fp16']),
+        ],
+
+        'ollama-llama3.2': [
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.llama3.2:1b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.huggingface.co/mradermacher/Benchmaxx-Llama-3.2-1B-Instruct-GGUF:latest']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.hf.co/mradermacher/Benchmaxx-Llama-3.2-1B-Instruct-GGUF:F16']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.llama3.2:3b']),
+        ],
+
+        'ollama-llama3.3': [
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.llama3.3:70b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.llama3.3:70b-instruct-q2_K']),
+
+        ],
+
+        'ollama-phi': [
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.phi4:14b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.phi4:14b-q8_0']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.phi4:14b-fp16']),
+        ],
+
+        'ollama-qwen': [
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.qwq:latest']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.qwen3:14b-q8_0']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.qwen3:30b-a3b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.qwen3:30b-a3b-q4_K_M']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.qwen3:32b-q4_K_M']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.qwen3:32b']),
+        ],
+
+        'ollama-other': [
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.mistral-nemo:12b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.mixtral:8x7b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.deepseek-r1:32b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.deepseek-v2:16b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.olmo2:13b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.command-r7b:latest']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.openthinker:32b']),
+        ],
+
+        # groq ###############################################################################################
         'groq-base': [
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['GROQ.qwen-qwq-32b']),
         ],
@@ -225,9 +276,10 @@ class CPData:
                            init_seed=0, init_ctx=2048,
                            init_system_message_name='empty'),
         ],
-        'gorbash-test': [
+        '.7:800:2048:pro800': [
             LLMRawSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800,
-                           init_seed=0, init_ctx=2048,
+                           init_seed=0,
+                           init_ctx=2048,  # 2048 is the ollama default
                            init_system_message_name='professional800'),
         ],
         'ollama-warmup': [
@@ -303,7 +355,7 @@ class CPData:
             # ''
             [LLMMessagePair('user', 'what data security does gorbash have?')]
         ],
-        'benchmark-prompts': [
+        'benchmark-simple-prompts': [
             [LLMMessagePair('user', 'Argue for and against the use of kubernetes in the style of a haiku.'), ],
             [LLMMessagePair('user', "Give two concise bullet-point arguments against the Münchhausen trilemma (don't explain what it is)"), ],
             [LLMMessagePair('user',
@@ -341,7 +393,7 @@ class CPData:
             [LLMMessagePair('user', 'The odd numbers in this group add up to an even number: 15, 32, 5, 13, 82, 7, 1.'), ],
             [LLMMessagePair('user', 'Solve by breaking the problem into steps. First, identify the odd numbers, add them, and indicate whether the result is odd or even.'), ],
         ],
-        'awesome-chatgpt-prompts': [
+        'benchmark-awesome-prompts-all': [
             [LLMMessagePair("user",
                             "Imagine you are an experienced Ethereum developer tasked with creating a smart contract for a blockchain messenger. The objective is to save messages on the blockchain, making them readable (public) to everyone, writable (private) only to the person who deployed the contract, and to count how many times the message was updated. Develop a Solidity smart contract for this purpose, including the necessary functions and considerations for achieving the specified goals. Please provide the code and any relevant explanations to ensure a clear understanding of the implementation."), ],
             [LLMMessagePair("user",
@@ -770,5 +822,47 @@ class CPData:
             [LLMMessagePair("user",
                             "You are an expert Linux script developer. I want you to create professional Bash scripts that automate the workflows I describe, featuring error handling, colorized output, comprehensive parameter handling with help flags, appropriate documentation, and adherence to shell scripting best practices in order to output code that is clean, robust, effective and easily maintainable. Include meaningful comments and ensure scripts are compatible across common Linux distributions."), ],
 
+        ],
+        'benchmark-awesome-prompts-20': [
+            [LLMMessagePair("user",
+                            "Imagine you are an experienced Ethereum developer tasked with creating a smart contract for a blockchain messenger. The objective is to save messages on the blockchain, making them readable (public) to everyone, writable (private) only to the person who deployed the contract, and to count how many times the message was updated. Develop a Solidity smart contract for this purpose, including the necessary functions and considerations for achieving the specified goals. Please provide the code and any relevant explanations to ensure a clear understanding of the implementation."), ],
+            [LLMMessagePair("user",
+                            "I want you to act as a linux terminal. I will type commands and you will reply with what the terminal should show. I want you to only reply with the terminal output inside one unique code block, and nothing else. do not write explanations. do not type commands unless I instruct you to do so. when i need to tell you something in english, i will do so by putting text inside curly brackets {like this}. my first command is pwd"), ],
+            [LLMMessagePair("user",
+                            "I want you to act as a web design consultant. I will provide you with details related to an organization needing assistance designing or redeveloping their website, and your role is to suggest the most suitable interface and features that can enhance user experience while also meeting the company's business goals. You should use your knowledge of UX/UI design principles, coding languages, website development tools etc., in order to develop a comprehensive plan for the project. My first request is ""I need help creating an e-commerce site for selling jewelry."""), ],
+            [LLMMessagePair("user",
+                            "I want you to act as an AI assisted doctor. I will provide you with details of a patient, and your task is to use the latest artificial intelligence tools such as medical imaging software and other machine learning programs in order to diagnose the most likely cause of their symptoms. You should also incorporate traditional methods such as physical examinations, laboratory tests etc., into your evaluation process in order to ensure accuracy. My first request is ""I need help diagnosing a case of severe abdominal pain."""), ],
+            [LLMMessagePair("user",
+                            "I want you to act as a doctor and come up with creative treatments for illnesses or diseases. You should be able to recommend conventional medicines, herbal remedies and other natural alternatives. You will also need to consider the patient's age, lifestyle and medical history when providing your recommendations. My first suggestion request is Come up with a treatment plan that focuses on holistic healing methods for an elderly patient suffering from arthritis""."""), ],
+            [LLMMessagePair("user",
+                            "I want you to act as an accountant and come up with creative ways to manage finances. You'll need to consider budgeting, investment strategies and risk management when creating a financial plan for your client. In some cases, you may also need to provide advice on taxation laws and regulations in order to help them maximize their profits. My first suggestion request is Create a financial plan for a small business that focuses on cost savings and long-term investments""."""), ],
+            [LLMMessagePair("user",
+                            "I require someone who can suggest delicious recipes that includes foods which are nutritionally beneficial but also easy & not time consuming enough therefore suitable for busy people like us among other factors such as cost effectiveness so overall dish ends up being healthy yet economical at same time! My first request â€“ Something light yet fulfilling that could be cooked quickly during lunch break"""), ],
+            [LLMMessagePair("user",
+                            "Need somebody with expertise on automobiles regarding troubleshooting solutions like; diagnosing problems/errors present both visually & within engine parts in order to figure out what's causing them (like lack of oil or power issues) & suggest required replacements while recording down details such fuel consumption type etc., First inquiry â€“ Car won't start although battery is full charged"""), ],
+            [LLMMessagePair("user",
+                            "I want you to act as an artist advisor providing advice on various art styles such tips on utilizing light & shadow effects effectively in painting, shading techniques while sculpting etc., Also suggest music piece that could accompany artwork nicely depending upon its genre/style type along with appropriate reference images demonstrating your recommendations regarding same; all this in order help out aspiring artists explore new creative possibilities & practice ideas which will further help them sharpen their skills accordingly! First request - I'm making surrealistic portrait paintings"""), ],
+            [LLMMessagePair("user",
+                            "Want assistance provided by qualified individuals enabled with experience on understanding charts using technical analysis tools while interpreting macroeconomic environment prevailing across world consequently assisting customers acquire long term advantages requires clear verdicts therefore seeking same through informed predictions written down precisely! First statement contains following content- Can you tell us what future stock market looks like based upon current conditions ?""."""), ],
+            [LLMMessagePair("user",
+                            "Seeking guidance from experienced staff with expertise on financial markets , incorporating factors such as inflation rate or return estimates along with tracking stock prices over lengthy period ultimately helping customer understand sector then suggesting safest possible options available where he/she can allocate funds depending upon their requirement & interests ! Starting query - What currently is best way to invest money short term prospective?"""), ],
+            [LLMMessagePair("user",
+                            "Want somebody experienced enough to distinguish between various tea types based upon flavor profile tasting them carefully then reporting it back in jargon used by connoisseurs in order figure out what's unique about any given infusion among rest therefore determining its worthiness & high grade quality ! Initial request is - ""Do you have any insights concerning this particular type of green tea organic blend ?"""), ],
+            [LLMMessagePair("user",
+                            "I want you to act as an interior decorator. Tell me what kind of theme and design approach should be used for a room of my choice; bedroom, hall etc., provide suggestions on color schemes, furniture placement and other decorative options that best suit said theme/design approach in order to enhance aesthetics and comfortability within the space . My first request is ""I am designing our living hall""."), ],
+            [LLMMessagePair("user",
+                            "I want you to act as a smart domain name generator. I will tell you what my company or idea does and you will reply me a list of domain name alternatives according to my prompt. You will only reply the domain list, and nothing else. Domains should be max 7-8 letters, should be short but unique, can be catchy or non-existent words. Do not write explanations. Reply ""OK"" to confirm."), ],
+            [LLMMessagePair("user",
+                            "I want you to act as a tech reviewer. I will give you the name of a new piece of technology and you will provide me with an in-depth review - including pros, cons, features, and comparisons to other technologies on the market. My first suggestion request is ""I am reviewing iPhone 11 Pro Max""."), ],
+            [LLMMessagePair("user",
+                            "I want you to act as a Developer Relations consultant. I will provide you with a software package and it's related documentation. Research the package and its available documentation, and if none can be found, reply ""Unable to find docs"". Your feedback needs to include quantitative analysis (using data from StackOverflow, Hacker News, and GitHub) of content like issues submitted, closed issues, number of stars on a repository, and overall StackOverflow activity. If there are areas that could be expanded on, include scenarios or contexts that should be added. Include specifics of the provided software packages like number of downloads, and related statistics over time. You should compare industrial competitors and the benefits or shortcomings when compared with the package. Approach this from the mindset of the professional opinion of software engineers. Review technical blogs and websites (such as TechCrunch.com or Crunchbase.com) and if data isn't available, reply ""No data available"". My first request is ""express https://expressjs.com"""), ],
+            [LLMMessagePair("user",
+                            "I want you to act as an academician. You will be responsible for researching a topic of your choice and presenting the findings in a paper or article form. Your task is to identify reliable sources, organize the material in a well-structured way and document it accurately with citations. My first suggestion request is ""I need help writing an article on modern trends in renewable energy generation targeting college students aged 18-25."""), ],
+            [LLMMessagePair("user",
+                            "I want you to act as an IT Architect. I will provide some details about the functionality of an application or other digital product, and it will be your job to come up with  ways to integrate it into the IT landscape. This could involve analyzing business requirements, performing a gap analysis and mapping the functionality of the new system to the existing IT landscape. Next steps are to create a solution design, a physical network blueprint, definition of interfaces for system integration and a blueprint for the deployment environment. My first request is ""I need help to integrate a CMS system."""), ],
+            [LLMMessagePair("user",
+                            "I want you to act as a lunatic. The lunatic's sentences are meaningless. The words used by lunatic are completely arbitrary. The lunatic does not make logical sentences in any way. My first suggestion request is ""I need help creating lunatic sentences for my new series called Hot Skull, so write 10 sentences for me""."), ],
+            [LLMMessagePair("user",
+                            "I want you to act as a gaslighter. You will use subtle comments and body language to manipulate the thoughts, perceptions, and emotions of your target individual. My first request is that gaslighting me while chatting with you. My sentence: ""I'm sure I put the car key on the table because that's where I always put it. Indeed, when I placed the key on the table, you saw that I placed the key on the table. But I can't seem to find it. Where did the key go, or did you get it?"""), ],
         ]
     }

@@ -15,10 +15,11 @@ log.setLevel(logstuff.logging_level)
 
 class OllamaUtils:
 
-    # {'models': [{'name': 'llama3.2:1b', 'model': 'llama3.2:1b', 'size': 2712725504, 'digest': 'baf6a787fdffd633537aa2eb51cfd54cb93ff08e28040095462bb63daf552878', 'details': {'parent_model': '', 'format': 'gguf', 'family': 'llama', 'families': ['llama'], 'parameter_size': '1.2B', 'quantization_level': 'Q8_0'}, 'expires_at': '2025-05-01T10:53:51.3747775-07:00', 'size_vram': 2712725504}]}
     @staticmethod
-    def olps() -> dict:
+    def ps() -> dict:
         response = requests.get('http://localhost:11434/api/ps')
+
+        # {'models': [{'name': 'llama3.2:1b', 'model': 'llama3.2:1b', 'size': 2712725504, 'digest': 'baf6a787fdffd633537aa2eb51cfd54cb93ff08e28040095462bb63daf552878', 'details': {'parent_model': '', 'format': 'gguf', 'family': 'llama', 'families': ['llama'], 'parameter_size': '1.2B', 'quantization_level': 'Q8_0'}, 'expires_at': '2025-05-01T10:53:51.3747775-07:00', 'size_vram': 2712725504}]}
         return response.json()
 
     @staticmethod
@@ -31,14 +32,25 @@ class OllamaUtils:
 
     @staticmethod
     def kill_ollama_servers():
-        for pid in OllamaUtils.get_ollama_servers_pids():
-            try:
-                os.kill(pid, signal.SIGTERM)
-            except OSError as e:
-                if 'The parameter is incorrect' not in str(e) and 'Access is denied' not in str(e):
-                    raise e
-                else:
-                    log.info(f'!!! suppressing kill error pid {pid}: {e}')
+        kill_pass: int = 1
+        while True:
+            pids = OllamaUtils.get_ollama_servers_pids()
+            if len(pids) == 0:
+                return
+
+            if kill_pass > 1:
+                log.info(f'kill_ollama_servers: kill pass {kill_pass}')
+            kill_pass += 1
+
+            for pid in pids:
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                except OSError as e:
+                    # filter any error strings that are ok, i.e. the process is dead
+                    if 'The parameter is incorrect' not in str(e) and 'Access is denied' not in str(e):
+                        raise e
+                    else:
+                        log.info(f'!!! suppressing kill error pid {pid}: {e}')
 
     @staticmethod
     def get_context_length(model_name: str) -> int:
