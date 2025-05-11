@@ -246,13 +246,6 @@ class RunSet:
 
 
 def main():
-    #         'ollama-gemma': [
-    #         'ollama-llama3.2': [
-    #         'ollama-llama3.3': [
-    #         'ollama-phi': [
-    #         'ollama-qwen': [
-    #         'ollama-other': [
-
     run_sets = {
         'quick': RunSet('kf', 'quick', 'professional800', 'space'),
         'base': RunSet('base', 'base', 'professional800', 'space'),
