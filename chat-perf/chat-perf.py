@@ -61,6 +61,68 @@ def ollama_ps(model_spec: config.ModelSpec, run_spec: CPRunSpec) -> str:
         return ''
 
 
+def ollama_warmup(model: config.ModelSpec, max_retries: int = 8) -> bool:
+    model_name = model.name
+
+    # the only way to GPU memory of any previous ollama runs
+    OllamaUtils.kill_ollama_servers()
+
+    warmup_retries = 0
+    warmup_retry_wait_secs = 1.0
+    warmup_done = False
+    warmup_start = timeit.default_timer()
+    print(f'{config.secs_string(all_start)}: warmup {model.provider} {model_name}...')
+    llm_config = LLMOllamaConfig(model_name, model.provider,
+                                 LLMOllamaSettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
+
+    while True:
+        try:
+            # attempt to load the model
+            llm_config.load(model_name, max_rate_limit_retries=max_retries)
+
+            # check that the correct model is running
+            if llm_config.is_model_running(model_name):
+                if warmup_retries > 0:
+                    print(f'{config.secs_string(all_start)}: warmup succeeded on retry {warmup_retries}')
+                warmup_done = True
+                break
+            else:
+                running = [m.name for m in ollama.ps().models]
+                warmup_retries += 1
+                print(f'{config.secs_string(all_start)}: warmup: !! model {model_name} isnt running! [{running}]')
+                if warmup_retries < max_retries:
+                    print(f'{config.secs_string(all_start)}: retrying warmup...')
+                    time.sleep(warmup_retry_wait_secs)
+                    warmup_retry_wait_secs = warmup_retries * warmup_retries
+                    continue
+                else:
+                    print(f'{config.secs_string(all_start)}: retries exhausted, returning')
+                    break
+
+        except ConnectionError as e:
+            warmup_retries += 1
+            print(f'{config.secs_string(all_start)}: warmup attempt {warmup_retries}: Connection Exception! '
+                  f'{model.provider}:{model_name}: {e.__class__.__name__}: {e}')
+            # traceback.print_exc(file=sys.stderr)
+            if warmup_retries < max_retries:
+                print(f'{config.secs_string(all_start)}: will retry in {warmup_retry_wait_secs}s')
+                time.sleep(warmup_retry_wait_secs)
+                warmup_retry_wait_secs = warmup_retries * warmup_retries
+            continue
+        except (Exception,) as e:
+            warmup_retries += 1
+            print(f'{config.secs_string(all_start)}: warmup attempt {warmup_retries}: Exception! '
+                  f'{model.provider}:{model_name}: {e.__class__.__name__}: {e}')
+            traceback.print_exc(file=sys.stderr)
+            raise e
+
+    if warmup_done:
+        warmup_secs = timeit.default_timer() - warmup_start
+        print(f'{config.secs_string(all_start)}: warmup done: {warmup_secs:.0f}s')
+
+    return warmup_done
+
+
 def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_name: str, csv_data: list[list[str]]):
     """
 
@@ -89,54 +151,9 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
             # warmup the model if necessary
             warmup_secs = 0
             if model.provider == 'OLLAMA':
-
-                # the only way to GPU memory of any previous ollama runs
-                OllamaUtils.kill_ollama_servers()
-
-                warmup_retries = 0
-                warmup_retry_wait_secs = 1.0
-                warmup_done = False
-                warmup_start = timeit.default_timer()
-                try:
-                    print(f'{config.secs_string(all_start)}: warmup {model.provider} {model_name}...')
-                    llm_config = LLMOllamaConfig(model_name, model.provider,
-                                                 LLMOllamaSettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
-
-                    # until ollama reports the model as running
-                    while True:
-                        llm_config.load(model_name, max_rate_limit_retries=3)
-
-                        # check that the correct model is running
-                        if not llm_config.is_model_running(model_name):
-                            running = [m.name for m in ollama.ps().models]
-                            warmup_retries += 1
-                            print(f'{config.secs_string(all_start)}: warmup: !! model {model_name} isnt running! [{running}]')
-                            if warmup_retries < 4:
-                                print(f'{config.secs_string(all_start)}: retrying warmup...')
-                                continue
-                            else:
-                                print(f'{config.secs_string(all_start)}: retries exhausted, skipping...')
-                                break
-                        else:
-                            warmup_done = True
-                            break
-
-                    if warmup_done:
-                        warmup_secs = timeit.default_timer() - warmup_start
-                        print(f'{config.secs_string(all_start)}: warmup done: {warmup_secs:.0f}s')
-                    else:
-                        continue  # next run_spec
-                except (Exception,) as e:
-                    warmup_retries += 1
-                    print(f'{config.secs_string(all_start)}: warmup attempt {warmup_retries}: Exception! '
-                          f'{model.provider}:{model_name}: {e.__class__.__name__}: {e}')
-                    traceback.print_exc(file=sys.stderr)
-                    if warmup_retries < 4:
-                        print(f'{config.secs_string(all_start)}: will retry in {warmup_retry_wait_secs}s')
-                        time.sleep(warmup_retry_wait_secs)
-                        warmup_retry_wait_secs = warmup_retries * warmup_retries
-                    else:
-                        break
+                if not ollama_warmup(model):
+                    print(f'{config.secs_string(all_start)}: retries exhausted, skipping...')
+                    continue
 
             # settings loop
             response_line: str = ''
@@ -195,7 +212,7 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
                         print(f'{config.secs_string(all_start)}: run Exception! {llm_config.provider()}:{llm_config.model_name} '
                               f'{prompt_set_name}.{prompt_set}: {e.__class__.__name__}: {e}')
                         traceback.print_exc(file=sys.stderr)
-                        if run_retries < 4:
+                        if run_retries < 8:
                             print(f'{config.secs_string(all_start)}: will retry in {run_retry_wait_secs}s')
                             time.sleep(run_retry_wait_secs)
                             run_retry_wait_secs = run_retries * run_retries
@@ -264,8 +281,10 @@ def main():
         'bm-20-other': RunSet('ollama-other', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
     }
 
-    run_set_names = ['quick', 'base', 'kf']
+    # run_set_names = ['quick', 'base', 'kf']
+    # run_set_names = ['bm-20-gemma', 'bm-20-llama3.2', ]
     # run_set_names = ['bm-20-llama3.3', 'bm-20-phi', 'bm-20-qwen', 'bm-20-other']
+    run_set_names = ['bm-20-other']
 
     csv_data = []
     for rsn in run_set_names:
