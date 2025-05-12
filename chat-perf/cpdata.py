@@ -87,6 +87,19 @@ class CPData:
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.openthinker:32b']),
         ],
 
+        'ollama-base11': [
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.gemma3:4b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.gemma3:27b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.llama3.2:3b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.llama3.3:70b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.phi4:14b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.phi4:14b-fp16']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.mistral-nemo:12b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.mixtral:8x7b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.command-r7b:latest']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.deepseek-r1:32b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.qwen3:32b']),
+        ],
         # groq ###############################################################################################
         'groq-base': [
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['GROQ.qwen-qwq-32b']),

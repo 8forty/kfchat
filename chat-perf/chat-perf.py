@@ -279,12 +279,12 @@ def main():
         'bm-20-phi': RunSet('ollama-phi', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
         'bm-20-qwen': RunSet('ollama-qwen', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
         'bm-20-other': RunSet('ollama-other', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'bm-20-base11': RunSet('ollama-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
     }
 
-    # run_set_names = ['quick', 'base', 'kf']
-    # run_set_names = ['bm-20-gemma', 'bm-20-llama3.2', ]
-    # run_set_names = ['bm-20-llama3.3', 'bm-20-phi', 'bm-20-qwen', 'bm-20-other']
-    run_set_names = ['bm-20-other']
+    # run_set_names = ['quick', 'base', 'kf',]
+    # run_set_names = ['bm-20-gemma', 'bm-20-llama3.2', 'bm-20-llama3.3', 'bm-20-phi', 'bm-20-qwen', 'bm-20-other', ]
+    run_set_names = ['bm-20-base11', ]
 
     csv_data = []
     for rsn in run_set_names:
