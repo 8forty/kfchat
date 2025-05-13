@@ -23,8 +23,7 @@ env = dotenv.dotenv_values()
 providers_config = {
     'LLAMACPP': {
         'key': 'dont need one',
-        'kfLLAMACPP_CHAT_COMPLETIONS_ENDPOINT': 'http://localhost:27272/v1/chat/completions',
-        'kfLLAMACPP_ENDPOINT': 'http://localhost:27272/v1',
+        'kfLLAMACPP_ENDPOINT': env.get('kfLLAMACPP_OPENAI_ENDPOINT'),  # 'http://localhost:27272/v1',
     },
     'AZURE': {
         'key': env.get('kfAZURE_API_KEY'),
@@ -163,7 +162,7 @@ class LLMOpenAIConfig(LLMConfig):
             log.info(f'building LLM API for [{self._provider}]: {endpoint=} key={redact(key)} {api_version=}')
             self._api_client = openai.AzureOpenAI(azure_endpoint=endpoint, api_key=key, api_version=api_version)
         elif self._provider in config.LLMData.providers:
-            endpoint = providers_config[self._provider][f'kf{self._provider.upper()}_ENDPOINT']
+            endpoint = providers_config[self._provider][f'kf{self._provider.upper()}_ENDPOINT'].format(self.model_name)
             key = providers_config[self._provider]['key']
             log.info(f'building LLM API for [{self._provider}]: {endpoint=} key={redact(key)}')
             self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)

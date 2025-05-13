@@ -317,6 +317,7 @@ def main():
         'ollama-bm20-gemma1b': RunSet('ollama-gemma3-1b', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
         'llamacpp-bm20-gemma1b': RunSet('llamacpp-gemma3-1b', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
         'llamacpp-space-gemma1b': RunSet('llamacpp-gemma3-1b', '.7:800:2048:empty', 'empty', 'space'),
+        'llamacpp-space-gemma4b': RunSet('llamacpp-gemma3-4b', '.7:800:2048:empty', 'empty', 'space'),
 
         'bm20-gemma': RunSet('ollama-gemma', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
         'bm20-llama3.2': RunSet('ollama-llama3.2', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
