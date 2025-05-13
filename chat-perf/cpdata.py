@@ -310,7 +310,12 @@ class CPData:
             LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=800,
                            init_seed=0, init_ctx=2048,
                            init_system_message_name='carl-sagan'),
-        ]
+        ],
+        'llamacpp-warmup': [
+            LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=800,
+                           init_seed=0, init_ctx=2048,
+                           init_system_message_name='carl-sagan'),
+        ],
     }
 
     ##############################################################

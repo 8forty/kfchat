@@ -207,6 +207,7 @@ class LLMData:
         ModelSpec('RFI-Automate-GPT-4o-mini-2000k', provider='AZURE', api='openai'),
 
         ModelSpec('gemma-3-1b-it-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
+        ModelSpec('gemma-3-4b-it-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
 
         ModelSpec('gemini-1.5-flash', provider='GEMINI', api='openai'),
         ModelSpec('gemini-1.5-flash-8b', provider='GEMINI', api='openai'),

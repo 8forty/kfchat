@@ -70,9 +70,9 @@ def ollama_warmup(model: config.ModelSpec, max_retries: int = 8) -> bool:
     warmup_retries = 0
     warmup_retry_wait_secs = 1.0
     warmup_done = False
-    print(f'{config.secs_string(all_start)}: warmup {model.provider} {model_name}...')
+    print(f'{config.secs_string(all_start)}: warmup {model.provider}.{model_name}...')
     llm_config = LLMOllamaConfig(model_name, model.provider,
-                                 LLMOllamaSettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
+                                 LLMOllamaSettings.from_settings(CPData.llm_settings_sets['llamacpp-warmup'][0]))
 
     while True:
         try:
@@ -97,6 +97,42 @@ def ollama_warmup(model: config.ModelSpec, max_retries: int = 8) -> bool:
                 else:
                     print(f'{config.secs_string(all_start)}: retries exhausted, returning')
                     break
+
+        except ConnectionError as e:
+            warmup_retries += 1
+            print(f'{config.secs_string(all_start)}: warmup attempt {warmup_retries}: Connection Exception! '
+                  f'{model.provider}:{model_name}: {e.__class__.__name__}: {e}')
+            # traceback.print_exc(file=sys.stderr)
+            if warmup_retries < max_retries:
+                print(f'{config.secs_string(all_start)}: will retry in {warmup_retry_wait_secs}s')
+                time.sleep(warmup_retry_wait_secs)
+                warmup_retry_wait_secs = warmup_retries * warmup_retries
+            continue
+        except (Exception,) as e:
+            warmup_retries += 1
+            print(f'{config.secs_string(all_start)}: warmup attempt {warmup_retries}: Exception! '
+                  f'{model.provider}:{model_name}: {e.__class__.__name__}: {e}')
+            traceback.print_exc(file=sys.stderr)
+            raise e
+
+    return warmup_done
+
+
+def llamacpp_warmup(model: config.ModelSpec, max_retries: int = 8) -> bool:
+    model_name = model.name
+
+    warmup_retries = 0
+    warmup_retry_wait_secs = 1.0
+    warmup_done = False
+    print(f'{config.secs_string(all_start)}: warmup {model.provider}.{model_name}...')
+    llm_config = LLMOpenAIConfig(model_name, model.provider,
+                                 LLMOpenAISettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
+
+    while True:
+        try:
+            CPFunctions.run_llm_prompt(CPData.llm_prompt_sets['wakeup'][0], None, llm_config, all_start)
+            warmup_done = True
+            break
 
         except ConnectionError as e:
             warmup_retries += 1
@@ -150,9 +186,15 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
                 if not ollama_warmup(model):
                     print(f'{config.secs_string(all_start)}: retries exhausted, skipping...')
                     continue
-                else:
-                    warmup_secs = timeit.default_timer() - warmup_start
-                    print(f'{config.secs_string(all_start)}: warmup done: {warmup_secs:.0f}s')
+                warmup_secs = timeit.default_timer() - warmup_start
+            elif model.provider == 'LLAMACPP':
+                if not llamacpp_warmup(model):
+                    print(f'{config.secs_string(all_start)}: retries exhausted, skipping...')
+                    continue
+                warmup_secs = timeit.default_timer() - warmup_start
+
+            if warmup_secs > -1:
+                print(f'{config.secs_string(all_start)}: warmup done: {warmup_secs:.0f}s')
 
             # settings loop
             response_line: str = ''
@@ -272,23 +314,25 @@ def main():
 
         'kf': RunSet('kf', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
 
-        'ollama-bm-20-gemma1b': RunSet('ollama-gemma3-1b', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
-        'llamacpp-bm-20-gemma1b': RunSet('llamacpp-gemma3-1b', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'ollama-bm20-gemma1b': RunSet('ollama-gemma3-1b', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'llamacpp-bm20-gemma1b': RunSet('llamacpp-gemma3-1b', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'llamacpp-space-gemma1b': RunSet('llamacpp-gemma3-1b', '.7:800:2048:empty', 'empty', 'space'),
 
-        'bm-20-gemma': RunSet('ollama-gemma', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
-        'bm-20-llama3.2': RunSet('ollama-llama3.2', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
-        'bm-20-llama3.3': RunSet('ollama-llama3.3', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
-        'bm-20-phi': RunSet('ollama-phi', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
-        'bm-20-qwen': RunSet('ollama-qwen', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
-        'bm-20-other': RunSet('ollama-other', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
-        'ollama-bm-20-base11': RunSet('ollama-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
-        'llamacpp-bm-20-base11': RunSet('llamacpp-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'bm20-gemma': RunSet('ollama-gemma', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'bm20-llama3.2': RunSet('ollama-llama3.2', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'bm20-llama3.3': RunSet('ollama-llama3.3', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'bm20-phi': RunSet('ollama-phi', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'bm20-qwen': RunSet('ollama-qwen', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'bm20-other': RunSet('ollama-other', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'ollama-bm20-base11': RunSet('ollama-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'llamacpp-bm20-base11': RunSet('llamacpp-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
     }
 
     # run_set_names = ['quick', 'base', 'kf',]
-    run_set_names = ['ollama-bm-20-gemma1b', 'llamacpp-bm-20-gemma1b', ]
-    # run_set_names = ['ollama-bm-20-base11', ]
-    # run_set_names = ['llamacpp-bm-20-base11', ]
+    # run_set_names = ['ollama-bm20-gemma1b', 'llamacpp-bm20-gemma1b', ]
+    run_set_names = ['llamacpp-space-gemma1b', ]
+    # run_set_names = ['ollama-bm20-base11', ]
+    # run_set_names = ['llamacpp-bm20-base11', ]
 
     csv_data = []
     for rsn in run_set_names:
