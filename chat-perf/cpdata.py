@@ -87,6 +87,10 @@ class CPData:
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.openthinker:32b']),
         ],
 
+        'ollama-gemma3-1b': [
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.gemma3:1b']),
+        ],
+
         'ollama-base11': [
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.gemma3:4b']),
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.gemma3:27b']),
@@ -99,6 +103,13 @@ class CPData:
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.command-r7b:latest']),
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.deepseek-r1:32b']),
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.qwen3:32b']),
+        ],
+        # llamacpp ###############################################################################################
+        'llamacpp-gemma3-1b': [
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-1b-it-Q4_K_M.gguf']),
+        ],
+        'llamacpp-base11': [
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-1b-it-Q4_K_M.gguf']),
         ],
         # groq ###############################################################################################
         'groq-base': [

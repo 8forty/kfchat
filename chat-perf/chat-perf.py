@@ -70,7 +70,6 @@ def ollama_warmup(model: config.ModelSpec, max_retries: int = 8) -> bool:
     warmup_retries = 0
     warmup_retry_wait_secs = 1.0
     warmup_done = False
-    warmup_start = timeit.default_timer()
     print(f'{config.secs_string(all_start)}: warmup {model.provider} {model_name}...')
     llm_config = LLMOllamaConfig(model_name, model.provider,
                                  LLMOllamaSettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
@@ -116,10 +115,6 @@ def ollama_warmup(model: config.ModelSpec, max_retries: int = 8) -> bool:
             traceback.print_exc(file=sys.stderr)
             raise e
 
-    if warmup_done:
-        warmup_secs = timeit.default_timer() - warmup_start
-        print(f'{config.secs_string(all_start)}: warmup done: {warmup_secs:.0f}s')
-
     return warmup_done
 
 
@@ -149,11 +144,15 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
             settings: CPData.LLMRawSettings
 
             # warmup the model if necessary
-            warmup_secs = 0
+            warmup_secs = -1
+            warmup_start = timeit.default_timer()
             if model.provider == 'OLLAMA':
                 if not ollama_warmup(model):
                     print(f'{config.secs_string(all_start)}: retries exhausted, skipping...')
                     continue
+                else:
+                    warmup_secs = timeit.default_timer() - warmup_start
+                    print(f'{config.secs_string(all_start)}: warmup done: {warmup_secs:.0f}s')
 
             # settings loop
             response_line: str = ''
@@ -224,12 +223,12 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
                     # play nice with CSV: get rid of newlines and double any double-quotes
                     response_line = (str(exchange.responses[0].content).replace("\n", "  ")
                                      .replace('"', '""'))
-                    print(f'{config.secs_string(all_start)}: {model_name}:{prompt_set_name}[{prompts_idx}]: '
+                    print(f'{config.secs_string(all_start)}: {model.provider}.{model_name}:{prompt_set_name}[{prompts_idx}]: '
                           f'{exchange.input_tokens}->{exchange.output_tokens} '
                           f'{timeit.default_timer() - prompts_start:.1f}s  {response_line}')
 
                 ms_end = timeit.default_timer()
-                print(f'{config.secs_string(all_start)}: {model_name}:{prompt_set_name}: '
+                print(f'{config.secs_string(all_start)}: {model.provider}.{model_name}:{prompt_set_name}: '
                       f'[{llm_config.provider()}:{llm_config.model_name}] '
                       f'{llm_config.settings().value('temp')}/{llm_config.settings().value('max_tokens')} '
                       f'{llm_config.settings().value('system_message_name')}: '
@@ -273,18 +272,23 @@ def main():
 
         'kf': RunSet('kf', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
 
+        'ollama-bm-20-gemma1b': RunSet('ollama-gemma3-1b', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'llamacpp-bm-20-gemma1b': RunSet('llamacpp-gemma3-1b', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+
         'bm-20-gemma': RunSet('ollama-gemma', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
         'bm-20-llama3.2': RunSet('ollama-llama3.2', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
         'bm-20-llama3.3': RunSet('ollama-llama3.3', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
         'bm-20-phi': RunSet('ollama-phi', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
         'bm-20-qwen': RunSet('ollama-qwen', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
         'bm-20-other': RunSet('ollama-other', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
-        'bm-20-base11': RunSet('ollama-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'ollama-bm-20-base11': RunSet('ollama-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'llamacpp-bm-20-base11': RunSet('llamacpp-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
     }
 
     # run_set_names = ['quick', 'base', 'kf',]
-    # run_set_names = ['bm-20-gemma', 'bm-20-llama3.2', 'bm-20-llama3.3', 'bm-20-phi', 'bm-20-qwen', 'bm-20-other', ]
-    run_set_names = ['bm-20-base11', ]
+    run_set_names = ['ollama-bm-20-gemma1b', 'llamacpp-bm-20-gemma1b', ]
+    # run_set_names = ['ollama-bm-20-base11', ]
+    # run_set_names = ['llamacpp-bm-20-base11', ]
 
     csv_data = []
     for rsn in run_set_names:

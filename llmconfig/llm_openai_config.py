@@ -21,6 +21,11 @@ dotenv.load_dotenv(override=True)
 env = dotenv.dotenv_values()
 
 providers_config = {
+    'LLAMACPP': {
+        'key': 'dont need one',
+        'kfLLAMACPP_CHAT_COMPLETIONS_ENDPOINT': 'http://localhost:27272/v1/chat/completions',
+        'kfLLAMACPP_ENDPOINT': 'http://localhost:27272/v1',
+    },
     'AZURE': {
         'key': env.get('kfAZURE_API_KEY'),
         'kfAZURE_API_VERSION': env.get('kfAZURE_API_VERSION'),
