@@ -1,0 +1,53 @@
+
+models:
+  "gemma-3-1b-it-Q4_K_M.gguf":
+    proxy: &kfproxy "http://127.0.0.1:27272"
+    cmd: >
+      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      -ngl 999
+      -dev Vulkan1 
+      -c 2048 
+      -m z:/huggingface.co/converted/gemma-3-1b-it-Q4_K_M.gguf 
+      --port 27272
+
+  "gemma-3-4b-it-Q4_K_M.gguf":
+    proxy: *kfproxy
+    cmd: >
+      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      -ngl 999
+      -dev Vulkan1 
+      -c 2048 
+      -m z:/huggingface.co/converted/gemma-3-4b-it-Q4_K_M.gguf 
+      --port 27272
+
+  "gemma-3-4b-it-Q4_K_M.gguf-fa":
+    proxy: *kfproxy
+    cmd: >
+      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      -ngl 999
+      -dev Vulkan1 
+      -c 2048 
+      --flash-attn
+      -m z:/huggingface.co/converted/gemma-3-4b-it-Q4_K_M.gguf 
+      --port 27272
+
+  "gemma-3-12b-it-Q4_K_M.gguf":
+    proxy: *kfproxy
+    cmd: >
+      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      -ngl 999
+      -dev Vulkan1 
+      -c 2048 
+      -m z:/huggingface.co/converted/gemma-3-12b-it-Q4_K_M.gguf 
+      --port 27272
+
+  "gemma-3-12b-it-Q4_K_M.gguf-fa":
+    proxy: *kfproxy
+    cmd: >
+      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      -ngl 999
+      -dev Vulkan1 
+      -c 2048 
+      --flash-attn
+      -m z:/huggingface.co/converted/gemma-3-12b-it-Q4_K_M.gguf 
+      --port 27272

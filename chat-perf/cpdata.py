@@ -110,6 +110,11 @@ class CPData:
         ],
         'llamacpp-gemma3-4b': [
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-4b-it-Q4_K_M.gguf'], ctx_size=2048),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-4b-it-Q4_K_M.gguf-fa'], ctx_size=2048),
+        ],
+        'llamacpp-gemma3-12b': [
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-12b-it-Q4_K_M.gguf'], ctx_size=2048),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-12b-it-Q4_K_M.gguf-fa'], ctx_size=2048),
         ],
         'llamacpp-base11': [
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-1b-it-Q4_K_M.gguf'], ctx_size=2048),

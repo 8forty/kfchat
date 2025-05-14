@@ -208,6 +208,9 @@ class LLMData:
 
         ModelSpec('gemma-3-1b-it-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
         ModelSpec('gemma-3-4b-it-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
+        ModelSpec('gemma-3-4b-it-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
+        ModelSpec('gemma-3-12b-it-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
+        ModelSpec('gemma-3-12b-it-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
 
         ModelSpec('gemini-1.5-flash', provider='GEMINI', api='openai'),
         ModelSpec('gemini-1.5-flash-8b', provider='GEMINI', api='openai'),
