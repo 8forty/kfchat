@@ -7,6 +7,7 @@ import traceback
 from dataclasses import dataclass
 
 import ollama
+import requests
 
 import config
 from cpdata import CPData, CPRunType, CPRunSpec
@@ -14,6 +15,7 @@ from cpfunctions import CPFunctions
 from llmconfig.llm_anthropic_config import LLMAnthropicConfig, LLMAnthropicSettings
 from llmconfig.llm_ollama_config import LLMOllamaConfig, LLMOllamaSettings
 from llmconfig.llm_openai_config import LLMOpenAIConfig, LLMOpenAISettings
+import llmconfig.llm_openai_config
 from llmconfig.llmexchange import LLMExchange
 from ollamautils import OllamaUtils
 
@@ -22,25 +24,24 @@ logging.disable(logging.INFO)
 all_start = timeit.default_timer()
 
 
-def ollama_ps(model_spec: config.ModelSpec, run_spec: CPRunSpec) -> str:
-    if model_spec.provider == 'OLLAMA':
-        # ProcessResponse(models=[
-        # Model(model='llama3.2:1b', name='llama3.2:1b',
-        #   digest='baf6a787fdffd633537aa2eb51cfd54cb93ff08e28040095462bb63daf552878',
-        #   expires_at=datetime.datetime(2025, 5, 6, 20, 39, 13, 620726, tzinfo=TzInfo(-07:00)),
-        #   size=8584751104, size_vram=8584751104,
-        #   details=ModelDetails(parent_model='', format='gguf', family='llama', families=['llama'], parameter_size='1.2B',
-        #     quantization_level='Q8_0')),
-        # ...
-        # ])
-        ps_dict = {m.model: m for m in ollama.ps().models}
+def ollama_model_info(model_spec: config.ModelSpec, run_spec: CPRunSpec) -> str:
+    # ProcessResponse(models=[
+    # Model(model='llama3.2:1b', name='llama3.2:1b',
+    #   digest='baf6a787fdffd633537aa2eb51cfd54cb93ff08e28040095462bb63daf552878',
+    #   expires_at=datetime.datetime(2025, 5, 6, 20, 39, 13, 620726, tzinfo=TzInfo(-07:00)),
+    #   size=8584751104, size_vram=8584751104,
+    #   details=ModelDetails(parent_model='', format='gguf', family='llama', families=['llama'], parameter_size='1.2B',
+    #     quantization_level='Q8_0')),
+    # ...
+    # ])
+    ps_dict = {m.model: m for m in ollama.ps().models}
 
-        retval = ''
-        for model_name in ps_dict.keys():
-
+    retval = ''
+    for model_name in ps_dict.keys():
+        if model_name == model_spec.name:
             parm_size = float(ps_dict[model_name].details.parameter_size[:-1])
             if ps_dict[model_name].details.parameter_size[-1] == 'M':
-                parmsb: int = int(round(parm_size / 1024.0, 1))
+                parmsb: int = int(round(parm_size / 1000.0, 1))
             else:
                 parmsb = int(parm_size)
             model_run_size = ps_dict[model_name].size
@@ -52,13 +53,44 @@ def ollama_ps(model_spec: config.ModelSpec, run_spec: CPRunSpec) -> str:
             retval += (f'{parmsb},'
                        f'{ps_dict[model_name].details.quantization_level},'
                        f'{float(OllamaUtils.get_model_base_size(model_name)) / (1024.0 * 1024.0 * 1024.0):.1f},'
-                       f'{run_spec.ollama_ctx_size},{OllamaUtils.get_context_length(model_name)},'
-                       f'{float(model_run_size) / (1024.0 * 1024.0 * 1024.0):.1f},{float(vram) / (1024.0 * 1024.0 * 1024.0):.1f},'
+                       f'{run_spec.ctx_size},'
+                       f'{OllamaUtils.get_context_length(model_name)},'
+                       f'{float(model_run_size) / (1024.0 * 1024.0 * 1024.0):.1f},'
+                       f'{float(vram) / (1024.0 * 1024.0 * 1024.0):.1f},'
                        f'{load} ')
 
-        return retval
-    else:
-        return ''
+    return retval
+
+
+def llamacpp_model_info(model_spec: config.ModelSpec, run_spec: CPRunSpec) -> str:
+    # {'object': 'list',
+    #   'data': [{'id': 'c:/llama.cpp/gemma-3-1b-it-Q4_K_M.gguf', 'object': 'model', 'created': 1747247114,
+    #     'owned_by': 'llamacpp', 'meta': {'vocab_type': 1, 'n_vocab': 262144, 'n_ctx_train': 32768, 'n_embd': 1152,
+    #     'n_params': 999885952, 'size': 799525120}}]}
+    endpoint = (llmconfig.llm_openai_config.providers_config['LLAMACPP']['kfLLAMACPP_ENDPOINT'].format(f'{model_spec.name}')
+                + '/models')
+    response = requests.get(endpoint)
+    retval = ''
+    for info in response.json()['data']:
+        model_id = info['id']
+        if model_spec.name in model_id:
+            parmsb: int = int(round(int(info['meta']['n_params']) / 1000000000.0, 1))
+            quant: str = ''
+            model_base_size: float = float(info['meta']['size']) / (1024.0 * 1024.0 * 1024.0)
+            model_ctx: int = int(info['meta']['n_ctx_train'])
+            run_size = ''
+            vram = ''
+            load: str = ''
+            retval += (f'{parmsb},'
+                       f'{quant},'
+                       f'{model_base_size:.1f},'
+                       f'{run_spec.ctx_size},'
+                       f'{model_ctx},'
+                       f'{run_size},'
+                       f'{vram},'
+                       f'{load} ')
+
+    return retval
 
 
 def ollama_warmup(model: config.ModelSpec, max_retries: int = 8) -> bool:
@@ -208,7 +240,7 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
                     settings.seed = run_spec.seed
                     llm_config = LLMAnthropicConfig(model_name, model.provider, LLMAnthropicSettings.from_settings(settings))
                 elif model.api.upper() == 'OLLAMA':
-                    settings.ctx = run_spec.ollama_ctx_size
+                    settings.ctx = run_spec.ctx_size
                     settings.seed = run_spec.seed
                     llm_config = LLMOllamaConfig(model_name, model.provider, LLMOllamaSettings.from_settings(settings))
                 else:
@@ -221,11 +253,11 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
                 if model.api.upper() == 'OLLAMA':
                     # adjust the context length in the run_spec if it's too long for the model
                     model_ctx_length = OllamaUtils.get_context_length(model_name)
-                    if model_ctx_length < run_spec.ollama_ctx_size:
+                    if model_ctx_length < run_spec.ctx_size:
                         print(f'{config.secs_string(all_start)}: adjusting context-length to model {model_ctx_length}')
-                        run_spec.ollama_ctx_size = model_ctx_length
+                        run_spec.ctx_size = model_ctx_length
                     # olc: LLMOllamaConfig = llm_config
-                    asyncio.run(llm_config.change_ctx(run_spec.ollama_ctx_size))
+                    asyncio.run(llm_config.change_ctx(run_spec.ctx_size))
 
                 # prompts loop
                 ploop_start = timeit.default_timer()
@@ -276,9 +308,16 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
                       f'{llm_config.settings().value('system_message_name')}: '
                       f'{ploop_input_tokens}+{ploop_output_tokens} '
                       f'{timeit.default_timer() - ploop_start:.1f}s')
-                print(f'{config.secs_string(all_start)}: ollama ps: {ollama_ps(model, run_spec)}')
+                if model.provider == 'OLLAMA':
+                    print(f'{config.secs_string(all_start)}: ollama ps: {ollama_model_info(model, run_spec)}')
 
                 # csv
+                model_info = ''
+                if llm_config.provider() == 'OLLAMA':
+                    model_info = ollama_model_info(model, run_spec)
+                elif llm_config.provider() == 'LLAMACPP':
+                    model_info = llamacpp_model_info(model, run_spec)
+
                 csv_data.append([llm_config.provider(), llm_config.model_name,
                                  str(llm_config.settings().value('temp')),
                                  str(llm_config.settings().value('max_tokens')),
@@ -287,7 +326,7 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
                                  str(ploop_input_tokens), str(ploop_output_tokens),
                                  f'{warmup_secs:.1f}',
                                  f'{ms_end - ploop_start:.1f}',
-                                 f'{ollama_ps(model, run_spec)}',
+                                 f'{model_info}',
                                  f'"{response_line}"']
                                 )
 
@@ -315,6 +354,7 @@ def main():
         'kf': RunSet('kf', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
 
         'ollama-bm20-gemma1b': RunSet('ollama-gemma3-1b', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'ollama-space-gemma1b': RunSet('ollama-gemma3-1b', '.7:800:2048:empty', 'empty', 'space'),
         'llamacpp-bm20-gemma1b': RunSet('llamacpp-gemma3-1b', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
         'llamacpp-space-gemma1b': RunSet('llamacpp-gemma3-1b', '.7:800:2048:empty', 'empty', 'space'),
         'llamacpp-space-gemma4b': RunSet('llamacpp-gemma3-4b', '.7:800:2048:empty', 'empty', 'space'),
@@ -331,7 +371,7 @@ def main():
 
     # run_set_names = ['quick', 'base', 'kf',]
     # run_set_names = ['ollama-bm20-gemma1b', 'llamacpp-bm20-gemma1b', ]
-    run_set_names = ['llamacpp-space-gemma1b', ]
+    run_set_names = ['ollama-space-gemma1b', 'llamacpp-space-gemma1b', ]
     # run_set_names = ['ollama-bm20-base11', ]
     # run_set_names = ['llamacpp-bm20-base11', ]
 

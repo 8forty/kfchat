@@ -18,7 +18,7 @@ class CPRunSpec:
     run_type: CPRunType
     model: config.ModelSpec
     collection_name: str = ''
-    ollama_ctx_size: int = 2048
+    ctx_size: int = 2048
     seed: int = 0
 
 
@@ -106,13 +106,13 @@ class CPData:
         ],
         # llamacpp ###############################################################################################
         'llamacpp-gemma3-1b': [
-            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-1b-it-Q4_K_M.gguf']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-1b-it-Q4_K_M.gguf'], ctx_size=2048),
         ],
         'llamacpp-gemma3-4b': [
-            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-4b-it-Q4_K_M.gguf']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-4b-it-Q4_K_M.gguf'], ctx_size=2048),
         ],
         'llamacpp-base11': [
-            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-1b-it-Q4_K_M.gguf']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-1b-it-Q4_K_M.gguf'], ctx_size=2048),
         ],
         # groq ###############################################################################################
         'groq-base': [
