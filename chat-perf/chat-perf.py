@@ -355,6 +355,8 @@ def main():
 
         'ollama-bm20-gemma1b': RunSet('ollama-gemma3-1b', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
         'ollama-space-gemma1b': RunSet('ollama-gemma3-1b', '.7:800:2048:empty', 'empty', 'space'),
+        'ollama-space-ll70': RunSet('ollama-llama3.3:70b', '.7:800:2048:empty', 'empty', 'space'),
+
         'llamacpp-bm20-gemma1b': RunSet('llamacpp-gemma3-1b', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
         'llamacpp-space-gemma1b': RunSet('llamacpp-gemma3-1b', '.7:800:2048:empty', 'empty', 'space'),
         'llamacpp-space-gemma4b': RunSet('llamacpp-gemma3-4b', '.7:800:2048:empty', 'empty', 'space'),
@@ -372,11 +374,11 @@ def main():
 
     # run_set_names = ['quick', 'base', 'kf',]
 
-    # run_set_names = ['ollama-bm20-gemma1b', 'llamacpp-bm20-gemma1b', ]
+    # run_set_names = ['ollama-space-ll70',]
     # run_set_names = ['llamacpp-space-gemma1b', ]
-    run_set_names = ['llamacpp-space-gemma12b', ]
+    # run_set_names = ['llamacpp-space-gemma12b', ]
 
-    # run_set_names = ['ollama-bm20-base11', ]
+    run_set_names = ['ollama-bm20-base11', ]
     # run_set_names = ['llamacpp-bm20-base11', ]
 
     csv_data = []

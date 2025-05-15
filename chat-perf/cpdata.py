@@ -91,6 +91,10 @@ class CPData:
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.gemma3:1b']),
         ],
 
+        'ollama-llama3.3:70b': [
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.llama3.3:70b']),
+        ],
+
         'ollama-base11': [
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.gemma3:4b']),
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.gemma3:27b']),
