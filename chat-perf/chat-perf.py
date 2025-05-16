@@ -389,7 +389,7 @@ def main():
     # run_set_names = ['llamacpp-space-gemma27b', ]
 
     # run_set_names = ['ollama-bm20-base11', ]
-    run_set_names = ['llamacpp-bm20-base11', ]
+    run_set_names = ['llamacpp-bm20-base10', 'llamacpp-3.3-70', ]
 
     csv_data = []
     for rsn in run_set_names:
