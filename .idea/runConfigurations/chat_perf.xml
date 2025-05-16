@@ -1,5 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="chat-perf" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
+    <output_file path="C:\cygwin64\home\kf\dev\kfchat\logs\chat-perf.log" is_save="true" />
     <module name="kfchat" />
     <option name="ENV_FILES" value="" />
     <option name="INTERPRETER_OPTIONS" value="" />

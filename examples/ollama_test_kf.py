@@ -1,3 +1,5 @@
+import time
+
 import ollama
 from ollama import ChatResponse
 
@@ -9,7 +11,7 @@ messages = [
 print(f'model: {model_name}')
 client = ollama.Client(host='http://localhost:11434')
 
-for i in range(2):
+for i in range(5):
     print(f'--- loop {i}')
     chat_response: ChatResponse = client.chat(
         model=model_name,
@@ -18,3 +20,4 @@ for i in range(2):
     )
     print(f'response: {chat_response.message.content}')
     client.generate(model=model_name, keep_alive=0.0)  # unload the model
+    time.sleep(20.0)

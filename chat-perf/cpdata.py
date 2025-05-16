@@ -125,17 +125,17 @@ class CPData:
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-27b-it-Q4_K_M.gguf'], ctx_size=2048),
         ],
         'llamacpp-base11': [
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.llama-3.2-3b-instruct-Q4_K_M.gguf']),
+            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.llama-3.3-70b-instruct-Q4_K_M.gguf']),
             # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-4b-it-Q4_K_M.gguf'], ctx_size=2048),
             # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-27b-it-Q4_K_M.gguf'], ctx_size=2048),
-            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.llama-3.2-3b-instruct-Q4_K_M.gguf']),
-            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.llama-3.3-70b-instruct-Q4_K_M.gguf']),
             # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.phi-4-Q4_K_M.gguf'], ctx_size=2048),
             # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.phi-4-f16.gguf'], ctx_size=2048),
             # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.mistral-nemo-instruct-2407-Q4_K_M.gguf'], ctx_size=2048),
             # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.c4ai-command-r7b-12-2024-Q4_K_M.gguf'], ctx_size=2048),
-            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.deepseek-r1-distill-qwen-32b-Q4_K_M.gguf'], ctx_size=2048),
-            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.qwen3-14b-Q4_K_M.gguf'], ctx_size=2048),
-            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.qwen3-32b-Q4_K_M.gguf'], ctx_size=2048),
+            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.deepseek-r1-distill-qwen-32b-Q4_K_M.gguf'], ctx_size=2048),
+            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.qwen3-14b-Q4_K_M.gguf'], ctx_size=2048),
+            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.qwen3-32b-Q4_K_M.gguf'], ctx_size=2048),
         ],
         # groq ###############################################################################################
         'groq-base': [
@@ -224,7 +224,7 @@ class CPData:
     # llm settings
     ##############################################################
     class LLMRawSettings(LLMSettings):
-        def __init__(self, init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int,
+        def __init__(self, init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int, init_chat_timeout_secs: float,
                      init_seed: int, init_ctx: int,
                      init_system_message_name: str):
             """
@@ -233,6 +233,7 @@ class CPData:
             :param init_temp:
             :param init_top_p:
             :param init_max_tokens:
+            :param init_chat_timeout_secs:
             :param init_seed:
             :param init_ctx:
             :param init_system_message_name:
@@ -243,6 +244,7 @@ class CPData:
             self.temp = init_temp
             self.top_p = init_top_p
             self.max_tokens = init_max_tokens
+            self.chat_timeout_secs = init_chat_timeout_secs
             self.seed = init_seed
             self.ctx = init_ctx
             self.system_message_name = init_system_message_name
@@ -253,7 +255,8 @@ class CPData:
             # return f'{self.__class__!s}:{self.result_id=!r},{self.metrics=!r},self.content="{self.content[0:20]}{"..." if len(self.content) > 20 else ""}"'
 
         def numbers_oneline_logging_str(self) -> str:
-            return f'n:{self.n},temp:{self.temp},top_p:{self.top_p},max_tokens:{self.max_tokens}'
+            return (f'n:{self.n},temp:{self.temp},top_p:{self.top_p},max_tokens:{self.max_tokens},'
+                    f'chat_timeout_secs:{self.chat_timeout_secs}')
 
         def texts_oneline_logging_str(self) -> str:
             return f'sysmsg:{self.system_message}'
@@ -265,6 +268,7 @@ class CPData:
                 BaseSettings.SettingsSpec(label='temp', options=[float(t) / 10.0 for t in range(0, 21)], value=self.temp, tooltip='responses: 0=very predictable, 2=very random/creative'),
                 BaseSettings.SettingsSpec(label='top_p', options=[float(t) / 10.0 for t in range(0, 11)], value=self.top_p, tooltip='responses: 0=less random, 1 more random'),
                 BaseSettings.SettingsSpec(label='max_tokens', options=[80, 200, 400, 800, 1000, 1500, 2000], value=self.max_tokens, tooltip='max tokens in response'),
+                BaseSettings.SettingsSpec(label='chat_timeout_seconds', options=[30.0, 60.0, 120.0, 300.0, 600.0, 1800.0, 3600.0, 7200.0], value=self.chat_timeout_secs, tooltip='seconds before chat times out'),
                 BaseSettings.SettingsSpec(label='seed', options=[0, 27, 42], value=self.seed, tooltip='random number generator seed'),
                 BaseSettings.SettingsSpec(label='ctx', options=[0, 2048, 4096, 8192, 16384, 32768, 65536], value=self.ctx,
                                           tooltip='size of the context window'),
@@ -280,6 +284,8 @@ class CPData:
                 self.top_p = value
             elif label == 'max_tokens':
                 self.max_tokens = value
+            elif label == 'chat_timeout_seconds':
+                self.chat_timeout_secs = value
             elif label == 'seed':
                 self.seed = value
             elif label == 'ctx':
@@ -303,42 +309,42 @@ class CPData:
     #         'empty': empty_sysmsg,
     llm_settings_sets = {
         '1:800': [
-            LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=800,
+            LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=800, init_chat_timeout_secs=7200.0,
                            init_seed=0, init_ctx=2048,
                            init_system_message_name='empty'),
         ],
         'quick': [
-            LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=40,
+            LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=40, init_chat_timeout_secs=7200.0,
                            init_seed=0, init_ctx=2048,
                            init_system_message_name='empty'),
         ],
         'std4': [
-            LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=800,
+            LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=800, init_chat_timeout_secs=7200.0,
                            init_seed=0, init_ctx=2048,
                            init_system_message_name='empty'),
-            LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=400,
+            LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=400, init_chat_timeout_secs=7200.0,
                            init_seed=0, init_ctx=2048,
                            init_system_message_name='empty'),
-            LLMRawSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800,
+            LLMRawSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_chat_timeout_secs=7200.0,
                            init_seed=0, init_ctx=2048,
                            init_system_message_name='empty'),
-            LLMRawSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=400,
+            LLMRawSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=400, init_chat_timeout_secs=7200.0,
                            init_seed=0, init_ctx=2048,
                            init_system_message_name='empty'),
         ],
         '.7:800:2048:empty': [
-            LLMRawSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800,
+            LLMRawSettings(init_n=1, init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_chat_timeout_secs=7200.0,
                            init_seed=0,
                            init_ctx=2048,  # 2048 is the ollama default
                            init_system_message_name='empty'),
         ],
         'ollama-warmup': [
-            LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=800,
+            LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=800, init_chat_timeout_secs=7200.0,
                            init_seed=0, init_ctx=2048,
                            init_system_message_name='carl-sagan'),
         ],
         'llamacpp-warmup': [
-            LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=800,
+            LLMRawSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=800, init_chat_timeout_secs=7200.0,
                            init_seed=0, init_ctx=2048,
                            init_system_message_name='carl-sagan'),
         ],

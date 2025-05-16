@@ -62,12 +62,14 @@ providers_config = {
 
 class LLMOpenAISettings(LLMSettings):
 
-    def __init__(self, init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int, init_system_message_name: str):
+    def __init__(self, init_n: int, init_temp: float, init_top_p: float, init_max_tokens: int, chat_timeout_secs: float,
+                 init_system_message_name: str):
         super().__init__()
         self.n = init_n
         self.temp = init_temp
         self.top_p = init_top_p
         self.max_tokens = init_max_tokens
+        self.chat_timeout_secs = chat_timeout_secs
         self.system_message_name = init_system_message_name
         self.system_message = config.LLMData.sysmsg_all[init_system_message_name]
 
@@ -77,10 +79,11 @@ class LLMOpenAISettings(LLMSettings):
 
     @classmethod
     def from_settings(cls, rhs):
-        return cls(init_n=rhs.n, init_temp=rhs.temp, init_top_p=rhs.top_p, init_max_tokens=rhs.max_tokens, init_system_message_name=rhs.system_message_name)
+        return cls(init_n=rhs.n, init_temp=rhs.temp, init_top_p=rhs.top_p, init_max_tokens=rhs.max_tokens, chat_timeout_secs=rhs.chat_timeout_secs,
+                   init_system_message_name=rhs.system_message_name)
 
     def numbers_oneline_logging_str(self) -> str:
-        return f'n:{self.n},temp:{self.temp},top_p:{self.top_p},max_tokens:{self.max_tokens}'
+        return f'n:{self.n},temp:{self.temp},top_p:{self.top_p},max_tokens:{self.max_tokens},chat_timeout_secs:{self.chat_timeout_secs}'
 
     def texts_oneline_logging_str(self) -> str:
         return f'sysmsg:{self.system_message}'
@@ -92,6 +95,7 @@ class LLMOpenAISettings(LLMSettings):
             BaseSettings.SettingsSpec(label='temp', options=[float(t) / 10.0 for t in range(0, 21)], value=self.temp, tooltip='responses: 0=very predictable, 2=very random/creative'),
             BaseSettings.SettingsSpec(label='top_p', options=[float(t) / 10.0 for t in range(0, 11)], value=self.top_p, tooltip='responses: 0=less random, 1 more random'),
             BaseSettings.SettingsSpec(label='max_tokens', options=[80, 200, 400, 800, 1000, 1500, 2000], value=self.max_tokens, tooltip='max tokens in response'),
+            BaseSettings.SettingsSpec(label='chat_timeout_seconds', options=[30.0, 60.0, 120.0, 300.0, 600.0, 1800.0, 3600.0, 7200.0], value=self.chat_timeout_secs, tooltip='seconds before chat times out'),
             BaseSettings.SettingsSpec(label='system_message_name', options=sysmsg_names, value=self.system_message_name, tooltip='system/setup text sent with each prompt'),
         ]
 
@@ -104,6 +108,8 @@ class LLMOpenAISettings(LLMSettings):
             self.top_p = value
         elif label == 'max_tokens':
             self.max_tokens = value
+        elif label == 'chat_timeout_secs':
+            self.chat_timeout_secs = value
         elif label == 'system_message_name':
             self.system_message_name = value
             self.system_message = config.LLMData.sysmsg_all[value]
@@ -140,7 +146,8 @@ class LLMOpenAIConfig(LLMConfig):
         return old
 
     def copy_settings(self) -> LLMSettings:
-        return LLMOpenAISettings(self._settings.n, self._settings.temp, self._settings.top_p, self._settings.max_tokens, self._settings.system_message_name)
+        return LLMOpenAISettings(self._settings.n, self._settings.temp, self._settings.top_p, self._settings.max_tokens,
+                                 self._settings.chat_timeout_secs, self._settings.system_message_name)
 
     def _client(self) -> openai.OpenAI:
         if self._api_client is not None:
@@ -165,6 +172,7 @@ class LLMOpenAIConfig(LLMConfig):
             endpoint = providers_config[self._provider][f'kf{self._provider.upper()}_ENDPOINT'].format(self.model_name)
             key = providers_config[self._provider]['key']
             log.info(f'building LLM API for [{self._provider}]: {endpoint=} key={redact(key)}')
+            # timeout_httpx_client = httpx.Client(timeout=httpx.Timeout(10.0))
             self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         # elif self._provider == 'openai':
         #     endpoint = providers_config[self._provider]['kfOPENAI_ENDPOINT']
@@ -205,6 +213,9 @@ class LLMOpenAIConfig(LLMConfig):
 
             seed=27,
 
+            # todo: configure this
+            timeout=self._settings.chat_timeout_secs,
+
             # frequency_penalty=1,  # default 0, -2.0->2.0
             # presence_penalty=1,  # default 0, -2.0->2.0
             # stop=[],
@@ -228,7 +239,10 @@ class LLMOpenAIConfig(LLMConfig):
             try:
                 messages_list: list[dict] = [{'role': 'system', 'content': sysmsg}]
                 messages_list.extend([{'role': pair.role, 'content': pair.content} for pair in messages])
-                log.debug(f'{self._provider}.{self.model_name} n:{self._settings.n} temp:{self._settings.temp} top_p:{self._settings.top_p}, max_tok:{self._settings.max_tokens} prompt:"{prompt}" msgs:{messages_list}')
+                log.debug(f'{self._provider}.{self.model_name} n:{self._settings.n} temp:{self._settings.temp} '
+                          f'top_p:{self._settings.top_p} max_tok:{self._settings.max_tokens} '
+                          f'chat_timeout_secs:{self._settings.chat_timeout_secs} '
+                          f'prompt:"{prompt}" msgs:{messages_list}')
 
                 start = timeit.default_timer()
                 chat_completion: ChatCompletion = self.generate_chat_completion(messages_list)
@@ -239,11 +253,27 @@ class LLMOpenAIConfig(LLMConfig):
                 log.warning(f'{self._provider}:{self.model_name}: rate limit exceeded attempt {rate_limit_retries}/{max_rate_limit_retries}, '
                             f'{(f"will retry in {retry_wait_secs}s" if rate_limit_retries <= max_rate_limit_retries else "")}')
                 if rate_limit_retries > max_rate_limit_retries:
-                    log.warning(f'chat {self._provider}:{self.model_name}: rate limit exceeded, all {rate_limit_retries} retries failed')
+                    log.warning(f'_chat {self._provider}:{self.model_name}: rate limit exceeded, all {rate_limit_retries} retries failed')
                     raise e
                 else:
                     time.sleep(retry_wait_secs)
                     retry_wait_secs = rate_limit_retries * rate_limit_retries
+            # except (openai.BadRequestError, httpcore.ConnectError, httpx.ConnectError,
+            #         openai.APIConnectionError, openai.InternalServerError) as e:
+            #     print(f'~~~ handling it! {e.__class__.__name__}: {e}')
+            #     # todo: configure this special llamacpp handling stuff, maybe subclass?
+            #     if self._provider == 'LLAMACPP':
+            #         if isinstance(e, openai.InternalServerError):  # model is still loading
+            #             log.warning(f'_chat {self._provider}:{self.model_name}: error, is the model loaded? ({e.__class__.__name__}: {e}: {e.__dict__})')
+            #         elif isinstance(e, openai.BadRequestError):
+            #             log.warning(f'_chat {self._provider}:{self.model_name}: bad request error, is the model loaded? ({e.__class__.__name__}: {e}: {e.__dict__})')
+            #         else:
+            #             # model/lswap probably isn't running at all
+            #             log.warning(f'_chat {self._provider}:{self.model_name}: connect error, is the model loaded? ({e.__class__.__name__}: {e}: {e.__dict__})')
+            #         time.sleep(10)
+            #     else:
+            #         log.warning(f'_chat {self._provider}:{self.model_name}: {e.__class__.__name__}: {e}')
+            #         raise e
             except (Exception,) as e:
-                log.warning(f'chat error! {self._provider}:{self.model_name}: {e.__class__.__name__}: {e}')
+                log.warning(f'_chat error! {self._provider}:{self.model_name}: {e.__class__.__name__}: {e}')
                 raise e
