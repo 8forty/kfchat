@@ -103,9 +103,10 @@ class CPData:
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.phi4:14b']),
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.phi4:14b-fp16']),
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.mistral-nemo:12b']),
-            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.mixtral:8x7b']),
+            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.mixtral:8x7b']),
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.command-r7b:latest']),
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.deepseek-r1:32b']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.qwen3:14b']),
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['OLLAMA.qwen3:32b']),
         ],
         # llamacpp ###############################################################################################
@@ -120,8 +121,21 @@ class CPData:
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-12b-it-Q4_K_M.gguf'], ctx_size=2048),
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-12b-it-Q4_K_M.gguf-fa'], ctx_size=2048),
         ],
+        'llamacpp-gemma3-27b': [
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-27b-it-Q4_K_M.gguf'], ctx_size=2048),
+        ],
         'llamacpp-base11': [
-            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-1b-it-Q4_K_M.gguf'], ctx_size=2048),
+            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-4b-it-Q4_K_M.gguf'], ctx_size=2048),
+            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-27b-it-Q4_K_M.gguf'], ctx_size=2048),
+            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.llama-3.2-3b-instruct-Q4_K_M.gguf']),
+            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.llama-3.3-70b-instruct-Q4_K_M.gguf']),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.phi-4-Q4_K_M.gguf'], ctx_size=2048),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.phi-4-f16.gguf'], ctx_size=2048),
+            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.mistral-nemo-instruct-2407-Q4_K_M.gguf'], ctx_size=2048),
+            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.c4ai-command-r7b-12-2024-Q4_K_M.gguf'], ctx_size=2048),
+            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.deepseek-r1-distill-qwen-32b-Q4_K_M.gguf'], ctx_size=2048),
+            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.qwen3-14b-Q4_K_M.gguf'], ctx_size=2048),
+            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.qwen3-32b-Q4_K_M.gguf'], ctx_size=2048),
         ],
         # groq ###############################################################################################
         'groq-base': [

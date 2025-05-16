@@ -340,10 +340,16 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
 
 @dataclass
 class RunSet:
-    run_specs_name: str  # model, collection, run-type
+    """
+    :ivar cprun_specs_name:
+    :ivar settings_set_name:
+    :ivar sysmsg_name:
+    :ivar prompt_set_name:
+    """
+    cprun_specs_name: str  # model, collection, run-type(LLM/VS/RAG)
     settings_set_name: str  # llm/vs settings
-    sysmsg_name: str
-    prompt_set_name: str
+    sysmsg_name: str  # system message
+    prompt_set_name: str  # prompts
 
 
 def main():
@@ -361,6 +367,7 @@ def main():
         'llamacpp-space-gemma1b': RunSet('llamacpp-gemma3-1b', '.7:800:2048:empty', 'empty', 'space'),
         'llamacpp-space-gemma4b': RunSet('llamacpp-gemma3-4b', '.7:800:2048:empty', 'empty', 'space'),
         'llamacpp-space-gemma12b': RunSet('llamacpp-gemma3-12b', '.7:800:2048:empty', 'empty', 'space'),
+        'llamacpp-space-gemma27b': RunSet('llamacpp-gemma3-27b', '.7:800:2048:empty', 'empty', 'space'),
 
         'bm20-gemma': RunSet('ollama-gemma', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
         'bm20-llama3.2': RunSet('ollama-llama3.2', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
@@ -368,7 +375,10 @@ def main():
         'bm20-phi': RunSet('ollama-phi', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
         'bm20-qwen': RunSet('ollama-qwen', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
         'bm20-other': RunSet('ollama-other', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+
         'ollama-bm20-base11': RunSet('ollama-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+
+        'llamacpp-space-base11': RunSet('llamacpp-base11', '.7:800:2048:empty', 'empty', 'space'),
         'llamacpp-bm20-base11': RunSet('llamacpp-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
     }
 
@@ -376,14 +386,14 @@ def main():
 
     # run_set_names = ['ollama-space-ll70',]
     # run_set_names = ['llamacpp-space-gemma1b', ]
-    # run_set_names = ['llamacpp-space-gemma12b', ]
+    # run_set_names = ['llamacpp-space-gemma27b', ]
 
-    run_set_names = ['ollama-bm20-base11', ]
-    # run_set_names = ['llamacpp-bm20-base11', ]
+    # run_set_names = ['ollama-bm20-base11', ]
+    run_set_names = ['llamacpp-space-base11', ]
 
     csv_data = []
     for rsn in run_set_names:
-        run(run_specs_name=run_sets[rsn].run_specs_name,  # model, collection, run-type
+        run(run_specs_name=run_sets[rsn].cprun_specs_name,  # model, collection, run-type
             settings_set_name=run_sets[rsn].settings_set_name,  # llm/vs settings
             sysmsg_name=run_sets[rsn].sysmsg_name,
             prompt_set_name=run_sets[rsn].prompt_set_name,
