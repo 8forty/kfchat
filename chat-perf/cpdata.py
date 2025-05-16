@@ -129,13 +129,13 @@ class CPData:
             # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-27b-it-Q4_K_M.gguf'], ctx_size=2048),
             # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.llama-3.2-3b-instruct-Q4_K_M.gguf']),
             # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.llama-3.3-70b-instruct-Q4_K_M.gguf']),
-            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.phi-4-Q4_K_M.gguf'], ctx_size=2048),
-            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.phi-4-f16.gguf'], ctx_size=2048),
+            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.phi-4-Q4_K_M.gguf'], ctx_size=2048),
+            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.phi-4-f16.gguf'], ctx_size=2048),
             # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.mistral-nemo-instruct-2407-Q4_K_M.gguf'], ctx_size=2048),
             # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.c4ai-command-r7b-12-2024-Q4_K_M.gguf'], ctx_size=2048),
-            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.deepseek-r1-distill-qwen-32b-Q4_K_M.gguf'], ctx_size=2048),
-            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.qwen3-14b-Q4_K_M.gguf'], ctx_size=2048),
-            # CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.qwen3-32b-Q4_K_M.gguf'], ctx_size=2048),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.deepseek-r1-distill-qwen-32b-Q4_K_M.gguf'], ctx_size=2048),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.qwen3-14b-Q4_K_M.gguf'], ctx_size=2048),
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.qwen3-32b-Q4_K_M.gguf'], ctx_size=2048),
         ],
         # groq ###############################################################################################
         'groq-base': [

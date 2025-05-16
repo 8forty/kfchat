@@ -2,6 +2,26 @@ healthCheckTimeout: 1200
 
 models:
   ## deepseek ##########################################################################
+  "deepseek-r1-distill-qwen-32b-Q4_K_M.gguf":
+    proxy: &kfproxy "http://127.0.0.1:27272"
+    cmd: >
+      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      -ngl 999
+      -dev Vulkan1 
+      -c 2048 
+      -m z:/huggingface.co/converted/deepseek-r1-distill-qwen-32b-Q4_K_M.gguf
+      --port 27272
+
+  ## command ##########################################################################
+  "c4ai-command-r7b-12-2024-Q4_K_M.gguf":
+    proxy: &kfproxy "http://127.0.0.1:27272"
+    cmd: >
+      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      -ngl 999
+      -dev Vulkan1 
+      -c 2048 
+      -m z:/huggingface.co/converted/c4ai-command-r7b-12-2024-Q4_K_M.gguf
+      --port 27272
 
   ## gemma3 ##########################################################################
   "gemma-3-1b-it-Q4_K_M.gguf":
@@ -67,7 +87,6 @@ models:
       --port 27272
 
   ## llama ##########################################################################
-
   "llama-3.2-3b-instruct-Q4_K_M.gguf":
     proxy: *kfproxy
     cmd: >
@@ -88,8 +107,18 @@ models:
       -m z:/huggingface.co/converted/Llama-3.3-70B-Instruct-Q4_K_M.gguf 
       --port 27272
 
-  ## phi4 ##########################################################################
+  ## mistral ##########################################################################
+  "mistral-nemo-instruct-2407-Q4_K_M.gguf":
+    proxy: *kfproxy
+    cmd: >
+      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      -ngl 999
+      -dev Vulkan1 
+      -c 2048 
+      -m z:/huggingface.co/converted/mistral-nemo-instruct-2407-Q4_K_M.gguf
+      --port 27272
 
+  ## phi4 ##########################################################################
   "phi-4-Q4_K_M.gguf":
     proxy: *kfproxy
     cmd: >
@@ -100,7 +129,6 @@ models:
       -m z:/huggingface.co/converted/phi-4-Q4_K_M.gguf 
       --port 27272
 
-
   "phi-4-f16.gguf":
     proxy: *kfproxy
     cmd: >
@@ -109,4 +137,25 @@ models:
       -dev Vulkan1 
       -c 2048 
       -m z:/huggingface.co/converted/phi-4-f16.gguf 
+      --port 27272
+
+  ## qwen3 ##########################################################################
+  "qwen3-14b-Q4_K_M.gguf":
+    proxy: *kfproxy
+    cmd: >
+      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      -ngl 999
+      -dev Vulkan1 
+      -c 2048 
+      -m z:/huggingface.co/converted/qwen3-14b-Q4_K_M.gguf
+      --port 27272
+
+  "qwen3-32b-Q4_K_M.gguf":
+    proxy: *kfproxy
+    cmd: >
+      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      -ngl 999
+      -dev Vulkan1 
+      -c 2048 
+      -m z:/huggingface.co/converted/qwen3-32b-Q4_K_M.gguf
       --port 27272
