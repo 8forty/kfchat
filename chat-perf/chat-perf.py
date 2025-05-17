@@ -379,8 +379,9 @@ def main():
 
         'ollama-bm20-base11': RunSet('ollama-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
 
-        'llamacpp-space-base10': RunSet('llamacpp-base10', '.7:800:2048:empty', 'empty', 'space'),
-        'llamacpp-bm20-base10': RunSet('llamacpp-base10', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'llamacpp-space-base11': RunSet('llamacpp-base11', '.7:800:2048:empty', 'empty', 'space'),
+        'llamacpp-bm20-base11': RunSet('llamacpp-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'llamacpp-bm20-fa-base11': RunSet('llamacpp-fa-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
     }
 
     # run_set_names = ['quick', 'base', 'kf',]
@@ -390,7 +391,8 @@ def main():
     # run_set_names = ['llamacpp-space-gemma27b', ]
 
     # run_set_names = ['ollama-bm20-base11', ]
-    run_set_names = ['llamacpp-bm20-base10', 'llamacpp-bm20-ll3.3-70', ]
+    # run_set_names = ['llamacpp-bm20-base11', ]
+    run_set_names = ['llamacpp-bm20-fa-base11', ]
 
     csv_data = []
     for rsn in run_set_names:
