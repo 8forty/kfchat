@@ -10,12 +10,12 @@ import ollama
 import requests
 
 import config
+import llmconfig.llm_openai_config
 from cpdata import CPData, CPRunType, CPRunSpec
 from cpfunctions import CPFunctions
 from llmconfig.llm_anthropic_config import LLMAnthropicConfig, LLMAnthropicSettings
 from llmconfig.llm_ollama_config import LLMOllamaConfig, LLMOllamaSettings
 from llmconfig.llm_openai_config import LLMOpenAIConfig, LLMOpenAISettings
-import llmconfig.llm_openai_config
 from llmconfig.llmexchange import LLMExchange
 from ollamautils import OllamaUtils
 
@@ -98,7 +98,8 @@ def llamacpp_model_info(model_spec: config.ModelSpec, run_spec: CPRunSpec) -> st
 def ollama_warmup(model: config.ModelSpec, max_retries: int = 8) -> bool:
     model_name = model.name
 
-    # the only way to GPU memory of any previous ollama runs
+    # the only way to clear GPU memory of any previous ollama runs
+    # https://github.com/ollama/ollama/issues/10597#issuecomment-2887586741
     OllamaUtils.kill_ollama_servers()
 
     warmup_retries = 0
@@ -390,9 +391,9 @@ def main():
     # run_set_names = ['quick', 'base', 'kf',]
 
     # run_set_names = ['ollama-space-ll70',]
-    run_set_names = ['llamacpp-space-ll3.3-70', ]
+    # run_set_names = ['llamacpp-space-ll3.3-70', ]
 
-    # run_set_names = ['ollama-bm20-base11', ]
+    run_set_names = ['ollama-bm20-base11', ]
     # run_set_names = ['llamacpp-bm20-base11', ]
     # run_set_names = ['llamacpp-bm20-fa-base11', ]
 
