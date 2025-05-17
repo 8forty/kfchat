@@ -20,9 +20,11 @@ log.setLevel(logstuff.logging_level)
 dotenv.load_dotenv(override=True)
 env = dotenv.dotenv_values()
 
+# todo: configure/enum these
 providers_config = {
     'LLAMACPP': {
         'key': 'dont need one',
+        'kfLLAMACPP_LLAMASERVER_ENDPOINT': env.get('kfLLAMACPP_LLAMASERVER_ENDPOINT'),
         'kfLLAMACPP_ENDPOINT': env.get('kfLLAMACPP_OPENAI_ENDPOINT'),  # 'http://localhost:27272/v1',
     },
     'AZURE': {

@@ -212,6 +212,7 @@ class LLMData:
         ModelSpec('gemma-3-12b-it-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
         ModelSpec('gemma-3-12b-it-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
         ModelSpec('gemma-3-27b-it-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
+        ModelSpec('gemma-3-27b-it-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
 
         ModelSpec('llama-3.2-3b-instruct-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
         ModelSpec('llama-3.3-70b-instruct-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
@@ -222,6 +223,15 @@ class LLMData:
         ModelSpec('deepseek-r1-distill-qwen-32b-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
         ModelSpec('qwen3-14b-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
         ModelSpec('qwen3-32b-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
+        ModelSpec('llama-3.2-3b-instruct-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
+        ModelSpec('llama-3.3-70b-instruct-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
+        ModelSpec('phi-4-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
+        ModelSpec('phi-4-f16.gguf-fa', provider='LLAMACPP', api='openai'),
+        ModelSpec('mistral-nemo-instruct-2407-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
+        ModelSpec('c4ai-command-r7b-12-2024-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
+        ModelSpec('deepseek-r1-distill-qwen-32b-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
+        ModelSpec('qwen3-14b-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
+        ModelSpec('qwen3-32b-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
 
         ModelSpec('gemini-1.5-flash', provider='GEMINI', api='openai'),
         ModelSpec('gemini-1.5-flash-8b', provider='GEMINI', api='openai'),

@@ -67,7 +67,7 @@ def llamacpp_model_info(model_spec: config.ModelSpec, run_spec: CPRunSpec) -> st
     #   'data': [{'id': 'c:/llama.cpp/gemma-3-1b-it-Q4_K_M.gguf', 'object': 'model', 'created': 1747247114,
     #     'owned_by': 'llamacpp', 'meta': {'vocab_type': 1, 'n_vocab': 262144, 'n_ctx_train': 32768, 'n_embd': 1152,
     #     'n_params': 999885952, 'size': 799525120}}]}
-    endpoint = (llmconfig.llm_openai_config.providers_config['LLAMACPP']['kfLLAMACPP_ENDPOINT'].format(f'{model_spec.name}')
+    endpoint = (llmconfig.llm_openai_config.providers_config['LLAMACPP']['kfLLAMACPP_LLAMASERVER_ENDPOINT'].format(f'{model_spec.name}')
                 + '/models')
     response = requests.get(endpoint)
     retval = ''
@@ -90,6 +90,8 @@ def llamacpp_model_info(model_spec: config.ModelSpec, run_spec: CPRunSpec) -> st
                        f'{vram},'
                        f'{load} ')
 
+    if retval == '':
+        print(f'!!!! llamacpp_model_info: no model info found! {model_spec.name}: {response.json()["data"]}')
     return retval
 
 
@@ -308,8 +310,8 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
                       f'{llm_config.settings().value('system_message_name')}: '
                       f'{ploop_input_tokens}+{ploop_output_tokens} '
                       f'{timeit.default_timer() - ploop_start:.1f}s')
-                if model.provider == 'OLLAMA':
-                    print(f'{config.secs_string(all_start)}: ollama ps: {ollama_model_info(model, run_spec)}')
+                # if model.provider == 'OLLAMA':
+                #     print(f'{config.secs_string(all_start)}: ollama ps: {ollama_model_info(model, run_spec)}')
 
                 # csv
                 model_info = ''
@@ -368,6 +370,7 @@ def main():
         'llamacpp-space-gemma4b': RunSet('llamacpp-gemma3-4b', '.7:800:2048:empty', 'empty', 'space'),
         'llamacpp-space-gemma12b': RunSet('llamacpp-gemma3-12b', '.7:800:2048:empty', 'empty', 'space'),
         'llamacpp-space-gemma27b': RunSet('llamacpp-gemma3-27b', '.7:800:2048:empty', 'empty', 'space'),
+        'llamacpp-space-ll3.3-70': RunSet('llamacpp-3.3-70', '.7:800:2048:empty', 'empty', 'space'),
         'llamacpp-bm20-ll3.3-70': RunSet('llamacpp-3.3-70', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
 
         'ollama-bm20-gemma': RunSet('ollama-gemma', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
@@ -387,12 +390,11 @@ def main():
     # run_set_names = ['quick', 'base', 'kf',]
 
     # run_set_names = ['ollama-space-ll70',]
-    # run_set_names = ['llamacpp-space-gemma1b', ]
-    # run_set_names = ['llamacpp-space-gemma27b', ]
+    run_set_names = ['llamacpp-space-ll3.3-70', ]
 
     # run_set_names = ['ollama-bm20-base11', ]
     # run_set_names = ['llamacpp-bm20-base11', ]
-    run_set_names = ['llamacpp-bm20-fa-base11', ]
+    # run_set_names = ['llamacpp-bm20-fa-base11', ]
 
     csv_data = []
     for rsn in run_set_names:
