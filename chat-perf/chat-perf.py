@@ -368,18 +368,19 @@ def main():
         'llamacpp-space-gemma4b': RunSet('llamacpp-gemma3-4b', '.7:800:2048:empty', 'empty', 'space'),
         'llamacpp-space-gemma12b': RunSet('llamacpp-gemma3-12b', '.7:800:2048:empty', 'empty', 'space'),
         'llamacpp-space-gemma27b': RunSet('llamacpp-gemma3-27b', '.7:800:2048:empty', 'empty', 'space'),
+        'llamacpp-bm20-ll3.3-70': RunSet('llamacpp-3.3-70', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
 
-        'bm20-gemma': RunSet('ollama-gemma', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
-        'bm20-llama3.2': RunSet('ollama-llama3.2', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
-        'bm20-llama3.3': RunSet('ollama-llama3.3', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
-        'bm20-phi': RunSet('ollama-phi', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
-        'bm20-qwen': RunSet('ollama-qwen', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
-        'bm20-other': RunSet('ollama-other', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'ollama-bm20-gemma': RunSet('ollama-gemma', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'ollama-bm20-llama3.2': RunSet('ollama-llama3.2', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'ollama-bm20-llama3.3': RunSet('ollama-llama3.3', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'ollama-bm20-phi': RunSet('ollama-phi', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'ollama-bm20-qwen': RunSet('ollama-qwen', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'ollama-bm20-other': RunSet('ollama-other', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
 
         'ollama-bm20-base11': RunSet('ollama-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
 
-        'llamacpp-space-base11': RunSet('llamacpp-base11', '.7:800:2048:empty', 'empty', 'space'),
-        'llamacpp-bm20-base11': RunSet('llamacpp-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'llamacpp-space-base10': RunSet('llamacpp-base10', '.7:800:2048:empty', 'empty', 'space'),
+        'llamacpp-bm20-base10': RunSet('llamacpp-base10', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
     }
 
     # run_set_names = ['quick', 'base', 'kf',]
@@ -389,7 +390,7 @@ def main():
     # run_set_names = ['llamacpp-space-gemma27b', ]
 
     # run_set_names = ['ollama-bm20-base11', ]
-    run_set_names = ['llamacpp-bm20-base10', 'llamacpp-3.3-70', ]
+    run_set_names = ['llamacpp-bm20-base10', 'llamacpp-bm20-ll3.3-70', ]
 
     csv_data = []
     for rsn in run_set_names:

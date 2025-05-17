@@ -99,9 +99,10 @@ models:
 
   "llama-3.3-70b-instruct-Q4_K_M.gguf":
     proxy: *kfproxy
+    # ngl 30:15954MB 45:23507MB
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
-      -ngl 999
+      -ngl 45
       -dev Vulkan1 
       -c 2048 
       -m z:/huggingface.co/converted/Llama-3.3-70B-Instruct-Q4_K_M.gguf 
@@ -131,9 +132,10 @@ models:
 
   "phi-4-f16.gguf":
     proxy: *kfproxy
+    # ngl 20:14477MB 30:21092 33:23077
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
-      -ngl 999
+      -ngl 33
       -dev Vulkan1 
       -c 2048 
       -m z:/huggingface.co/converted/phi-4-f16.gguf 
