@@ -75,8 +75,7 @@ def llamacpp_model_info(model_spec: config.ModelSpec, run_spec: CPRunSpec) -> st
     for info in response.json()['data']:
         model_id = info['id']  # e.g. z:/huggingface.co/converted/gemma-3-4b-it-Q4_K_M.gguf
         # model_spec.name e.g. gemma-3-4b-it-Q4_K_M.gguf-fa
-        breakpoint()
-        if model_spec.name in model_id or os.path.basename(model_id) in model_spec.name:
+        if model_spec.name.lower() in model_id.lower() or str(os.path.basename(model_id)).lower() in model_spec.name.lower():
             parmsb: int = int(round(int(info['meta']['n_params']) / 1000000000.0, 1))
             quant: str = ''
             model_base_size: float = float(info['meta']['size']) / (1024.0 * 1024.0 * 1024.0)
@@ -395,9 +394,9 @@ def main():
     # run_set_names = ['quick', 'base', 'kf',]
 
     # run_set_names = ['ollama-space-ll70',]
-    run_set_names = ['llamacpp-space-gemma4b', ]
+    # run_set_names = ['llamacpp-space-gemma4b', ]
 
-    # run_set_names = ['ollama-bm20-base11', ]
+    run_set_names = ['ollama-bm20-base11', ]
     # run_set_names = ['llamacpp-bm20-base11', ]
     # run_set_names = ['llamacpp-bm20-fa-base11', ]
 
