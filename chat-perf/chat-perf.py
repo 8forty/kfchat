@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import sys
 import time
 import timeit
@@ -72,8 +73,10 @@ def llamacpp_model_info(model_spec: config.ModelSpec, run_spec: CPRunSpec) -> st
     response = requests.get(endpoint)
     retval = ''
     for info in response.json()['data']:
-        model_id = info['id']
-        if model_spec.name in model_id:
+        model_id = info['id']  # e.g. z:/huggingface.co/converted/gemma-3-4b-it-Q4_K_M.gguf
+        # model_spec.name e.g. gemma-3-4b-it-Q4_K_M.gguf-fa
+        breakpoint()
+        if model_spec.name in model_id or os.path.basename(model_id) in model_spec.name:
             parmsb: int = int(round(int(info['meta']['n_params']) / 1000000000.0, 1))
             quant: str = ''
             model_base_size: float = float(info['meta']['size']) / (1024.0 * 1024.0 * 1024.0)
@@ -369,6 +372,7 @@ def main():
         'llamacpp-bm20-gemma1b': RunSet('llamacpp-gemma3-1b', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
         'llamacpp-space-gemma1b': RunSet('llamacpp-gemma3-1b', '.7:800:2048:empty', 'empty', 'space'),
         'llamacpp-space-gemma4b': RunSet('llamacpp-gemma3-4b', '.7:800:2048:empty', 'empty', 'space'),
+        'llamacpp-bm20-gemma4b': RunSet('llamacpp-gemma3-4b', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
         'llamacpp-space-gemma12b': RunSet('llamacpp-gemma3-12b', '.7:800:2048:empty', 'empty', 'space'),
         'llamacpp-space-gemma27b': RunSet('llamacpp-gemma3-27b', '.7:800:2048:empty', 'empty', 'space'),
         'llamacpp-space-ll3.3-70': RunSet('llamacpp-3.3-70', '.7:800:2048:empty', 'empty', 'space'),
@@ -391,9 +395,9 @@ def main():
     # run_set_names = ['quick', 'base', 'kf',]
 
     # run_set_names = ['ollama-space-ll70',]
-    # run_set_names = ['llamacpp-space-ll3.3-70', ]
+    run_set_names = ['llamacpp-space-gemma4b', ]
 
-    run_set_names = ['ollama-bm20-base11', ]
+    # run_set_names = ['ollama-bm20-base11', ]
     # run_set_names = ['llamacpp-bm20-base11', ]
     # run_set_names = ['llamacpp-bm20-fa-base11', ]
 
