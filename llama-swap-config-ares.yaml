@@ -7,7 +7,7 @@ models:
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
       -ngl 999
-      -dev Vulkan1 
+      -dev Vulkan0,Vulkan0,Vulkan1 
       -c 2048 
       -m z:/huggingface.co/converted/c4ai-command-r7b-12-2024-Q4_K_M.gguf
       --port 27272
@@ -16,7 +16,7 @@ models:
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
       -ngl 999
-      -dev Vulkan1 
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       --flash-attn
       -m z:/huggingface.co/converted/c4ai-command-r7b-12-2024-Q4_K_M.gguf
@@ -28,7 +28,7 @@ models:
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
       -ngl 999
-      -dev Vulkan1 
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       -m z:/huggingface.co/converted/deepseek-r1-distill-qwen-32b-Q4_K_M.gguf
       --port 27272
@@ -37,7 +37,7 @@ models:
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
       -ngl 999
-      -dev Vulkan1 
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       --flash-attn
       -m z:/huggingface.co/converted/deepseek-r1-distill-qwen-32b-Q4_K_M.gguf
@@ -49,7 +49,7 @@ models:
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
       -ngl 999
-      -dev Vulkan1 
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       -m z:/huggingface.co/converted/gemma-3-1b-it-Q4_K_M.gguf 
       --port 27272
@@ -58,7 +58,7 @@ models:
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
       -ngl 999
-      -dev Vulkan1 
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       --flash-attn
       -m z:/huggingface.co/converted/gemma-3-1b-it-Q4_K_M.gguf 
@@ -69,7 +69,7 @@ models:
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
       -ngl 999
-      -dev Vulkan1 
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       -m z:/huggingface.co/converted/gemma-3-4b-it-Q4_K_M.gguf 
       --port 27272
@@ -78,7 +78,7 @@ models:
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
       -ngl 999
-      -dev Vulkan1 
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       --flash-attn
       -m z:/huggingface.co/converted/gemma-3-4b-it-Q4_K_M.gguf 
@@ -89,7 +89,7 @@ models:
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
       -ngl 999
-      -dev Vulkan1 
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       -m z:/huggingface.co/converted/gemma-3-12b-it-Q4_K_M.gguf 
       --port 27272
@@ -98,7 +98,7 @@ models:
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
       -ngl 999
-      -dev Vulkan1 
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       --flash-attn
       -m z:/huggingface.co/converted/gemma-3-12b-it-Q4_K_M.gguf 
@@ -109,7 +109,7 @@ models:
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
       -ngl 999
-      -dev Vulkan1 
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       -m z:/huggingface.co/converted/gemma-3-27b-it-Q4_K_M.gguf 
       --port 27272
@@ -118,7 +118,7 @@ models:
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
       -ngl 999
-      -dev Vulkan1 
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       --flash-attn
       -m z:/huggingface.co/converted/gemma-3-27b-it-Q4_K_M.gguf 
@@ -130,7 +130,7 @@ models:
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
       -ngl 999
-      -dev Vulkan1 
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       -m z:/huggingface.co/converted/Llama-3.2-3B-Instruct-Q4_K_M.gguf 
       --port 27272
@@ -139,7 +139,7 @@ models:
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
       -ngl 999
-      -dev Vulkan1 
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       --flash-attn
       -m z:/huggingface.co/converted/Llama-3.2-3B-Instruct-Q4_K_M.gguf 
@@ -147,11 +147,11 @@ models:
 
   "llama-3.3-70b-instruct-Q4_K_M.gguf":
     proxy: *kfproxy
-    # ngl 30:15954MB 45:23507MB
+    # ngl
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
-      -ngl 45
-      -dev Vulkan1 
+      -ngl 999
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       -m z:/huggingface.co/converted/Llama-3.3-70B-Instruct-Q4_K_M.gguf 
       --port 27272
@@ -160,8 +160,8 @@ models:
     # ngl
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
-      -ngl 45
-      -dev Vulkan1 
+      -ngl 999
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       --flash-attn
       -m z:/huggingface.co/converted/Llama-3.3-70B-Instruct-Q4_K_M.gguf 
@@ -173,7 +173,7 @@ models:
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
       -ngl 999
-      -dev Vulkan1 
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       -m z:/huggingface.co/converted/mistral-nemo-instruct-2407-Q4_K_M.gguf
       --port 27272
@@ -182,7 +182,7 @@ models:
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
       -ngl 999
-      -dev Vulkan1 
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       --flash-attn
       -m z:/huggingface.co/converted/mistral-nemo-instruct-2407-Q4_K_M.gguf
@@ -194,7 +194,7 @@ models:
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
       -ngl 999
-      -dev Vulkan1 
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       -m z:/huggingface.co/converted/phi-4-Q4_K_M.gguf 
       --port 27272
@@ -203,7 +203,7 @@ models:
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
       -ngl 999
-      -dev Vulkan1 
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       --flash-attn
       -m z:/huggingface.co/converted/phi-4-Q4_K_M.gguf 
@@ -211,11 +211,11 @@ models:
 
   "phi-4-f16.gguf":
     proxy: *kfproxy
-    # ngl 20:14477MB 30:21092 33:23077
+    # ngl
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
-      -ngl 33
-      -dev Vulkan1 
+      -ngl 999
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       -m z:/huggingface.co/converted/phi-4-f16.gguf 
       --port 27272
@@ -224,8 +224,8 @@ models:
     # ngl
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
-      -ngl 33
-      -dev Vulkan1 
+      -ngl 999
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       --flash-attn
       -m z:/huggingface.co/converted/phi-4-f16.gguf 
@@ -237,7 +237,7 @@ models:
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
       -ngl 999
-      -dev Vulkan1 
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       -m z:/huggingface.co/converted/qwen3-14b-Q4_K_M.gguf
       --port 27272
@@ -246,7 +246,7 @@ models:
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
       -ngl 999
-      -dev Vulkan1 
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       --flash-attn
       -m z:/huggingface.co/converted/qwen3-14b-Q4_K_M.gguf
@@ -257,7 +257,7 @@ models:
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
       -ngl 999
-      -dev Vulkan1 
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       -m z:/huggingface.co/converted/qwen3-32b-Q4_K_M.gguf
       --port 27272
@@ -266,7 +266,7 @@ models:
     cmd: >
       c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
       -ngl 999
-      -dev Vulkan1 
+      -dev Vulkan0,Vulkan1 
       -c 2048 
       --flash-attn
       -m z:/huggingface.co/converted/qwen3-32b-Q4_K_M.gguf

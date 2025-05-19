@@ -124,6 +124,9 @@ class CPData:
         'llamacpp-gemma3-27b': [
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.gemma-3-27b-it-Q4_K_M.gguf'], ctx_size=2048),
         ],
+        'llamacpp-3.2-3': [
+            CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.llama-3.2-3b-instruct-Q4_K_M.gguf'], ctx_size=2048),
+        ],
         'llamacpp-3.3-70': [
             CPRunSpec(CPRunType.LLM, config.LLMData.models_by_pname['LLAMACPP.llama-3.3-70b-instruct-Q4_K_M.gguf']),
         ],
