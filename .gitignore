@@ -4,4 +4,4 @@ __pycache__
 ~*
 */csv-editor.xml
 .idea/workspace.xml
-logs
+logs/*.log
