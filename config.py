@@ -216,6 +216,7 @@ class LLMData:
 
         ModelSpec('llama-3.2-3b-instruct-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
         ModelSpec('llama-3.3-70b-instruct-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
+        ModelSpec('llama-3.3-70b-instruct-Q8_0.gguf', provider='LLAMACPP', api='openai'),
         ModelSpec('phi-4-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
         ModelSpec('phi-4-f16.gguf', provider='LLAMACPP', api='openai'),
         ModelSpec('mistral-nemo-instruct-2407-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
