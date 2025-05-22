@@ -297,8 +297,15 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
                         else:
                             break
 
-                    ploop_input_tokens += exchange.input_tokens
-                    ploop_output_tokens += exchange.output_tokens
+                    if exchange.input_tokens is not None:
+                        ploop_input_tokens += exchange.input_tokens
+                    else:
+                        print(f'{config.secs_string(all_start)}: !!! {model.provider}.{model_name}->{prompt_set_name}[{prompts_idx}] input_tokens is None!')
+                    if exchange.output_tokens is not None:
+                        ploop_output_tokens += exchange.output_tokens
+                    else:
+                        print(f'{config.secs_string(all_start)}: !!! {model.provider}.{model_name}->{prompt_set_name}[{prompts_idx}] output_tokens is None!')
+
                     # play nice with CSV: get rid of newlines and double any double-quotes
                     response_line = (str(exchange.responses[0].content).replace("\n", "  ")
                                      .replace('"', '""'))
@@ -374,8 +381,9 @@ def main():
         'llamacpp-bm20-gemma4b': RunSet('llamacpp-gemma3-4b', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
         'llamacpp-space-gemma12b': RunSet('llamacpp-gemma3-12b', '.7:800:2048:empty', 'empty', 'space'),
         'llamacpp-space-gemma27b': RunSet('llamacpp-gemma3-27b', '.7:800:2048:empty', 'empty', 'space'),
-        'llamacpp-space-ll3.3-70': RunSet('llamacpp-3.3-70', '.7:800:2048:empty', 'empty', 'space'),
-        'llamacpp-bm20-ll3.3-70': RunSet('llamacpp-3.3-70', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
+        'llamacpp-space-ll3.3-70-q4_k_m': RunSet('llamacpp-3.3-70-q4_k_m', '.7:800:2048:empty', 'empty', 'space'),
+        'llamacpp-space-ll3.3-70-q8_0': RunSet('llamacpp-3.3-70-q8_0', '.7:800:2048:empty', 'empty', 'space'),
+        'llamacpp-bm20-ll3.3-70-q4_k_m': RunSet('llamacpp-3.3-70-q4_k_m', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
 
         'ollama-bm20-gemma': RunSet('ollama-gemma', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
         'ollama-bm20-llama3.2': RunSet('ollama-llama3.2', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
@@ -394,11 +402,11 @@ def main():
     # run_set_names = ['quick', 'base', 'kf',]
 
     # run_set_names = ['ollama-space-ll70',]
-    # run_set_names = ['llamacpp-space-gemma4b', ]
+    # run_set_names = ['llamacpp-space-ll3.3-70-q8_0', ]
 
-    run_set_names = ['ollama-bm20-base11', ]
-    # run_set_names = ['llamacpp-bm20-base11', ]
-    # run_set_names = ['llamacpp-bm20-fa-base11', ]
+    # run_set_names = ['ollama-bm20-base11', ]
+    run_set_names = ['llamacpp-bm20-base11', 'llamacpp-bm20-fa-base11']
+    # run_set_names = ['llamacpp-space-base11', ]
 
     csv_data = []
     for rsn in run_set_names:

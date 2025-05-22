@@ -155,6 +155,16 @@ models:
       -c 2048 
       -m z:/huggingface.co/converted/Llama-3.3-70B-Instruct-Q4_K_M.gguf 
       --port 27272
+  "llama-3.3-70b-instruct-Q8_0.gguf":
+    proxy: *kfproxy
+    # ngl
+    cmd: >
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
+      -ngl 999
+      -dev Vulkan1,Vulkan2 
+      -c 2048 
+      -m z:/huggingface.co/converted/Llama-3.3-70B-Instruct-Q8_0.gguf 
+      --port 27272
   "llama-3.3-70b-instruct-Q4_K_M.gguf-fa":
     proxy: *kfproxy
     # ngl
