@@ -5,7 +5,7 @@ models:
   "c4ai-command-r7b-12-2024-Q4_K_M.gguf":
     proxy: &kfproxy "http://127.0.0.1:27272"
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan0,Vulkan1 
       -c 2048 
@@ -14,7 +14,7 @@ models:
   "c4ai-command-r7b-12-2024-Q4_K_M.gguf-fa":
     proxy: &kfproxy "http://127.0.0.1:27272"
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -26,7 +26,7 @@ models:
   "deepseek-r1-distill-qwen-32b-Q4_K_M.gguf":
     proxy: &kfproxy "http://127.0.0.1:27272"
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -35,7 +35,7 @@ models:
   "deepseek-r1-distill-qwen-32b-Q4_K_M.gguf-fa":
     proxy: &kfproxy "http://127.0.0.1:27272"
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -47,7 +47,7 @@ models:
   "gemma-3-1b-it-Q4_K_M.gguf":
     proxy: &kfproxy "http://127.0.0.1:27272"
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -56,7 +56,7 @@ models:
   "gemma-3-1b-it-Q4_K_M.gguf-fa":
     proxy: &kfproxy "http://127.0.0.1:27272"
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -67,7 +67,7 @@ models:
   "gemma-3-4b-it-Q4_K_M.gguf":
     proxy: *kfproxy
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -76,7 +76,7 @@ models:
   "gemma-3-4b-it-Q4_K_M.gguf-fa":
     proxy: *kfproxy
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -87,7 +87,7 @@ models:
   "gemma-3-12b-it-Q4_K_M.gguf":
     proxy: *kfproxy
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -96,7 +96,7 @@ models:
   "gemma-3-12b-it-Q4_K_M.gguf-fa":
     proxy: *kfproxy
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -107,7 +107,7 @@ models:
   "gemma-3-27b-it-Q4_K_M.gguf":
     proxy: *kfproxy
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -116,7 +116,7 @@ models:
   "gemma-3-27b-it-Q4_K_M.gguf-fa":
     proxy: *kfproxy
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -128,7 +128,7 @@ models:
   "llama-3.2-3b-instruct-Q4_K_M.gguf":
     proxy: *kfproxy
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -137,7 +137,7 @@ models:
   "llama-3.2-3b-instruct-Q4_K_M.gguf-fa":
     proxy: *kfproxy
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -149,7 +149,7 @@ models:
     proxy: *kfproxy
     # ngl
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -159,7 +159,7 @@ models:
     proxy: *kfproxy
     # ngl
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -171,7 +171,7 @@ models:
   "mistral-nemo-instruct-2407-Q4_K_M.gguf":
     proxy: *kfproxy
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -180,7 +180,7 @@ models:
   "mistral-nemo-instruct-2407-Q4_K_M.gguf-fa":
     proxy: *kfproxy
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -192,7 +192,7 @@ models:
   "phi-4-Q4_K_M.gguf":
     proxy: *kfproxy
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -201,7 +201,7 @@ models:
   "phi-4-Q4_K_M.gguf-fa":
     proxy: *kfproxy
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -213,7 +213,7 @@ models:
     proxy: *kfproxy
     # ngl
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -223,7 +223,7 @@ models:
     proxy: *kfproxy
     # ngl
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -235,7 +235,7 @@ models:
   "qwen3-14b-Q4_K_M.gguf":
     proxy: *kfproxy
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -244,7 +244,7 @@ models:
   "qwen3-14b-Q4_K_M.gguf-fa":
     proxy: *kfproxy
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -255,7 +255,7 @@ models:
   "qwen3-32b-Q4_K_M.gguf":
     proxy: *kfproxy
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
@@ -264,7 +264,7 @@ models:
   "qwen3-32b-Q4_K_M.gguf-fa":
     proxy: *kfproxy
     cmd: >
-      c:/llama.cpp/llama-b5365-bin-win-vulkan-x64/llama-server
+      c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
       -ngl 999
       -dev Vulkan0,Vulkan1 
       -c 2048 
