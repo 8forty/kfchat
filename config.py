@@ -6,9 +6,10 @@ import timeit
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Literal
+from typing import Literal, Any
 
 import dotenv
+import yaml
 
 import logstuff
 
@@ -198,194 +199,86 @@ class ModelSpec:
 
 
 class LLMData:
-    models = [
 
-        # todo: config-file these
-        ModelSpec('claude-3-5-haiku-20241022', provider='ANTHROPIC', api='anthropic'),
-        ModelSpec('claude-3-5-sonnet-20241022', provider='ANTHROPIC', api='anthropic'),
+    def __init__(self):
+        # load the models config
+        self.models = []
+        filename = 'models.yml'  # todo: configure this
+        log.debug(f'loading models from {filename}')
+        with open(filename, 'r') as efile:
+            models_dict: dict[str, dict[str, dict[str, Any]]] = yaml.safe_load(efile)
+            models_dict.pop('metadata')  # ignore
 
-        ModelSpec('RFI-Automate-GPT-4o-mini-2000k', provider='AZURE', api='openai'),
+            for provider in models_dict:
+                log.debug(f'added provider {provider}')
+                for model in models_dict[provider]:
+                    api = models_dict[provider][model]['api']
+                    self.models.append(ModelSpec(name=model, provider=provider, api=api))
 
-        ModelSpec('gemma-3-1b-it-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
-        ModelSpec('gemma-3-4b-it-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
-        ModelSpec('gemma-3-4b-it-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
-        ModelSpec('gemma-3-12b-it-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
-        ModelSpec('gemma-3-12b-it-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
-        ModelSpec('gemma-3-27b-it-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
-        ModelSpec('gemma-3-27b-it-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
+        self.models_by_pname = {f'{ms.provider}.{ms.name}': ms for ms in self.models}
+        self.providers = {ms.provider for ms in self.models}
+        self.apis = {ms.api for ms in self.models}
+        self.models_by_provider = {provider: [] for provider in self.providers}
+        self.models_by_api = {api: [] for api in self.apis}
+        for ms in self.models:
+            self.models_by_provider[ms.provider].append(ms)
+            self.models_by_api[ms.api].append(ms)
 
-        ModelSpec('llama-3.2-3b-instruct-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
-        ModelSpec('llama-3.3-70b-instruct-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
-        ModelSpec('llama-3.3-70b-instruct-Q8_0.gguf', provider='LLAMACPP', api='openai'),
-        ModelSpec('phi-4-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
-        ModelSpec('phi-4-f16.gguf', provider='LLAMACPP', api='openai'),
-        ModelSpec('mistral-nemo-instruct-2407-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
-        ModelSpec('c4ai-command-r7b-12-2024-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
-        ModelSpec('deepseek-r1-distill-qwen-32b-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
-        ModelSpec('qwen3-14b-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
-        ModelSpec('qwen3-32b-Q4_K_M.gguf', provider='LLAMACPP', api='openai'),
-        ModelSpec('llama-3.2-3b-instruct-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
-        ModelSpec('llama-3.3-70b-instruct-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
-        ModelSpec('phi-4-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
-        ModelSpec('phi-4-f16.gguf-fa', provider='LLAMACPP', api='openai'),
-        ModelSpec('mistral-nemo-instruct-2407-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
-        ModelSpec('c4ai-command-r7b-12-2024-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
-        ModelSpec('deepseek-r1-distill-qwen-32b-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
-        ModelSpec('qwen3-14b-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
-        ModelSpec('qwen3-32b-Q4_K_M.gguf-fa', provider='LLAMACPP', api='openai'),
+        # system messages
+        self.conversational_sysmsg = 'You are a helpful chatbot that talks in a conversational manner.'
+        self.conversational80_sysmsg = ('You are a helpful chatbot that talks in a conversational manner. '
+                                        'Your responses must always be less than 80 tokens.')
+        self.professional_sysmsg = 'You are a helpful chatbot that talks in a professional manner.'
+        self.professional80_sysmsg = ('You are a helpful chatbot that talks in a professional manner. '
+                                      'Your responses must always be less than 80 tokens.')
+        self.professional800_sysmsg = ('You are a helpful chatbot that talks in a professional manner. '
+                                       'Your responses must always be less than 800 tokens.')
+        self.technical_sysmsg = ('You are an AI research assistant. '
+                                 'Respond in a tone that is technical and scientific.')
+        self.technical80_sysmsg = ('You are an AI research assistant. '
+                                   'Respond in a tone that is technical and scientific.'
+                                   'Your responses must always be less than 800 tokens.')
+        self.technical800_sysmsg = ('You are an AI research assistant. Respond in a tone that is technical and scientific. '
+                                    'All math equations should be latex format delimited by $$. '
+                                    'Your responses must always be less than 800 tokens.')
+        self.textclass_sysmsg = 'Classify each prompt into neutral, negative or positive.'
+        self.csagan_sysmsg = 'You are a helpful assistant that talks like Carl Sagan.'
+        self.empty_sysmsg = ''
 
-        ModelSpec('gemini-1.5-flash', provider='GEMINI', api='openai'),
-        ModelSpec('gemini-1.5-flash-8b', provider='GEMINI', api='openai'),
-        ModelSpec('gemini-1.5-pro', provider='GEMINI', api='openai'),
-        ModelSpec('gemini-2.0-flash', provider='GEMINI', api='openai'),
-        ModelSpec('gemini-2.0-flash-lite', provider='GEMINI', api='openai'),
-        ModelSpec('gemini-2.0-pro', provider='GEMINI', api='openai'),
-        ModelSpec('gemini-2.0-flash-thinking-exp-01-21', provider='GEMINI', api='openai'),
-        # ModelSpec('gemini-2.5-flash', provider='GEMINI', api='openai'),
-        # ModelSpec('gemini-2.5-flash-lite', provider='GEMINI', api='openai'),
-        ModelSpec('gemini-2.5-pro-preview-03-25', provider='GEMINI', api='openai'),
-        ModelSpec('gemma-3-27b-it', provider='GEMINI', api='openai'),
+        self.sysmsg_all = OrderedDict({
+            'convo': self.conversational_sysmsg,
+            'convo80': self.conversational80_sysmsg,
+            'professional': self.professional_sysmsg,
+            'professional80': self.professional80_sysmsg,
+            'professional800': self.professional800_sysmsg,
+            'technical': self.technical_sysmsg,
+            'technical80': self.technical80_sysmsg,
+            'technical800': self.technical800_sysmsg,
+            'text-sentiment': self.textclass_sysmsg,
+            'carl-sagan': self.csagan_sysmsg,
+            'empty': self.empty_sysmsg,
+        })
 
-        ModelSpec('gpt-4o-mini', provider='GITHUB', api='openai'),
-        ModelSpec('gpt-4o', provider='GITHUB', api='openai'),
-        ModelSpec('deepseek-r1', provider='GITHUB', api='openai'),
-        ModelSpec('Phi-4', provider='GITHUB', api='openai'),
-        ModelSpec('AI21-Jamba-1.5-Large', provider='GITHUB', api='openai'),
-        ModelSpec('Cohere-command-r-08-2024', provider='GITHUB', api='openai'),
-        ModelSpec('Cohere-command-r-plus-08-2024', provider='GITHUB', api='openai'),
-        ModelSpec('Llama-3.3-70B-Instruct', provider='GITHUB', api='openai'),
-        ModelSpec('Mistral-Large-2411', provider='GITHUB', api='openai'),
+        # RAG system messages with {context} and {sysmsg}
+        self.dont_know = 'I\'m sorry, the given collection of information doesn\'t appear to contain that information.'
+        self.rag1_sysmsg = (
+                '{sysmsg}'
+                'Context information is below.'
+                '---------------------'
+                '{context}'
+                '---------------------'
+                'Please answer using the given context only, do not use any prior knowledge.'
+                'Always respond "' + self.dont_know +
+                '" if you are not sure about the answer.'
+                'In any case, don\'t answer using your own knowledge.'
+        )
 
-        ModelSpec('grok-2-1212', provider='XAI', api='openai'),
+        #     You are a bot that answers questions.  Please answer using retrieved documents only
+        #     and without using your knowledge. Please generate citations to retrieved documents for every claim in your
+        #     answer.  In any case, don't answer using your own knowledge.  If you don't know an answer, please say "{g_dont_know_preferred}"
 
-        ModelSpec('llama-3.3-70b-versatile', provider='GROQ', api='openai'),
-        ModelSpec('deepseek-r1-distill-llama-70b', provider='GROQ', api='openai'),
-        ModelSpec('gemma2-9b-it', provider='GROQ', api='openai'),
-        ModelSpec('qwen-qwq-32b', provider='GROQ', api='openai'),
-        ModelSpec('meta-llama/llama-4-maverick-17b-128e-instruct', provider='GROQ', api='openai'),
-        ModelSpec('meta-llama/llama-4-scout-17b-16e-instruct', provider='GROQ', api='openai'),
-        ModelSpec('compound-beta', provider='GROQ', api='openai'),
-        ModelSpec('compound-beta-mini', provider='GROQ', api='openai'),
 
-        ModelSpec('llama-3.3-70b', provider='CEREBRAS', api='openai'),
-        ModelSpec('llama-4-scout-17b-16e-instruct', provider='CEREBRAS', api='openai'),
-
-        ModelSpec('llama3.2:1b', provider='OLLAMA', api='ollama'),
-        ModelSpec('llama3.2:3b', provider='OLLAMA', api='ollama'),
-        ModelSpec('mistral-nemo:12b', provider='OLLAMA', api='ollama'),
-        ModelSpec('mixtral:8x7b', provider='OLLAMA', api='ollama'),
-        ModelSpec('gemma2:9b-instruct-fp16', provider='OLLAMA', api='ollama'),
-        ModelSpec('gemma2:9b-text-fp16', provider='OLLAMA', api='ollama'),
-        ModelSpec('gemma3:1b', provider='OLLAMA', api='ollama'),
-        ModelSpec('gemma3:4b', provider='OLLAMA', api='ollama'),
-        ModelSpec('gemma3:12b', provider='OLLAMA', api='ollama'),
-        ModelSpec('gemma3:12b-it-fp16', provider='OLLAMA', api='ollama'),
-        ModelSpec('gemma3:27b', provider='OLLAMA', api='ollama'),
-        ModelSpec('gemma3:27b-it-fp16', provider='OLLAMA', api='ollama'),
-        ModelSpec('llama3.3:70b', provider='OLLAMA', api='ollama'),
-        ModelSpec('llama3.3:70b-instruct-q2_K', provider='OLLAMA', api='ollama'),
-        ModelSpec('deepseek-r1:1.5b', provider='OLLAMA', api='ollama'),
-        ModelSpec('deepseek-r1:8b', provider='OLLAMA', api='ollama'),
-        ModelSpec('deepseek-r1:14b', provider='OLLAMA', api='ollama'),
-        ModelSpec('deepseek-r1:32b', provider='OLLAMA', api='ollama'),
-        ModelSpec('deepseek-v2:16b', provider='OLLAMA', api='ollama'),
-        ModelSpec('qwq:latest', provider='OLLAMA', api='ollama'),
-        ModelSpec('phi4:14b', provider='OLLAMA', api='ollama'),
-        ModelSpec('phi4:14b-q8_0', provider='OLLAMA', api='ollama'),
-        ModelSpec('phi4:14b-fp16', provider='OLLAMA', api='ollama'),
-        ModelSpec('granite3.2:2b', provider='OLLAMA', api='ollama'),
-        ModelSpec('granite3.2:8b', provider='OLLAMA', api='ollama'),
-        ModelSpec('phi4-mini', provider='OLLAMA', api='ollama'),
-        ModelSpec('olmo2:7b', provider='OLLAMA', api='ollama'),
-        ModelSpec('olmo2:13b', provider='OLLAMA', api='ollama'),
-        ModelSpec('command-r7b:latest', provider='OLLAMA', api='ollama'),
-        ModelSpec('openthinker:7b', provider='OLLAMA', api='ollama'),
-        ModelSpec('openthinker:32b', provider='OLLAMA', api='ollama'),
-        ModelSpec('qwen2.5:0.5b', provider='OLLAMA', api='ollama'),
-        ModelSpec('qwen2.5:1.5b', provider='OLLAMA', api='ollama'),
-        ModelSpec('qwen2.5:3b', provider='OLLAMA', api='ollama'),
-        ModelSpec('qwen2.5:7b', provider='OLLAMA', api='ollama'),
-        ModelSpec('qwen2.5:14b', provider='OLLAMA', api='ollama'),
-        ModelSpec('qwen2.5:32b', provider='OLLAMA', api='ollama'),
-        ModelSpec('qwen2.5:72b', provider='OLLAMA', api='ollama'),
-        ModelSpec('qwen3:14b', provider='OLLAMA', api='ollama'),
-        ModelSpec('qwen3:14b-q8_0', provider='OLLAMA', api='ollama'),
-        ModelSpec('qwen3:30b-a3b', provider='OLLAMA', api='ollama'),
-        ModelSpec('qwen3:30b-a3b-q4_K_M', provider='OLLAMA', api='ollama'),
-        ModelSpec('qwen3:32b-q4_K_M', provider='OLLAMA', api='ollama'),
-        ModelSpec('qwen3:32b', provider='OLLAMA', api='ollama'),
-        ModelSpec('huggingface.co/mradermacher/Benchmaxx-Llama-3.2-1B-Instruct-GGUF:latest', provider='OLLAMA', api='ollama'),
-        ModelSpec('hf.co/mradermacher/Benchmaxx-Llama-3.2-1B-Instruct-GGUF:F16', provider='OLLAMA', api='ollama'),
-
-        ModelSpec('gpt-4.1', provider='OPENAI', api='openai'),
-        ModelSpec('gpt-4o', provider='OPENAI', api='openai'),
-        ModelSpec('gpt-4o-mini', provider='OPENAI', api='openai'),
-        ModelSpec('chatgpt-4o-latest', provider='OPENAI', api='openai'),
-        ModelSpec('o4-mini', provider='OPENAI', api='openai'),
-        ModelSpec('o3', provider='OPENAI', api='openai'),
-        ModelSpec('o3-mini', provider='OPENAI', api='openai'),
-    ]
-    models_by_pname = {f'{ms.provider}.{ms.name}': ms for ms in models}
-    providers = {ms.provider for ms in models}
-    apis = {ms.api for ms in models}
-    models_by_provider = {provider: [] for provider in providers}
-    models_by_api = {api: [] for api in apis}
-    for ms in models:
-        models_by_provider[ms.provider].append(ms)
-        models_by_api[ms.api].append(ms)
-
-    # system messages
-    conversational_sysmsg = 'You are a helpful chatbot that talks in a conversational manner.'
-    conversational80_sysmsg = ('You are a helpful chatbot that talks in a conversational manner. '
-                               'Your responses must always be less than 80 tokens.')
-    professional_sysmsg = 'You are a helpful chatbot that talks in a professional manner.'
-    professional80_sysmsg = ('You are a helpful chatbot that talks in a professional manner. '
-                             'Your responses must always be less than 80 tokens.')
-    professional800_sysmsg = ('You are a helpful chatbot that talks in a professional manner. '
-                              'Your responses must always be less than 800 tokens.')
-    technical_sysmsg = ('You are an AI research assistant. '
-                        'Respond in a tone that is technical and scientific.')
-    technical80_sysmsg = ('You are an AI research assistant. '
-                          'Respond in a tone that is technical and scientific.'
-                          'Your responses must always be less than 800 tokens.')
-    technical800_sysmsg = ('You are an AI research assistant. Respond in a tone that is technical and scientific. '
-                           'All math equations should be latex format delimited by $$. '
-                           'Your responses must always be less than 800 tokens.')
-    textclass_sysmsg = 'Classify each prompt into neutral, negative or positive.'
-    csagan_sysmsg = 'You are a helpful assistant that talks like Carl Sagan.'
-    empty_sysmsg = ''
-
-    sysmsg_all = OrderedDict({
-        'convo': conversational_sysmsg,
-        'convo80': conversational80_sysmsg,
-        'professional': professional_sysmsg,
-        'professional80': professional80_sysmsg,
-        'professional800': professional800_sysmsg,
-        'technical': technical_sysmsg,
-        'technical80': technical80_sysmsg,
-        'technical800': technical800_sysmsg,
-        'text-sentiment': textclass_sysmsg,
-        'carl-sagan': csagan_sysmsg,
-        'empty': empty_sysmsg,
-    })
-
-    # RAG system messages with {context} and {sysmsg}
-    dont_know = 'I\'m sorry, the given collection of information doesn\'t appear to contain that information.'
-    rag1_sysmsg = (
-            '{sysmsg}'
-            'Context information is below.'
-            '---------------------'
-            '{context}'
-            '---------------------'
-            'Please answer using the given context only, do not use any prior knowledge.'
-            'Always respond "' + dont_know +
-            '" if you are not sure about the answer.'
-            'In any case, don\'t answer using your own knowledge.'
-    )
-
-    #     You are a bot that answers questions.  Please answer using retrieved documents only
-    #     and without using your knowledge. Please generate citations to retrieved documents for every claim in your
-    #     answer.  In any case, don't answer using your own knowledge.  If you don't know an answer, please say "{g_dont_know_preferred}"
+llm_data = LLMData()
 
 
 def now_datetime() -> str:

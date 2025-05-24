@@ -10,6 +10,9 @@ from dataclasses import dataclass
 import ollama
 import requests
 
+# do this before config to stop debug messages
+logging.disable(logging.INFO)
+
 import config
 import llmconfig.llm_openai_config
 from cpdata import CPData, CPRunType, CPRunSpec
@@ -19,8 +22,6 @@ from llmconfig.llm_ollama_config import LLMOllamaConfig, LLMOllamaSettings
 from llmconfig.llm_openai_config import LLMOpenAIConfig, LLMOpenAISettings
 from llmconfig.llmexchange import LLMExchange
 from ollamautils import OllamaUtils
-
-logging.disable(logging.INFO)
 
 all_start = timeit.default_timer()
 
@@ -383,6 +384,7 @@ def main():
         'llamacpp-space-gemma27b': RunSet('llamacpp-gemma3-27b', '.7:800:2048:empty', 'empty', 'space'),
         'llamacpp-space-ll3.3-70-q4_k_m': RunSet('llamacpp-3.3-70-q4_k_m', '.7:800:2048:empty', 'empty', 'space'),
         'llamacpp-space-ll3.3-70-q8_0': RunSet('llamacpp-3.3-70-q8_0', '.7:800:2048:empty', 'empty', 'space'),
+        'llamacpp-bm20-ll3.3-70-q8_0': RunSet('llamacpp-3.3-70-q8_0', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
         'llamacpp-bm20-ll3.3-70-q4_k_m': RunSet('llamacpp-3.3-70-q4_k_m', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
 
         'ollama-bm20-gemma': RunSet('ollama-gemma', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
@@ -402,11 +404,11 @@ def main():
     # run_set_names = ['quick', 'base', 'kf',]
 
     # run_set_names = ['ollama-space-ll70',]
-    # run_set_names = ['llamacpp-space-ll3.3-70-q8_0', ]
+    # run_set_names = ['llamacpp-space-gemma1b', ]
 
     # run_set_names = ['ollama-bm20-base11', ]
-    run_set_names = ['llamacpp-bm20-base11', 'llamacpp-bm20-fa-base11']
-    # run_set_names = ['llamacpp-space-base11', ]
+    # run_set_names = ['llamacpp-bm20-base11', 'llamacpp-bm20-fa-base11']
+    run_set_names = ['llamacpp-space-base11', ]
 
     csv_data = []
     for rsn in run_set_names:

@@ -38,7 +38,7 @@ class LLMAnthropicSettings(LLMSettings):
         self.top_p = init_top_p
         self.max_tokens = init_max_tokens
         self.system_message_name = init_system_message_name
-        self.system_message = config.LLMData.sysmsg_all[init_system_message_name]
+        self.system_message = config.llm_data.sysmsg_all[init_system_message_name]
 
     def __repr__(self) -> str:
         return f'{self.__class__!s}:{self.__dict__!r}'
@@ -55,7 +55,7 @@ class LLMAnthropicSettings(LLMSettings):
         return f'sysmsg:{self.system_message}'
 
     def specs(self) -> list[BaseSettings.SettingsSpec]:
-        sysmsg_names = [key for key in config.LLMData.sysmsg_all]
+        sysmsg_names = [key for key in config.llm_data.sysmsg_all]
         return [
             BaseSettings.SettingsSpec(label='temp', options=[float(t) / 10.0 for t in range(0, 21)], value=self.temp, tooltip='responses: 0=very predictable, 2=very random/creative'),
             BaseSettings.SettingsSpec(label='top_p', options=[float(t) / 10.0 for t in range(0, 11)], value=self.top_p, tooltip='responses: 0=less random, 1 more random'),
@@ -72,7 +72,7 @@ class LLMAnthropicSettings(LLMSettings):
             self.max_tokens = value
         elif label == 'system_message_name':
             self.system_message_name = value
-            self.system_message = config.LLMData.sysmsg_all[value]
+            self.system_message = config.llm_data.sysmsg_all[value]
         else:
             raise ValueError(f'bad label! {label}')
 
@@ -133,7 +133,7 @@ class LLMAnthropicConfig(LLMConfig):
         if context is None:
             sysmsg = self._settings.system_message
         else:
-            sysmsg = config.LLMData.rag1_sysmsg.format(sysmsg=self._settings.system_message, context=context)
+            sysmsg = config.llm_data.rag1_sysmsg.format(sysmsg=self._settings.system_message, context=context)
 
         rate_limit_retries = 0
         retry_wait_secs = 1.0

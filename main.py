@@ -43,7 +43,7 @@ def init_with_fastapi(fastapi_app: FastAPI) -> None:
                 # todo? ollama: only 1 resp for any value of n?
                 'ollama': LLMOllamaSettings(init_temp=0.7, init_top_p=1.0, init_max_tokens=800, init_seed=0, init_ctx=2048, init_system_message_name='professional800')}
     llm_configs_list: list[LLMConfig] = []
-    for model_spec in config.LLMData.models:
+    for model_spec in config.llm_data.models:
         llm_configs_list.append(llmconfig_factory.create_one(model_spec=model_spec, settings=settings))
     all_llm_configs = OrderedDict({f'{lc.provider()}.{lc.model_name}': lc for lc in llm_configs_list})
     init_llm = 'GITHUB.gpt-4o'

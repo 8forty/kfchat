@@ -73,7 +73,7 @@ class LLMOpenAISettings(LLMSettings):
         self.max_tokens = init_max_tokens
         self.chat_timeout_secs = chat_timeout_secs
         self.system_message_name = init_system_message_name
-        self.system_message = config.LLMData.sysmsg_all[init_system_message_name]
+        self.system_message = config.llm_data.sysmsg_all[init_system_message_name]
 
     def __repr__(self) -> str:
         return f'{self.__class__!s}:{self.__dict__!r}'
@@ -91,7 +91,7 @@ class LLMOpenAISettings(LLMSettings):
         return f'sysmsg:{self.system_message}'
 
     def specs(self) -> list[BaseSettings.SettingsSpec]:
-        sysmsg_names = [key for key in config.LLMData.sysmsg_all]
+        sysmsg_names = [key for key in config.llm_data.sysmsg_all]
         return [
             BaseSettings.SettingsSpec(label='n', options=[i for i in range(1, 10)], value=self.n, tooltip='number of results per query'),
             BaseSettings.SettingsSpec(label='temp', options=[float(t) / 10.0 for t in range(0, 21)], value=self.temp, tooltip='responses: 0=very predictable, 2=very random/creative'),
@@ -114,7 +114,7 @@ class LLMOpenAISettings(LLMSettings):
             self.chat_timeout_secs = value
         elif label == 'system_message_name':
             self.system_message_name = value
-            self.system_message = config.LLMData.sysmsg_all[value]
+            self.system_message = config.llm_data.sysmsg_all[value]
         else:
             raise ValueError(f'bad label! {label}')
 
@@ -170,7 +170,7 @@ class LLMOpenAIConfig(LLMConfig):
             api_version = providers_config[self._provider]['kfAZURE_API_VERSION']
             log.info(f'building LLM API for [{self._provider}]: {endpoint=} key={redact(key)} {api_version=}')
             self._api_client = openai.AzureOpenAI(azure_endpoint=endpoint, api_key=key, api_version=api_version)
-        elif self._provider in config.LLMData.providers:
+        elif self._provider in config.llm_data.providers:
             endpoint = providers_config[self._provider][f'kf{self._provider.upper()}_ENDPOINT'].format(self.model_name)
             key = providers_config[self._provider]['key']
             log.info(f'building LLM API for [{self._provider}]: {endpoint=} key={redact(key)}')
@@ -233,7 +233,7 @@ class LLMOpenAIConfig(LLMConfig):
         if context is None:
             sysmsg = self._settings.system_message
         else:
-            sysmsg = config.LLMData.rag1_sysmsg.format(sysmsg=self._settings.system_message, context=context)
+            sysmsg = config.llm_data.rag1_sysmsg.format(sysmsg=self._settings.system_message, context=context)
 
         rate_limit_retries = 0
         retry_wait_secs = 1.0

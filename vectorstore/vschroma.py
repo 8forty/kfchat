@@ -77,9 +77,9 @@ class VSChroma(VSAPI):
     def _load_embeddings(cls):
         if cls.chroma_embedding_types is None:
             # load the embedding types config
-            filename = 'embeddings.yml'
+            filename = 'embeddings.yml'  # todo: configure this
             log.debug(f'loading embedding types from {filename}')
-            with open('embeddings.yml', 'r') as efile:
+            with open(filename, 'r') as efile:
                 cls.chroma_embedding_types = yaml.safe_load(efile)
                 cls.chroma_embedding_types.pop('metadata')  # ignore
                 cls.chroma_embedding_types.pop('anchors')  # ignore
@@ -95,23 +95,6 @@ class VSChroma(VSAPI):
     @classmethod
     def embedding_types_list(cls, embedding_type: str = None) -> list[str]:
         cls._load_embeddings()
-        if cls.chroma_embedding_types is None:
-            # load the embedding types config
-            filename = 'embeddings.yml'
-            log.debug(f'loading embedding types from {filename}')
-            with open('embeddings.yml', 'r') as efile:
-                cls.chroma_embedding_types = yaml.safe_load(efile)
-                cls.chroma_embedding_types.pop('metadata')  # ignore
-                cls.chroma_embedding_types.pop('anchors')  # ignore
-
-                for et in cls.chroma_embedding_types:
-                    log.debug(f'added embedding type {et}')
-                    for subtype in cls.chroma_embedding_types[et]:
-                        # add the function reference
-                        st = cls.chroma_embedding_types[et][subtype]
-                        st['function'] = cls.chroma_embedding_functions[st['embedding_function_key']]
-                        st.update(cls._recurse_add_envs(st, {}))
-
         if embedding_type is None:
             return list(cls.chroma_embedding_types.keys())
         else:
