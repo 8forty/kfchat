@@ -20,8 +20,8 @@ import config
 import frame
 import logstuff
 import rbui
-from config import FTSType
 from langchain.lc_docloaders import docloaders
+from sqlitedata import FTSType
 from vectorstore.vschroma import VSChroma
 
 log: logging.Logger = logging.getLogger(__name__)

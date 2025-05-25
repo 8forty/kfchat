@@ -1,5 +1,5 @@
 from basesettings import BaseSettings
-from config import FTSType
+from sqlitedata import FTSType
 from vectorstore.vssettings import VSSettings
 
 

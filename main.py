@@ -11,12 +11,12 @@ import chromadbpage
 import config
 import logstuff
 from chatpage import chatpage
-from config import FTSType
 from llmconfig import llmconfig_factory
 from llmconfig.llm_anthropic_config import LLMAnthropicSettings
 from llmconfig.llm_ollama_config import LLMOllamaSettings
 from llmconfig.llm_openai_config import LLMOpenAISettings
 from llmconfig.llmconfig import LLMConfig
+from sqlitedata import FTSType
 from vectorstore import vsapi_factory
 from vectorstore.vschroma_settings import VSChromaSettings
 

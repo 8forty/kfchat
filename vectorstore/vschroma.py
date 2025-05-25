@@ -21,8 +21,8 @@ from pydantic import Field, validate_call
 import config
 import logstuff
 from chatexchanges import VectorStoreResponse, VectorStoreResult
-from config import FTSType
 from langchain import lc_docloaders, lc_chunkers
+from sqlitedata import FTSType
 from vectorstore.vsapi import VSAPI
 from vectorstore.vschroma_settings import VSChromaSettings
 from vectorstore.vssettings import VSSettings
@@ -271,10 +271,10 @@ class VSChroma(VSAPI):
                     cursor = sql.cursor()
 
                     # FTS5 table full-text search using MATCH operator, plus bm25 (smaller=better match)
-                    bm25_fragment = f"bm25({config.sql_chunks_fts5[self._settings.fts_type].table_name}, 0, 1, 0, 0)"
+                    bm25_fragment = f"bm25({config.sql_data.sql_chunks_fts5[self._settings.fts_type].table_name}, 0, 1, 0, 0)"
                     sqlquery = (f'select *, {bm25_fragment} bm25 '
-                                f'from {config.sql_chunks_fts5[self._settings.fts_type].table_name} where content match "{query}" order by {bm25_fragment};')
-                    log.debug(f'query {config.sql_chunks_table_name}: {sqlquery}')
+                                f'from {config.sql_data.sql_chunks_fts5[self._settings.fts_type].table_name} where content match "{query}" order by {bm25_fragment};')
+                    log.debug(f'query {config.sql_data.sql_chunks_table_name}: {sqlquery}')
                     cursor.execute(sqlquery)
                     colnames = [d[0] for d in cursor.description]
                     for row in cursor.fetchall():
@@ -345,8 +345,8 @@ class VSChroma(VSAPI):
             with sqlite3.connect(config.sql_path) as sql:  # this will create the db if it doesn't exist
                 cursor = sql.cursor()
 
-                delete = f"delete from {config.sql_chunks_table_name} where collection ='{collection_name}';"
-                log.debug(f'delete {config.sql_chunks_table_name}: {delete}')
+                delete = f"delete from {config.sql_data.sql_chunks_table_name} where collection ='{collection_name}';"
+                log.debug(f'delete {config.sql_data.sql_chunks_table_name}: {delete}')
                 cursor.execute(delete)
 
                 # NOTE: fts tables are chroma "external content" with delete triggers so no need for explicit deletes
@@ -593,8 +593,8 @@ class VSChroma(VSAPI):
 
                 # create tables needed for full-text search
                 # the content table
-                log.debug(f'creating table {config.sql_chunks_table_name}')  # : {config.sql_chunks_create}')
-                cursor.execute(config.sql_chunks_create)
+                log.debug(f'creating table {config.sql_data.sql_chunks_table_name}')  # : {config.sql_data.sql_chunks_create}')
+                cursor.execute(config.sql_data.sql_chunks_create)
 
                 # need to combine statements for each trigger type (i/d/u) from every fts_type
                 insert_trigger_stmts = []
@@ -602,25 +602,25 @@ class VSChroma(VSAPI):
                 update_trigger_stmts = []
                 for fts_type in fts_types:
                     # full-text search tables/collections
-                    log.debug(f'create fts5 table {config.sql_chunks_fts5[fts_type].table_name}')  # : {config.sql_chunks_fts5[fts_type].create}')
-                    insert_trigger_stmts.append(config.sql_chunks_fts5[fts_type].insert_trigger)
-                    delete_trigger_stmts.append(config.sql_chunks_fts5[fts_type].delete_trigger)
-                    update_trigger_stmts.append(config.sql_chunks_fts5[fts_type].update_trigger)
-                    cursor.execute(config.sql_chunks_fts5[fts_type].create)
-                itrigger = f"{config.sql_chunks_insert_trigger_create} begin\n{'\n'.join(insert_trigger_stmts)}\nend;"
-                log.debug(f'add insert trigger: {config.sql_chunks_insert_trigger_create}...')
+                    log.debug(f'create fts5 table {config.sql_data.sql_chunks_fts5[fts_type].table_name}')  # : {config.sql_data.sql_chunks_fts5[fts_type].create}')
+                    insert_trigger_stmts.append(config.sql_data.sql_chunks_fts5[fts_type].insert_trigger)
+                    delete_trigger_stmts.append(config.sql_data.sql_chunks_fts5[fts_type].delete_trigger)
+                    update_trigger_stmts.append(config.sql_data.sql_chunks_fts5[fts_type].update_trigger)
+                    cursor.execute(config.sql_data.sql_chunks_fts5[fts_type].create)
+                itrigger = f"{config.sql_data.sql_chunks_insert_trigger_create} begin\n{'\n'.join(insert_trigger_stmts)}\nend;"
+                log.debug(f'add insert trigger: {config.sql_data.sql_chunks_insert_trigger_create}...')
                 cursor.execute(itrigger)
-                dtrigger = f"{config.sql_chunks_delete_trigger_create} begin\n{'\n'.join(delete_trigger_stmts)}\nend;"
-                log.debug(f'add delete trigger: {config.sql_chunks_delete_trigger_create}...')
+                dtrigger = f"{config.sql_data.sql_chunks_delete_trigger_create} begin\n{'\n'.join(delete_trigger_stmts)}\nend;"
+                log.debug(f'add delete trigger: {config.sql_data.sql_chunks_delete_trigger_create}...')
                 cursor.execute(dtrigger)
-                utrigger = f"{config.sql_chunks_update_trigger_create} begin\n{'\n'.join(update_trigger_stmts)}\nend;"
-                log.debug(f'add update trigger: {config.sql_chunks_update_trigger_create}...')
+                utrigger = f"{config.sql_data.sql_chunks_update_trigger_create} begin\n{'\n'.join(update_trigger_stmts)}\nend;"
+                log.debug(f'add update trigger: {config.sql_data.sql_chunks_update_trigger_create}...')
                 cursor.execute(utrigger)
 
                 # insert the chunks
-                log.debug(f'inserting {len(chunks)} chunks into {config.sql_chunks_table_name}')
+                log.debug(f'inserting {len(chunks)} chunks into {config.sql_data.sql_chunks_table_name}')
                 for i, chunk_content in enumerate(chunks_content):
-                    insert = f"insert into {config.sql_chunks_table_name} values ('{_fix(collection.name)}', '{_fix(chunk_content)}', '{_fix(ids[i])}', '{_fix(str(metadata[i]))}', NULL)"
+                    insert = f"insert into {config.sql_data.sql_chunks_table_name} values ('{_fix(collection.name)}', '{_fix(chunk_content)}', '{_fix(ids[i])}', '{_fix(str(metadata[i]))}', NULL)"
                     # log.debug(f'insert: {insert.replace("\n", "[\\n]")}')
                     cursor.execute(insert)
 

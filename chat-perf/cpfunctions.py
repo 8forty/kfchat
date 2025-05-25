@@ -4,9 +4,9 @@ import traceback
 
 import config
 from chatexchanges import VectorStoreResponse, ChatExchange
-from config import FTSType
 from llmconfig.llmconfig import LLMConfig
 from llmconfig.llmexchange import LLMExchange, LLMMessagePair
+from sqlitedata import FTSType
 from vectorstore import vsapi_factory
 from vectorstore.vschroma_settings import VSChromaSettings
 

@@ -36,7 +36,7 @@ class LLMData:
             models_dict.pop('metadata')  # ignore
 
             for provider in models_dict:
-                log.debug(f'added provider {provider}')
+                log.debug(f'adding provider {provider}')
                 for model in models_dict[provider]:
                     api = models_dict[provider][model]['api']
                     self.models.append(ModelSpec(name=model, provider=provider, api=api))

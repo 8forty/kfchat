@@ -8,7 +8,7 @@ pandas
 chardet
 requests
 psutil
-
+yaml
 
 
 pyodbc
