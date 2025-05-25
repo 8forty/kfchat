@@ -3,6 +3,7 @@ import sys
 import traceback
 
 import config
+import util
 from chatexchanges import VectorStoreResponse, ChatExchange
 from llmconfig.llmconfig import LLMConfig
 from llmconfig.llmexchange import LLMExchange, LLMMessagePair
@@ -47,7 +48,7 @@ class CPFunctions:
             # log.debug(f'rag vector-search response: {vsresponse}')
             context = [r.content for r in vsresponse.results]
             context_len = sum(len(s) for s in context)
-            print(f'{config.secs_string(all_start)}: {collection_name} had {len(context)} hits len: {context_len} from vs prompt: {prompt}')
+            print(f'{util.secs_string(all_start)}: {collection_name} had {len(context)} hits len: {context_len} from vs prompt: {prompt}')
 
             # then get llm results
             if len(context) > 0:

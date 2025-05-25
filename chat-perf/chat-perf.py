@@ -11,6 +11,7 @@ import ollama
 import requests
 
 import llmdata
+import util
 
 # do this before config to stop debug messages
 logging.disable(logging.INFO)
@@ -110,7 +111,7 @@ def ollama_warmup(model: llmdata.ModelSpec, max_retries: int = 8) -> bool:
     warmup_retries = 0
     warmup_retry_wait_secs = 1.0
     warmup_done = False
-    print(f'{config.secs_string(all_start)}: warmup {model.provider}.{model_name}...')
+    print(f'{util.secs_string(all_start)}: warmup {model.provider}.{model_name}...')
     llm_config = LLMOllamaConfig(model_name, model.provider,
                                  LLMOllamaSettings.from_settings(CPData.llm_settings_sets['llamacpp-warmup'][0]))
 
@@ -122,35 +123,35 @@ def ollama_warmup(model: llmdata.ModelSpec, max_retries: int = 8) -> bool:
             # check that the correct model is running
             if llm_config.is_model_running(model_name):
                 if warmup_retries > 0:
-                    print(f'{config.secs_string(all_start)}: warmup succeeded on retry {warmup_retries}')
+                    print(f'{util.secs_string(all_start)}: warmup succeeded on retry {warmup_retries}')
                 warmup_done = True
                 break
             else:
                 running = [m.name for m in ollama.ps().models]
                 warmup_retries += 1
-                print(f'{config.secs_string(all_start)}: warmup: !! model {model_name} isnt running! [{running}]')
+                print(f'{util.secs_string(all_start)}: warmup: !! model {model_name} isnt running! [{running}]')
                 if warmup_retries < max_retries:
-                    print(f'{config.secs_string(all_start)}: retrying warmup...')
+                    print(f'{util.secs_string(all_start)}: retrying warmup...')
                     time.sleep(warmup_retry_wait_secs)
                     warmup_retry_wait_secs = warmup_retries * warmup_retries
                     continue
                 else:
-                    print(f'{config.secs_string(all_start)}: retries exhausted, returning')
+                    print(f'{util.secs_string(all_start)}: retries exhausted, returning')
                     break
 
         except ConnectionError as e:
             warmup_retries += 1
-            print(f'{config.secs_string(all_start)}: warmup attempt {warmup_retries}: Connection Exception! '
+            print(f'{util.secs_string(all_start)}: warmup attempt {warmup_retries}: Connection Exception! '
                   f'{model.provider}:{model_name}: {e.__class__.__name__}: {e}')
             # traceback.print_exc(file=sys.stderr)
             if warmup_retries < max_retries:
-                print(f'{config.secs_string(all_start)}: will retry in {warmup_retry_wait_secs}s')
+                print(f'{util.secs_string(all_start)}: will retry in {warmup_retry_wait_secs}s')
                 time.sleep(warmup_retry_wait_secs)
                 warmup_retry_wait_secs = warmup_retries * warmup_retries
             continue
         except (Exception,) as e:
             warmup_retries += 1
-            print(f'{config.secs_string(all_start)}: warmup attempt {warmup_retries}: Exception! '
+            print(f'{util.secs_string(all_start)}: warmup attempt {warmup_retries}: Exception! '
                   f'{model.provider}:{model_name}: {e.__class__.__name__}: {e}')
             traceback.print_exc(file=sys.stderr)
             raise e
@@ -164,7 +165,7 @@ def llamacpp_warmup(model: llmdata.ModelSpec, max_retries: int = 8) -> bool:
     warmup_retries = 0
     warmup_retry_wait_secs = 1.0
     warmup_done = False
-    print(f'{config.secs_string(all_start)}: warmup {model.provider}.{model_name}...')
+    print(f'{util.secs_string(all_start)}: warmup {model.provider}.{model_name}...')
     llm_config = LLMOpenAIConfig(model_name, model.provider,
                                  LLMOpenAISettings.from_settings(CPData.llm_settings_sets['ollama-warmup'][0]))
 
@@ -176,17 +177,17 @@ def llamacpp_warmup(model: llmdata.ModelSpec, max_retries: int = 8) -> bool:
 
         except ConnectionError as e:
             warmup_retries += 1
-            print(f'{config.secs_string(all_start)}: warmup attempt {warmup_retries}: Connection Exception! '
+            print(f'{util.secs_string(all_start)}: warmup attempt {warmup_retries}: Connection Exception! '
                   f'{model.provider}:{model_name}: {e.__class__.__name__}: {e}')
             # traceback.print_exc(file=sys.stderr)
             if warmup_retries < max_retries:
-                print(f'{config.secs_string(all_start)}: will retry in {warmup_retry_wait_secs}s')
+                print(f'{util.secs_string(all_start)}: will retry in {warmup_retry_wait_secs}s')
                 time.sleep(warmup_retry_wait_secs)
                 warmup_retry_wait_secs = warmup_retries * warmup_retries
             continue
         except (Exception,) as e:
             warmup_retries += 1
-            print(f'{config.secs_string(all_start)}: warmup attempt {warmup_retries}: Exception! '
+            print(f'{util.secs_string(all_start)}: warmup attempt {warmup_retries}: Exception! '
                   f'{model.provider}:{model_name}: {e.__class__.__name__}: {e}')
             traceback.print_exc(file=sys.stderr)
             raise e
@@ -194,7 +195,8 @@ def llamacpp_warmup(model: llmdata.ModelSpec, max_retries: int = 8) -> bool:
     return warmup_done
 
 
-def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_name: str, csv_data: list[list[str]]):
+def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_set_name: str, csv_data: list[list[str]]) \
+        -> ():
     """
 
     :param run_specs_name: model, collection, run-type
@@ -210,36 +212,40 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
                      'run-sizeGB', 'vramGB', 'cpu/gpu', 'last-response-1line'])
 
     # run-setup: run specs loop
+    total_warmup_secs = -1.0
+    total_run_secs = -1.0
     for rs_idx, run_spec in enumerate(CPData.run_specs[run_specs_name]):
-        print(f'{config.secs_string(all_start)}: running run-spec {run_specs_name}[{rs_idx}] '
+        print(f'{util.secs_string(all_start)}: running run-spec {run_specs_name}[{rs_idx}] '
               f'{run_spec.run_type} {run_spec.model.provider} {run_spec.model.name}...')
 
+        warmup_secs = -1.0
+        run_secs = -1.0
         if run_spec.run_type in [CPRunType.LLM, CPRunType.RAG]:
             model = run_spec.model
             model_name = model.name
             settings: CPData.LLMRawSettings
 
             # warmup the model if necessary
-            warmup_secs = -1
             warmup_start = timeit.default_timer()
             if model.provider == 'OLLAMA':
                 if not ollama_warmup(model):
-                    print(f'{config.secs_string(all_start)}: retries exhausted, skipping...')
+                    print(f'{util.secs_string(all_start)}: retries exhausted, skipping...')
                     continue
                 warmup_secs = timeit.default_timer() - warmup_start
             elif model.provider == 'LLAMACPP':
                 if not llamacpp_warmup(model):
-                    print(f'{config.secs_string(all_start)}: retries exhausted, skipping...')
+                    print(f'{util.secs_string(all_start)}: retries exhausted, skipping...')
                     continue
                 warmup_secs = timeit.default_timer() - warmup_start
 
             if warmup_secs > -1:
-                print(f'{config.secs_string(all_start)}: warmup done: {warmup_secs:.0f}s')
+                total_warmup_secs += warmup_secs
+                print(f'{util.secs_string(all_start)}: warmup done: {warmup_secs:.0f}s')
 
             # settings loop
             response_line: str = ''
             for settings_idx, settings in enumerate(CPData.llm_settings_sets[settings_set_name]):
-                print(f'{config.secs_string(all_start)}: running settings {settings_set_name}[{settings_idx}] ')
+                print(f'{util.secs_string(all_start)}: running settings {settings_set_name}[{settings_idx}] ')
                 # todo: factory this shit
                 if model.api.upper() == 'OPENAI':
                     settings.seed = run_spec.seed
@@ -262,7 +268,7 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
                     # adjust the context length in the run_spec if it's too long for the model
                     model_ctx_length = OllamaUtils.get_context_length(model_name)
                     if model_ctx_length < run_spec.ctx_size:
-                        print(f'{config.secs_string(all_start)}: adjusting context-length to model {model_ctx_length}')
+                        print(f'{util.secs_string(all_start)}: adjusting context-length to model {model_ctx_length}')
                         run_spec.ctx_size = model_ctx_length
                     # olc: LLMOllamaConfig = llm_config
                     asyncio.run(llm_config.change_ctx(run_spec.ctx_size))
@@ -272,7 +278,7 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
                 ploop_input_tokens = 0
                 ploop_output_tokens = 0
                 for prompts_idx, prompt_set in enumerate(CPData.llm_prompt_sets[prompt_set_name]):
-                    print(f'{config.secs_string(all_start)}: running prompts {prompt_set_name}[{prompts_idx}] ')
+                    print(f'{util.secs_string(all_start)}: running prompts {prompt_set_name}[{prompts_idx}] ')
                     prompts_start = timeit.default_timer()
                     exchange: LLMExchange | None = None
                     run_retries = 0
@@ -290,11 +296,11 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
                             break
                     except (Exception,) as e:
                         run_retries += 1
-                        print(f'{config.secs_string(all_start)}: run Exception! {llm_config.provider()}:{llm_config.model_name} '
+                        print(f'{util.secs_string(all_start)}: run Exception! {llm_config.provider()}:{llm_config.model_name} '
                               f'{prompt_set_name}.{prompt_set}: {e.__class__.__name__}: {e}')
                         traceback.print_exc(file=sys.stderr)
                         if run_retries < 8:
-                            print(f'{config.secs_string(all_start)}: will retry in {run_retry_wait_secs}s')
+                            print(f'{util.secs_string(all_start)}: will retry in {run_retry_wait_secs}s')
                             time.sleep(run_retry_wait_secs)
                             run_retry_wait_secs = run_retries * run_retries
                         else:
@@ -303,21 +309,21 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
                     if exchange.input_tokens is not None:
                         ploop_input_tokens += exchange.input_tokens
                     else:
-                        print(f'{config.secs_string(all_start)}: !!! {model.provider}.{model_name}->{prompt_set_name}[{prompts_idx}] input_tokens is None!')
+                        print(f'{util.secs_string(all_start)}: !!! {model.provider}.{model_name}->{prompt_set_name}[{prompts_idx}] input_tokens is None!')
                     if exchange.output_tokens is not None:
                         ploop_output_tokens += exchange.output_tokens
                     else:
-                        print(f'{config.secs_string(all_start)}: !!! {model.provider}.{model_name}->{prompt_set_name}[{prompts_idx}] output_tokens is None!')
+                        print(f'{util.secs_string(all_start)}: !!! {model.provider}.{model_name}->{prompt_set_name}[{prompts_idx}] output_tokens is None!')
 
                     # play nice with CSV: get rid of newlines and double any double-quotes
                     response_line = (str(exchange.responses[0].content).replace("\n", "  ")
                                      .replace('"', '""'))
-                    print(f'{config.secs_string(all_start)}: {model.provider}.{model_name}:{prompt_set_name}[{prompts_idx}]: '
+                    print(f'{util.secs_string(all_start)}: {model.provider}.{model_name}:{prompt_set_name}[{prompts_idx}]: '
                           f'{exchange.input_tokens}->{exchange.output_tokens} '
                           f'{timeit.default_timer() - prompts_start:.1f}s  {response_line}')
 
                 ms_end = timeit.default_timer()
-                print(f'{config.secs_string(all_start)}: {model.provider}.{model_name}:{prompt_set_name}: '
+                print(f'{util.secs_string(all_start)}: {model.provider}.{model_name}:{prompt_set_name}: '
                       f'[{llm_config.provider()}:{llm_config.model_name}] '
                       f'{llm_config.settings().value('temp')}/{llm_config.settings().value('max_tokens')} '
                       f'{llm_config.settings().value('system_message_name')}: '
@@ -333,6 +339,8 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
                 elif llm_config.provider() == 'LLAMACPP':
                     model_info = llamacpp_model_info(model, run_spec)
 
+                run_secs = ms_end - ploop_start
+                total_run_secs += run_secs
                 csv_data.append([llm_config.provider(), llm_config.model_name,
                                  str(llm_config.settings().value('temp')),
                                  str(llm_config.settings().value('max_tokens')),
@@ -340,7 +348,7 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
                                  f'{prompt_set_name}',
                                  str(ploop_input_tokens), str(ploop_output_tokens),
                                  f'{warmup_secs:.1f}',
-                                 f'{ms_end - ploop_start:.1f}',
+                                 f'{run_secs:.1f}',
                                  f'{model_info}',
                                  f'"{response_line}"']
                                 )
@@ -348,9 +356,11 @@ def run(run_specs_name: str, settings_set_name: str, sysmsg_name: str, prompt_se
                 if model.provider == 'OLLAMA':
                     llm_config.unload(model_name)
 
-    run_end_time = timeit.default_timer()
-    print(f'{config.secs_string(all_start)}: finished run {run_specs_name}/{settings_set_name}/{prompt_set_name}: '
-          f'{run_end_time - run_start_time:.1f}s')
+    total_secs = timeit.default_timer() - run_start_time
+    print(f'{util.secs_string(all_start)}: finished run {run_specs_name}/{settings_set_name}/{prompt_set_name}: '
+          f'{total_secs:.1f}s')
+
+    return total_warmup_secs, total_run_secs, total_secs
 
 
 @dataclass
@@ -414,19 +424,25 @@ def main():
     run_set_names = ['llamacpp-space-base5g', ]
 
     csv_data = []
+    total_warmup_secs = 0.0
+    total_run_secs = 0.0
     for rsn in run_set_names:
-        run(run_specs_name=run_sets[rsn].cprun_specs_name,  # model, collection, run-type
-            settings_set_name=run_sets[rsn].settings_set_name,  # llm/vs settings
-            sysmsg_name=run_sets[rsn].sysmsg_name,
-            prompt_set_name=run_sets[rsn].prompt_set_name,
-            csv_data=csv_data)
+        run_warmup_secs, run_run_secs, run_total_secs = (
+            run(run_specs_name=run_sets[rsn].cprun_specs_name,  # model, collection, run-type
+                settings_set_name=run_sets[rsn].settings_set_name,  # llm/vs settings
+                sysmsg_name=run_sets[rsn].sysmsg_name,
+                prompt_set_name=run_sets[rsn].prompt_set_name,
+                csv_data=csv_data))
+        total_warmup_secs += run_warmup_secs
+        total_run_secs += run_run_secs
 
         print('\n')
         for line in csv_data:
             print(','.join(line))
         print('\n')
 
-    print(f'{config.secs_string(all_start)}: finished all run-sets: {timeit.default_timer() - all_start:.1f}s')
+    print(f'{util.secs_string(all_start)}: finished all run-sets: {timeit.default_timer() - all_start:.1f}s  '
+          f'(warmups: {total_warmup_secs:.1f}s, runs: {total_run_secs:.1f}s)')
 
     # final CSV
     print('\n\n')

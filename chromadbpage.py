@@ -20,6 +20,7 @@ import config
 import frame
 import logstuff
 import rbui
+import util
 from langchain.lc_docloaders import docloaders
 from sqlitedata import FTSType
 from vectorstore.vschroma import VSChroma
@@ -257,7 +258,7 @@ def setup(path: str, pagename: str, vectorstore: VSChroma, parms: dict[str, str]
                 ui.notify(message=errmsg, position='top', type='negative', close_button='Dismiss', timeout=0)
                 traceback.print_exc(file=sys.stdout)
                 continue
-        ancient = config.ancient_datetime()
+        ancient = util.ancient_datetime()
         colls_with_md = sorted(colls_with_md, key=lambda coll: coll.metadata['created'] if 'created' in coll.metadata else ancient, reverse=True)  # newest on top
 
         for collection_md in colls_with_md:

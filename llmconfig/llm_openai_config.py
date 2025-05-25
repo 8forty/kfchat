@@ -9,7 +9,7 @@ from openai.types.chat import ChatCompletion
 import config
 import logstuff
 from basesettings import BaseSettings
-from config import redact
+from util import redact
 from llmconfig.llm_openai_exchange import LLMOpenAIExchange
 from llmconfig.llmconfig import LLMConfig, LLMSettings
 from llmconfig.llmexchange import LLMMessagePair

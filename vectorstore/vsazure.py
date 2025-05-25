@@ -12,7 +12,7 @@ from azure.search.documents.models import VectorizedQuery
 import logstuff
 from chatexchanges import VectorStoreResponse, VectorStoreResult
 from vectorstore.vsapi import VSAPI
-from config import redact
+from util import redact
 
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)

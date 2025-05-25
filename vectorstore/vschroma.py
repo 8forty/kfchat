@@ -20,6 +20,7 @@ from pydantic import Field, validate_call
 
 import config
 import logstuff
+import util
 from chatexchanges import VectorStoreResponse, VectorStoreResult
 from langchain import lc_docloaders, lc_chunkers
 from sqlitedata import FTSType
@@ -460,7 +461,7 @@ class VSChroma(VSAPI):
                 'hnsw:M': 60,  # default 16
 
                 'chroma_version': self._client.get_version(),
-                'created': config.now_datetime()
+                'created': util.now_datetime()
             },
             embedding_function=embedding_function_info['function'](**embedding_function_info['create_parms']),
             data_loader=None,
@@ -508,7 +509,7 @@ class VSChroma(VSAPI):
                     if not isinstance(value, self.md_allowed_types):
                         continue
                     if key in self.md_redacted_keys:
-                        value = config.redact(value)
+                        value = util.redact(value)
 
                     # fix 'source' in chunks metadata since it references a tmp file which is pointless
                     if key == 'source':
@@ -534,7 +535,7 @@ class VSChroma(VSAPI):
             if not isinstance(value, self.md_allowed_types):
                 continue
             if key in self.md_redacted_keys:
-                value = config.redact(value)
+                value = util.redact(value)
             retval[key] = value
         return retval
 
@@ -558,7 +559,7 @@ class VSChroma(VSAPI):
             raise VSChroma.EmptyIngestError(f'no usable chunks (empty file?)')
 
         # add file-level metadata
-        now = config.now_datetime()
+        now = util.now_datetime()
         collection.metadata[f'file:{org_filename}:upload time'] = now
         collection.metadata[f'file:{org_filename}:docloader_type'] = f'{docloader_type}: {lc_docloaders.docloaders[docloader_type]['function'].__name__}/{lc_docloaders.docloaders[docloader_type]['filetypes']}'
         collection.metadata[f'file:{org_filename}:doc/chunk counts'] = f'{len(docs)}/{len(chunks)}'

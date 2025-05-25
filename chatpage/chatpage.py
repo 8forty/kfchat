@@ -17,6 +17,7 @@ from nicegui.events import Handler, ValueChangeEventArguments
 import config
 import frame
 import logstuff
+import util
 from chatexchanges import ChatExchange, VectorStoreResponse
 from llmconfig.llmconfig import LLMConfig
 from llmconfig.llmexchange import LLMExchange
@@ -181,7 +182,7 @@ class ChatPage:
                 for key in self.parms.keys():
                     val = self.parms[key]
                     if key.lower().endswith('_key') or key.lower().endswith('_token'):
-                        val = config.redact(val)
+                        val = util.redact(val)
                     idata.add_info_message(f'----{key}: {val}')
             elif prompt.startswith('*repeat'):
                 if idata.last_prompt() is not None:
