@@ -10,6 +10,8 @@ from dataclasses import dataclass
 import ollama
 import requests
 
+import llmdata
+
 # do this before config to stop debug messages
 logging.disable(logging.INFO)
 
@@ -26,7 +28,7 @@ from ollamautils import OllamaUtils
 all_start = timeit.default_timer()
 
 
-def ollama_model_info(model_spec: config.ModelSpec, run_spec: CPRunSpec) -> str:
+def ollama_model_info(model_spec: llmdata.ModelSpec, run_spec: CPRunSpec) -> str:
     # ProcessResponse(models=[
     # Model(model='llama3.2:1b', name='llama3.2:1b',
     #   digest='baf6a787fdffd633537aa2eb51cfd54cb93ff08e28040095462bb63daf552878',
@@ -64,7 +66,7 @@ def ollama_model_info(model_spec: config.ModelSpec, run_spec: CPRunSpec) -> str:
     return retval
 
 
-def llamacpp_model_info(model_spec: config.ModelSpec, run_spec: CPRunSpec) -> str:
+def llamacpp_model_info(model_spec: llmdata.ModelSpec, run_spec: CPRunSpec) -> str:
     # {'object': 'list',
     #   'data': [{'id': 'c:/llama.cpp/gemma-3-1b-it-Q4_K_M.gguf', 'object': 'model', 'created': 1747247114,
     #     'owned_by': 'llamacpp', 'meta': {'vocab_type': 1, 'n_vocab': 262144, 'n_ctx_train': 32768, 'n_embd': 1152,
@@ -98,7 +100,7 @@ def llamacpp_model_info(model_spec: config.ModelSpec, run_spec: CPRunSpec) -> st
     return retval
 
 
-def ollama_warmup(model: config.ModelSpec, max_retries: int = 8) -> bool:
+def ollama_warmup(model: llmdata.ModelSpec, max_retries: int = 8) -> bool:
     model_name = model.name
 
     # the only way to clear GPU memory of any previous ollama runs
@@ -156,7 +158,7 @@ def ollama_warmup(model: config.ModelSpec, max_retries: int = 8) -> bool:
     return warmup_done
 
 
-def llamacpp_warmup(model: config.ModelSpec, max_retries: int = 8) -> bool:
+def llamacpp_warmup(model: llmdata.ModelSpec, max_retries: int = 8) -> bool:
     model_name = model.name
 
     warmup_retries = 0
@@ -397,6 +399,7 @@ def main():
         'ollama-bm20-base11': RunSet('ollama-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
 
         'llamacpp-space-base11': RunSet('llamacpp-base11', '.7:800:2048:empty', 'empty', 'space'),
+        'llamacpp-space-base5g': RunSet('llamacpp-base5g', '.7:800:2048:empty', 'empty', 'space'),
         'llamacpp-bm20-base11': RunSet('llamacpp-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
         'llamacpp-bm20-fa-base11': RunSet('llamacpp-fa-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
     }
@@ -408,7 +411,7 @@ def main():
 
     # run_set_names = ['ollama-bm20-base11', ]
     # run_set_names = ['llamacpp-bm20-base11', 'llamacpp-bm20-fa-base11']
-    run_set_names = ['llamacpp-space-base11', ]
+    run_set_names = ['llamacpp-space-base5g', ]
 
     csv_data = []
     for rsn in run_set_names:

@@ -1,4 +1,5 @@
 import config
+import llmdata
 from llmconfig.llm_anthropic_config import LLMAnthropicConfig
 from llmconfig.llm_ollama_config import LLMOllamaConfig
 from llmconfig.llm_openai_config import LLMOpenAIConfig
@@ -7,7 +8,7 @@ from llmconfig.llmconfig import LLMConfig
 from llmconfig.llmsettings import LLMSettings
 
 
-def create_one(model_spec: config.ModelSpec, settings: dict[str, LLMSettings]) -> LLMConfig:
+def create_one(model_spec: llmdata.ModelSpec, settings: dict[str, LLMSettings]) -> LLMConfig:
     """
     creates an LLMConfig of the correct type for the given model_spec
     :rtype: LLMConfig

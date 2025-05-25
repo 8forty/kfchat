@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 import config
+import llmdata
 from basesettings import BaseSettings
 from llmconfig.llmexchange import LLMMessagePair
 from llmconfig.llmsettings import LLMSettings
@@ -17,7 +18,7 @@ class CPRunType(Enum):
 @dataclass
 class CPRunSpec:
     run_type: CPRunType
-    model: config.ModelSpec
+    model: llmdata.ModelSpec
     collection_name: str = ''
     ctx_size: int = 2048
     seed: int = 0
@@ -159,6 +160,12 @@ class CPData:
             CPRunSpec(CPRunType.LLM, config.llm_data.models_by_pname['LLAMACPP.deepseek-r1-distill-qwen-32b-Q4_K_M.gguf-fa'], ctx_size=2048),
             CPRunSpec(CPRunType.LLM, config.llm_data.models_by_pname['LLAMACPP.qwen3-14b-Q4_K_M.gguf-fa'], ctx_size=2048),
             CPRunSpec(CPRunType.LLM, config.llm_data.models_by_pname['LLAMACPP.qwen3-32b-Q4_K_M.gguf-fa'], ctx_size=2048),
+        ],
+        'llamacpp-base5g': [
+            CPRunSpec(CPRunType.LLM, config.llm_data.models_by_pname['LLAMACPP.gemma-3-1b-it-Q4_K_M.gguf'], ctx_size=2048),
+            CPRunSpec(CPRunType.LLM, config.llm_data.models_by_pname['LLAMACPP.gemma-3-4b-it-Q4_K_M.gguf'], ctx_size=2048),
+            CPRunSpec(CPRunType.LLM, config.llm_data.models_by_pname['LLAMACPP.llama-3.2-3b-instruct-Q4_K_M.gguf']),
+            # CPRunSpec(CPRunType.LLM, config.llm_data.models_by_pname['LLAMACPP.c4ai-command-r7b-12-2024-Q4_K_M.gguf'], ctx_size=2048),
         ],
         # groq ###############################################################################################
         'groq-base': [
