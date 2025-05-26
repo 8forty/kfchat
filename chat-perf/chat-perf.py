@@ -379,6 +379,9 @@ class Run:
 
 
 def main():
+    ####################################################
+    # Run(targets, settings list, sysmsg, prompts)
+    ####################################################
     # runs = [
     #     Run('kf', 'quick', 'professional800', 'space'),
     #     Run('base', 'quick', 'professional800', 'space'),
