@@ -324,17 +324,6 @@ class CPData:
             else:
                 raise ValueError(f'bad label! {label}')
 
-    #         'convo': conversational_sysmsg,
-    #         'convo80': conversational80_sysmsg,
-    #         'professional': professional_sysmsg,
-    #         'professional80': professional80_sysmsg,
-    #         'professional800': professional800_sysmsg,
-    #         'technical': technical_sysmsg,
-    #         'technical80': technical80_sysmsg,
-    #         'technical800': technical800_sysmsg,
-    #         'text-sentiment': textclass_sysmsg,
-    #         'carl-sagan': csagan_sysmsg,
-    #         'empty': empty_sysmsg,
     llm_settings_lists = {
         '1:800': [
             CPLLMSettings(init_n=1, init_temp=1.0, init_top_p=1.0, init_max_tokens=800, init_chat_timeout_secs=7200.0,
@@ -379,7 +368,7 @@ class CPData:
     }
 
     ##############################################################
-    # prompt sets
+    # prompts and prompt lists
     ##############################################################
 
     wakeup_prompt = 'wake up'
