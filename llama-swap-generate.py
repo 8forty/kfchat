@@ -13,7 +13,7 @@ def run(base_yaml_filename: str, dump_input=True):
             print('-------------------')
 
         # load parameters from the yaml
-        version = gen_yaml['metadata']['version']
+        # version = gen_yaml['metadata']['version']
         models_dir = gen_yaml['metadata']['models_dir']
         swap_dir = gen_yaml['metadata']['swap_dir']
 

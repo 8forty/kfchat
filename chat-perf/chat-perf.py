@@ -91,7 +91,7 @@ class Run:
         retval = ''
         for info in response.json()['data']:
             model_id = info['id']  # e.g. z:/huggingface.co/converted/gemma-3-4b-it-Q4_K_M.gguf
-            # model_spec.name e.g. gemma-3-4b-it-Q4_K_M.gguf-fa
+            # model_spec.name e.g. gemma-3-4b-it-Q4_K_M
             if model_spec.name.lower() in model_id.lower() or str(os.path.basename(model_id)).lower() in model_spec.name.lower():
                 parmsb: int = int(round(int(info['meta']['n_params']) / 1000000000.0, 1))
                 quant: str = ''
@@ -397,7 +397,8 @@ def main():
     #     Run('llamacpp-fa-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
     # ]
     # llamacpp-phi4_f16 llamacpp-3.2-3 llamacpp-gemma3-1b llamacpp-gemma3-4b
-    runs = [Run('llamacpp-3.2-3', '.7:800:2048:empty', 'empty', 'space'), ]
+    # mistral-nemo-instruct-2407-q4_k_m
+    runs = [Run('mistral-nemo-instruct-2407-q4_k_m', '.7:800:2048:empty', 'empty', 'space'), ]
     ####################################################
     # Run(targets, settings list, sysmsg, prompts)
     ####################################################
