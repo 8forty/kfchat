@@ -16,6 +16,9 @@ class CPTargetType(Enum):
 
 @dataclass
 class CPTarget:
+    """
+    target for chat perf: CPTargetType, llmdata.ModelSpec [, collection_name, ctx_size, seed]
+    """
     type: CPTargetType
     model: llmdata.ModelSpec
     collection_name: str = ''
@@ -111,7 +114,8 @@ class CPData:
         ],
         # llamacpp ###############################################################################################
         'llamacpp-gemma3-1b': [
-            CPTarget(CPTargetType.LLM, config.llm_data.models_by_pname['LLAMACPP.gemma-3-1b-it-Q4_K_M.gguf'], ctx_size=2048),
+            #  CPTarget(CPTargetType.LLM, config.llm_data.models_by_pname['LLAMACPP.gemma-3-1b-it-Q4_K_M.gguf'], ctx_size=2048),
+            CPTarget(CPTargetType.LLM, config.llm_data.models_by_pname['LLAMACPP.gemma-3-1b-it-Q4_K_M'], ctx_size=2048),
         ],
         'llamacpp-gemma3-4b': [
             CPTarget(CPTargetType.LLM, config.llm_data.models_by_pname['LLAMACPP.gemma-3-4b-it-Q4_K_M.gguf'], ctx_size=2048),

@@ -1,0 +1,42 @@
+metadata:
+  version: 2025-05-26.00:00:00PDT
+
+anchors:
+  proxy: &proxy http://127.0.0.1:27272
+  server: &server c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
+  ngl: &ngl -ngl 999
+  ctx: &ctx -c 2048
+  server-port: &server-port --port 27272
+  vulkan0:
+    dev: &dev-vulkan0 -dev Vulkan0
+  vulkan1:
+    dev: &dev-vulkan1 -dev Vulkan1
+  vulkan2:
+    dev: &dev-vulkan2 -dev Vulkan2
+  vulkan01:
+    dev: &dev-vulkan01 -dev Vulkan0,Vulkan1
+  vulkan12:
+    dev: &dev-vulkan12 -dev Vulkan1,Vulkan2
+
+all-yml:
+  healthCheckTimeout: 12000
+
+all-gguf:
+  defaults-vulkan0:
+    proxy: *proxy
+    cmd:
+      server: *server
+      ngl: *ngl
+      dev: *dev-vulkan0
+      ctx: *ctx
+      server-port: *server-port
+  defaults-vulkan1:
+    proxy: *proxy
+    cmd:
+      server: *server
+      ngl: *ngl
+      dev: *dev-vulkan0
+      ctx: *ctx
+      server-port: *server-port
+
+custom-gguf:
