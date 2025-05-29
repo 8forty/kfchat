@@ -5,3 +5,4 @@ __pycache__
 */csv-editor.xml
 .idea/workspace.xml
 logs/*.log
+lswap/*.yml

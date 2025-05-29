@@ -1,42 +1,45 @@
 metadata:
   version: 2025-05-26.00:00:00PDT
+  models_dir: z:/ggufs
+  swap_dir: ./lswap
 
 anchors:
-  proxy: &proxy http://127.0.0.1:27272
-  server: &server c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
-  ngl: &ngl -ngl 999
-  ctx: &ctx -c 2048
-  server-port: &server-port --port 27272
-  vulkan0:
+  d0: &default-hc-timeout-secs 12000
+  d1: &default-proxy http://127.0.0.1:27272
+  d2: &default-server c:/llama.cpp/llama-b5456-bin-win-vulkan-x64/llama-server
+  d3: &default-ngl -ngl 999
+  d4: &default-ctx -c 2048
+  d5: &default-server-port --port 27272
+  v0:
     dev: &dev-vulkan0 -dev Vulkan0
-  vulkan1:
+  v1:
     dev: &dev-vulkan1 -dev Vulkan1
-  vulkan2:
+  v2:
     dev: &dev-vulkan2 -dev Vulkan2
-  vulkan01:
+  v01:
     dev: &dev-vulkan01 -dev Vulkan0,Vulkan1
-  vulkan12:
+  v12:
     dev: &dev-vulkan12 -dev Vulkan1,Vulkan2
 
 all-yml:
-  healthCheckTimeout: 12000
+  healthCheckTimeout: *default-hc-timeout-secs
 
 all-gguf:
   defaults-vulkan0:
-    proxy: *proxy
+    proxy: *default-proxy
     cmd:
-      server: *server
-      ngl: *ngl
+      server: *default-server
+      ngl: *default-ngl
       dev: *dev-vulkan0
-      ctx: *ctx
-      server-port: *server-port
+      ctx: *default-ctx
+      server-port: *default-server-port
   defaults-vulkan1:
-    proxy: *proxy
+    proxy: *default-proxy
     cmd:
-      server: *server
-      ngl: *ngl
+      server: *default-server
+      ngl: *default-ngl
       dev: *dev-vulkan0
-      ctx: *ctx
-      server-port: *server-port
+      ctx: *default-ctx
+      server-port: *default-server-port
 
 custom-gguf:

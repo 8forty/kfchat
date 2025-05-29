@@ -25,8 +25,8 @@ LLAMACPP:
     api: openai
   deepseek-r1-distill-qwen-32b-Q4_K_M.gguf-fa:
     api: openai
-  gemma-3-1b-it-Q4_K_M.gguf:
-    api: openai
+#  gemma-3-1b-it-Q4_K_M.gguf:
+#    api: openai
   gemma-3-1b-it-Q4_K_M:
     api: openai
   gemma-3-4b-it-Q4_K_M.gguf:

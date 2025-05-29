@@ -114,7 +114,6 @@ class CPData:
         ],
         # llamacpp ###############################################################################################
         'llamacpp-gemma3-1b': [
-            #  CPTarget(CPTargetType.LLM, config.llm_data.models_by_pname['LLAMACPP.gemma-3-1b-it-Q4_K_M.gguf'], ctx_size=2048),
             CPTarget(CPTargetType.LLM, config.llm_data.models_by_pname['LLAMACPP.gemma-3-1b-it-Q4_K_M'], ctx_size=2048),
         ],
         'llamacpp-gemma3-4b': [
@@ -164,7 +163,7 @@ class CPData:
             CPTarget(CPTargetType.LLM, config.llm_data.models_by_pname['LLAMACPP.qwen3-32b-Q4_K_M.gguf-fa'], ctx_size=2048),
         ],
         'llamacpp-base5g': [
-            CPTarget(CPTargetType.LLM, config.llm_data.models_by_pname['LLAMACPP.gemma-3-1b-it-Q4_K_M.gguf'], ctx_size=2048),
+            CPTarget(CPTargetType.LLM, config.llm_data.models_by_pname['LLAMACPP.gemma-3-1b-it-Q4_K_M'], ctx_size=2048),
             CPTarget(CPTargetType.LLM, config.llm_data.models_by_pname['LLAMACPP.gemma-3-4b-it-Q4_K_M.gguf'], ctx_size=2048),
             CPTarget(CPTargetType.LLM, config.llm_data.models_by_pname['LLAMACPP.llama-3.2-3b-instruct-Q4_K_M.gguf']),
             # CPTarget(CPTargetType.LLM, config.llm_data.models_by_pname['LLAMACPP.c4ai-command-r7b-12-2024-Q4_K_M.gguf'], ctx_size=2048),
