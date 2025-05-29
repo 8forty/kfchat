@@ -14,12 +14,8 @@ anchors:
     dev: &dev-vulkan0 -dev Vulkan0
   v1:
     dev: &dev-vulkan1 -dev Vulkan1
-  v2:
-    dev: &dev-vulkan2 -dev Vulkan2
   v01:
     dev: &dev-vulkan01 -dev Vulkan0,Vulkan1
-  v12:
-    dev: &dev-vulkan12 -dev Vulkan1,Vulkan2
   cmd: &default-cmd
     server: *default-server
     ngl: *default-ngl
@@ -40,22 +36,16 @@ all-gguf:
     cmd:
       <<: *default-cmd
       dev: *dev-vulkan1
-  defaults-vulkan2:
-    proxy: *default-proxy
-    cmd:
-      <<: *default-cmd
-      dev: *dev-vulkan2
   defaults-vulkan01:
     proxy: *default-proxy
     cmd:
       <<: *default-cmd
       dev: *dev-vulkan01
-  defaults-vulkan12:
-    proxy: *default-proxy
-    cmd:
-      <<: *default-cmd
-      dev: *dev-vulkan12
 
 custom-gguf:
   "phi-4-f16":
-    ngl: -ngl 33
+    cmd:
+      ngl: -ngl 33
+  "llama-3.3-70b-instruct-Q4_K_M":
+    cmd:
+      ngl: -ngl 45

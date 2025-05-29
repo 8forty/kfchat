@@ -12,8 +12,11 @@ def run(base_yaml_filename: str, dump_input=True):
             print(yaml.dump(gen_yaml, sort_keys=False))
             print('-------------------')
 
+        # load parameters from the yaml
+        version = gen_yaml['metadata']['version']
         models_dir = gen_yaml['metadata']['models_dir']
         swap_dir = gen_yaml['metadata']['swap_dir']
+
         for gguf in gen_yaml['all-gguf'].items():
             with open(f'{swap_dir}/{gguf[0]}.yml', 'w') as ofile:
 
@@ -26,11 +29,19 @@ def run(base_yaml_filename: str, dump_input=True):
 
                 for filepath in Path(models_dir).glob('*.gguf'):
                     if filepath.is_file():
-                        ofile.write(f'  "{filepath.stem}":\n')
+                        ofile.write(f'  "{filepath.stem.lower()}":\n')
                         ofile.write(f'    proxy: {gguf[1]['proxy']}\n')
+
+                        custom_cmd = {}
+                        custom_model = gen_yaml['custom-gguf'].get(filepath.stem)
+                        if custom_model is not None:
+                            custom_cmd = custom_model.get('cmd')
                         ofile.write(f'    cmd: >\n')
                         for cmd_part in gguf[1]['cmd'].items():
-                            ofile.write(f'      {cmd_part[1]}\n')
+                            if cmd_part[0] in custom_cmd.keys():
+                                ofile.write(f'      {custom_cmd[cmd_part[0]]}\n')
+                            else:
+                                ofile.write(f'      {cmd_part[1]}\n')
                         ofile.write(f'      -m {filepath.as_posix()}\n')
 
 
