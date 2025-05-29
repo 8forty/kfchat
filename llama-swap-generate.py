@@ -25,14 +25,15 @@ def run(base_yaml_filename: str, dump_input=True):
                 ofile.write('models:\n')
 
                 for filepath in Path(models_dir).glob('*.gguf'):
-                    ofile.write(f'  "{filepath.stem}":\n')
-                    ofile.write(f'    proxy: {gguf[1]['proxy']}\n')
-                    ofile.write(f'    cmd: >\n')
-                    for cmd_part in gguf[1]['cmd'].items():
-                        ofile.write(f'      {cmd_part[1]}\n')
-                    ofile.write(f'      -m {str(filepath)}\n')
+                    if filepath.is_file():
+                        ofile.write(f'  "{filepath.stem}":\n')
+                        ofile.write(f'    proxy: {gguf[1]['proxy']}\n')
+                        ofile.write(f'    cmd: >\n')
+                        for cmd_part in gguf[1]['cmd'].items():
+                            ofile.write(f'      {cmd_part[1]}\n')
+                        ofile.write(f'      -m {filepath.as_posix()}\n')
 
 
 if __name__ == "__main__":
     gen_filename = 'llama-swap-generate.yml'
-    run(gen_filename, dump_input=False)
+    run(gen_filename, dump_input=True)

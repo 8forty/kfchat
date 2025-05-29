@@ -20,6 +20,11 @@ anchors:
     dev: &dev-vulkan01 -dev Vulkan0,Vulkan1
   v12:
     dev: &dev-vulkan12 -dev Vulkan1,Vulkan2
+  cmd: &default-cmd
+    server: *default-server
+    ngl: *default-ngl
+    ctx: *default-ctx
+    server-port: *default-server-port
 
 all-yml:
   healthCheckTimeout: *default-hc-timeout-secs
@@ -28,18 +33,29 @@ all-gguf:
   defaults-vulkan0:
     proxy: *default-proxy
     cmd:
-      server: *default-server
-      ngl: *default-ngl
+      <<: *default-cmd
       dev: *dev-vulkan0
-      ctx: *default-ctx
-      server-port: *default-server-port
   defaults-vulkan1:
     proxy: *default-proxy
     cmd:
-      server: *default-server
-      ngl: *default-ngl
-      dev: *dev-vulkan0
-      ctx: *default-ctx
-      server-port: *default-server-port
+      <<: *default-cmd
+      dev: *dev-vulkan1
+  defaults-vulkan2:
+    proxy: *default-proxy
+    cmd:
+      <<: *default-cmd
+      dev: *dev-vulkan2
+  defaults-vulkan01:
+    proxy: *default-proxy
+    cmd:
+      <<: *default-cmd
+      dev: *dev-vulkan01
+  defaults-vulkan12:
+    proxy: *default-proxy
+    cmd:
+      <<: *default-cmd
+      dev: *dev-vulkan12
 
 custom-gguf:
+  "phi-4-f16":
+    ngl: -ngl 33
