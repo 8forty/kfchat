@@ -30,26 +30,26 @@ all-gguf:
     proxy: *default-proxy
     cmd:
       <<: *default-cmd
-  defaults-vulkan0:
+  defaults-vulkan0-24gb:
     proxy: *default-proxy
     cmd:
       <<: *default-cmd
       dev: *dev-vulkan0
       ngl: *cmd-ngl-999
-  defaults-vulkan0-fa:
+  defaults-vulkan0-24gb-fa:
     proxy: *default-proxy
     cmd:
       <<: *default-cmd
       dev: *dev-vulkan0
       ngl: *cmd-ngl-999
       extra: --port 27272 --flash-attn
-  defaults-vulkan1:
+  defaults-vulkan1-24gb:
     proxy: *default-proxy
     cmd:
       <<: *default-cmd
       dev: *dev-vulkan1
       ngl: *cmd-ngl-999
-  defaults-vulkan1-fa:
+  defaults-vulkan1-24gb-fa:
     proxy: *default-proxy
     cmd:
       <<: *default-cmd
@@ -72,8 +72,18 @@ all-gguf:
 
 custom-gguf:
   "phi-4-f16":
+    swaps: [ 'defaults-vulkan0-24gb', 'defaults-vulkan0-24gb-fa', 'defaults-vulkan1-24gb', 'defaults-vulkan1-24gb-fa' ]
     cmd:
       ngl: -ngl 33
-  "llama-3.3-70b-instruct-Q4_K_M":
+  "llama-3.3-70b-instruct-q4_k_m":
+    swaps: [ 'defaults-vulkan0-24gb', 'defaults-vulkan0-24gb-fa', 'defaults-vulkan1-24gb', 'defaults-vulkan1-24gb-fa' ]
+    cmd:
+      ngl: -ngl 45
+  "llama-3.3-70b-instruct-q8_0":
+    swaps: [ 'defaults-vulkan0-24gb', 'defaults-vulkan0-24gb-fa', 'defaults-vulkan1-24gb', 'defaults-vulkan1-24gb-fa' ]
+    cmd:
+      ngl: -ngl 45
+  "llama-3.3-70b-instruct":
+    swaps: [ 'defaults-vulkan0-24gb', 'defaults-vulkan0-24gb-fa', 'defaults-vulkan1-24gb', 'defaults-vulkan1-24gb-fa' ]
     cmd:
       ngl: -ngl 45

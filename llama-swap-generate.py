@@ -18,7 +18,9 @@ def run(base_yaml_filename: str, dump_input=True):
         swap_dir = gen_yaml['metadata']['swap_dir']
 
         for gguf in gen_yaml['all-gguf'].items():
-            with open(f'{swap_dir}/{gguf[0]}.yml', 'w') as ofile:
+            swap_name = gguf[0]
+            swap_dict = gguf[1]
+            with open(f'{swap_dir}/{swap_name}.yml', 'w') as ofile:
 
                 # write the stuff for all yamls
                 ofile.write(yaml.dump({'metadata': gen_yaml['metadata']}, sort_keys=False))
@@ -29,15 +31,18 @@ def run(base_yaml_filename: str, dump_input=True):
 
                 for filepath in Path(models_dir).glob('*.gguf'):
                     if filepath.is_file():
-                        ofile.write(f'  "{filepath.stem.lower()}":\n')
-                        ofile.write(f'    proxy: {gguf[1]['proxy']}\n')
+                        model_name = filepath.stem.lower()
+                        ofile.write(f'  "{model_name}":\n')
+                        ofile.write(f'    proxy: {swap_dict['proxy']}\n')
 
+                        # check for and handle custom settings
                         custom_cmd = {}
-                        custom_model = gen_yaml['custom-gguf'].get(filepath.stem)
-                        if custom_model is not None:
+                        custom_model = gen_yaml['custom-gguf'].get(model_name)
+                        if custom_model is not None and swap_name in custom_model.get('swaps'):
                             custom_cmd = custom_model.get('cmd')
+
                         ofile.write(f'    cmd: >\n')
-                        for cmd_part in gguf[1]['cmd'].items():
+                        for cmd_part in swap_dict['cmd'].items():
                             if cmd_part[0] in custom_cmd.keys():
                                 ofile.write(f'      {custom_cmd[cmd_part[0]]}\n')
                             else:

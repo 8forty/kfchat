@@ -128,7 +128,7 @@ class CPData:
         'llamacpp-3.2-3': [
             CPTarget(CPTargetType.LLM, config.llm_data.models_by_pname['LLAMACPP.llama-3.2-3b-instruct-q4_k_m'], ctx_size=2048),
         ],
-        'llamacpp-3.3-70-q4_k_m': [
+        'llama-3.3-70b-instruct-q4_k_m': [
             CPTarget(CPTargetType.LLM, config.llm_data.models_by_pname['LLAMACPP.llama-3.3-70b-instruct-q4_k_m']),
         ],
         'llamacpp-3.3-70-q8_0': [

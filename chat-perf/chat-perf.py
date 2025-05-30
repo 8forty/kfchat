@@ -379,26 +379,10 @@ class Run:
 
 
 def main():
-    ####################################################
-    # Run(targets, settings list, sysmsg, prompts)
-    ####################################################
-    # runs = [
-    #     Run('kf', 'quick', 'professional800', 'space'),
-    #     Run('base', 'quick', 'professional800', 'space'),
-    #     Run('kf', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
-    # ]
-    #
-    # runs = [Run('ollama-llama3.3:70b', '.7:800:2048:empty', 'empty', 'space'), ]
-    # runs = [Run('llamacpp-gemma3-1b', '.7:800:2048:empty', 'empty', 'space'), ]
-    #
-    # runs = [Run('ollama-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'), ]
-    # runs = [
-    #     Run('llamacpp-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
-    #     Run('llamacpp-fa-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'),
-    # ]
+    # llamacpp-base11 llama-3.3-70b-instruct-q4_k_m
     # llamacpp-phi4_f16 llamacpp-3.2-3 llamacpp-gemma3-1b llamacpp-gemma3-4b
     # mistral-nemo-instruct-2407-q4_k_m
-    runs = [Run('mistral-nemo-instruct-2407-q4_k_m', '.7:800:2048:empty', 'empty', 'space'), ]
+    runs = [Run('llama-3.3-70b-instruct-q4_k_m', '.7:800:2048:empty', 'empty', 'space'), ]
     ####################################################
     # Run(targets, settings list, sysmsg, prompts)
     ####################################################
