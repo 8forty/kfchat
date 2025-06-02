@@ -2,6 +2,7 @@ import logging
 import os
 import signal
 
+import dotenv
 import ollama
 import psutil
 import requests
@@ -9,18 +10,28 @@ from ollama import ShowResponse, ListResponse
 
 import logstuff
 
+# need this for ollama api calls to work to another server
+dotenv.load_dotenv(override=True)
+env = dotenv.dotenv_values()
+
 log: logging.Logger = logging.getLogger(__name__)
 log.setLevel(logstuff.logging_level)
 
 
 class OllamaUtils:
 
+    def __init__(self):
+        self._client = ollama.Client(host=env.get('OLLAMA_HOST'))
+
     @staticmethod
     def ps() -> dict:
-        response = requests.get('http://localhost:11434/api/ps')
+        response = requests.get(f'{env.get("OLLAMA_ENDPOINT")}/api/ps')
 
         # {'models': [{'name': 'llama3.2:1b', 'model': 'llama3.2:1b', 'size': 2712725504, 'digest': 'baf6a787fdffd633537aa2eb51cfd54cb93ff08e28040095462bb63daf552878', 'details': {'parent_model': '', 'format': 'gguf', 'family': 'llama', 'families': ['llama'], 'parameter_size': '1.2B', 'quantization_level': 'Q8_0'}, 'expires_at': '2025-05-01T10:53:51.3747775-07:00', 'size_vram': 2712725504}]}
         return response.json()
+
+    def raw_ps(self):
+        return self._client.ps()
 
     @staticmethod
     def get_ollama_servers_pids() -> list[int]:
@@ -52,12 +63,11 @@ class OllamaUtils:
                     else:
                         log.info(f'!!! suppressing kill error pid {pid}: {e}')
 
-    @staticmethod
-    def get_context_length(model_name: str) -> int:
+    def get_context_length(self, model_name: str) -> int:
         """
 
         :param model_name:
-        :return: context-length for the model from ollama.show(), or -1 if it's unknown
+        :return: context-length for the model from show(), or -1 if it's unknown
         """
         # ShowResponse(modified_at=datetime.datetime(2025, 4, 26, 23, 28, 22, 312757, tzinfo=TzInfo(-07:00)),
         # template='<|start_header_id|>system<|end_header_id|>\n\nCutting Knowledge Date: December 2023\n\n{{ if .System }}{{ .System }}\n{{- end }}\n{{- if .Tools }}When you receive a tool call response, use the output to format an answer to the orginal user question.\n\nYou are a helpful assistant with tool calling capabilities.\n{{- end }}<|eot_id|>\n{{- range $i, $_ := .Messages }}\n{{- $last := eq (len (slice $.Messages $i)) 1 }}\n{{- if eq .Role "user" }}<|start_header_id|>user<|end_header_id|>\n{{- if and $.Tools $last }}\n\nGiven the following functions, please respond with a JSON for a function call with its proper arguments that best answers the given prompt.\n\nRespond in the format {"name": function name, "parameters": dictionary of argument name and its value}. Do not use variables.\n\n{{ range $.Tools }}\n{{- . }}\n{{ end }}\n{{ .Content }}<|eot_id|>\n{{- else }}\n\n{{ .Content }}<|eot_id|>\n{{- end }}{{ if $last }}<|start_header_id|>assistant<|end_header_id|>\n\n{{ end }}\n{{- else if eq .Role "assistant" }}<|start_header_id|>assistant<|end_header_id|>\n{{- if .ToolCalls }}\n{{ range .ToolCalls }}\n{"name": "{{ .Function.Name }}", "parameters": {{ .Function.Arguments }}}{{ end }}\n{{- else }}\n\n{{ .Content }}\n{{- end }}{{ if not $last }}<|eot_id|>{{ end }}\n{{- else if eq .Role "tool" }}<|start_header_id|>ipython<|end_header_id|>\n\n{{ .Content }}<|eot_id|>{{ if $last }}<|start_header_id|>assistant<|end_header_id|>\n\n{{ end }}\n{{- end }}\n{{- end }}',
@@ -76,16 +86,15 @@ class OllamaUtils:
         #   'tokenizer.ggml.model': 'gpt2', 'tokenizer.ggml.pre': 'llama-bpe', 'tokenizer.ggml.token_type': None,
         #   'tokenizer.ggml.tokens': None},
         #   parameters=None)
-        show_info: ShowResponse = ollama.show(model_name)
+        show_info: ShowResponse = self._client.show(model_name)
         context_length_key = f'{show_info.details.family}.context_length'
         return show_info.modelinfo.get(context_length_key, -1)
 
-    @staticmethod
-    def get_model_base_size(model_name: str) -> int:
+    def get_model_base_size(self, model_name: str) -> int:
         """
 
         :param model_name:
-        :return: base size (NOT run size!) for the model from ollama.list(), or -1 if it's unknown
+        :return: base size (NOT run size!) for the model from list(), or -1 if it's unknown
         """
         # ListResponse(models=[
         # Model(model='llama3.2:1b', modified_at=datetime.datetime(2025, 4, 26, 23, 28, 22, 312757, tzinfo=TzInfo(-07:00)),
@@ -98,13 +107,12 @@ class OllamaUtils:
         #     quantization_level='Q4_K_M')),
         # ...
         # ])
-        for m in ollama.list().models:
+        for m in self._client.list().models:
             if m.model == model_name:
                 return m.size
         return -1
 
-    @staticmethod
-    def dump_models():
+    def dump_models(self):
         # ListResponse(models=[
         # Model(model='llama3.2:1b', modified_at=datetime.datetime(2025, 4, 26, 23, 28, 22, 312757, tzinfo=TzInfo(-07:00)),
         #   digest='baf6a787fdffd633537aa2eb51cfd54cb93ff08e28040095462bb63daf552878', size=1321098329,
@@ -116,7 +124,7 @@ class OllamaUtils:
         #     quantization_level='Q4_K_M')),
         # ...
         # ])
-        models: ListResponse = ollama.list()
+        models: ListResponse = self._client.list()
 
         print(f'basename,parametersB,model-name,sizeGB,quant,context-length')
         for model in models.models:
@@ -137,7 +145,7 @@ class OllamaUtils:
             #   'tokenizer.ggml.model': 'gpt2', 'tokenizer.ggml.pre': 'llama-bpe', 'tokenizer.ggml.token_type': None,
             #   'tokenizer.ggml.tokens': None},
             #   parameters=None)
-            minfo: ShowResponse = ollama.show(model.model)
+            minfo: ShowResponse = self._client.show(model.model)
             # context_length = [f'{k}:{v}' for k,v in minfo.modelinfo.items() if 'context_length' in k]
             context_length_key = f'{minfo.details.family}.context_length'
             model_basename = model.model.split(':')[0]
@@ -149,5 +157,5 @@ class OllamaUtils:
 
 
 if __name__ == "__main__":
-    # print(f'currently loaded: {[m['name'] for m in OllamaUtils.olps()['models']]}')
-    OllamaUtils.dump_models()
+    # OllamaUtils.dump_models()
+    print(ollama.Client(host=env.get('OLLAMA_HOST')).list())

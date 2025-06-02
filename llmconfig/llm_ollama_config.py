@@ -142,7 +142,7 @@ class LLMOllamaConfig(LLMConfig):
         if self._provider == 'OLLAMA':
             endpoint = providers_config[self._provider]['OLLAMA_ENDPOINT']
             # key = providers_config[self._provider]['key']
-            log.info(f'building OLLAMA LLM API for [{self._provider}]: {endpoint=} key=(no key)')
+            log.warning(f'building OLLAMA LLM API for [{self._provider}]: {endpoint=} key=(no key)')
             self._api_client = ollama.Client(host=endpoint)
         else:
             raise ValueError(f'invalid provider! {self._provider}')

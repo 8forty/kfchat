@@ -7,6 +7,7 @@ import timeit
 import traceback
 from dataclasses import dataclass
 
+import dotenv
 import ollama
 import requests
 
@@ -25,6 +26,10 @@ from llmconfig.llm_openai_config import LLMOpenAIConfig, LLMOpenAISettings
 from llmconfig.llmexchange import LLMExchange
 from ollamautils import OllamaUtils
 
+# need this for ollama api calls to work to another server
+dotenv.load_dotenv(override=True)
+env = dotenv.dotenv_values()
+
 all_start = timeit.default_timer()
 
 
@@ -40,6 +45,7 @@ class Run:
     settings_list_name: str  # llm/vs settings
     sysmsg_name: str  # system message
     prompts: str  # prompts
+    ollama_utils = OllamaUtils()
 
     @classmethod
     def ollama_model_info(cls, model_spec: llmdata.ModelSpec, target: CPTarget) -> str:
@@ -52,7 +58,8 @@ class Run:
         #     quantization_level='Q8_0')),
         # ...
         # ])
-        ps_dict = {m.model: m for m in ollama.ps().models}
+        outils = OllamaUtils()
+        ps_dict = {m.model: m for m in outils.raw_ps().models}
 
         retval = ''
         for model_name in ps_dict.keys():
@@ -70,9 +77,9 @@ class Run:
                 # load += f' (vsize: {float(ps_dict[model_name].size) / (1024.0 * 1024.0 * 1024.0):.1f} vram: {float(vram) / (1024.0 * 1024.0 * 1024.0):.1f} model: {float(model_size) / (1024.0 * 1024.0 * 1024.0):.1f})'
                 retval += (f'{parmsb},'
                            f'{ps_dict[model_name].details.quantization_level},'
-                           f'{float(OllamaUtils.get_model_base_size(model_name)) / (1024.0 * 1024.0 * 1024.0):.1f},'
+                           f'{float(outils.get_model_base_size(model_name)) / (1024.0 * 1024.0 * 1024.0):.1f},'
                            f'{target.ctx_size},'
-                           f'{OllamaUtils.get_context_length(model_name)},'
+                           f'{outils.get_context_length(model_name)},'
                            f'{float(model_run_size) / (1024.0 * 1024.0 * 1024.0):.1f},'
                            f'{float(vram) / (1024.0 * 1024.0 * 1024.0):.1f},'
                            f'{load} ')
@@ -140,7 +147,7 @@ class Run:
                     warmup_done = True
                     break
                 else:
-                    running = [m.name for m in ollama.ps().models]
+                    running = [m.name for m in OllamaUtils().raw_ps().models]
                     warmup_retries += 1
                     print(f'{util.secs_string(all_start)}: warmup: !! model {model_name} isnt running! [{running}]')
                     if warmup_retries < max_retries:
@@ -278,7 +285,7 @@ class Run:
                     # todo: enum?
                     if model.api.upper() == 'OLLAMA':
                         # adjust the context length in the target if it's too long for the model
-                        model_ctx_length = OllamaUtils.get_context_length(model_name)
+                        model_ctx_length = OllamaUtils().get_context_length(model_name)
                         if model_ctx_length < target.ctx_size:
                             print(f'{util.secs_string(all_start)}: adjusting context-length to model {model_ctx_length}')
                             target.ctx_size = model_ctx_length
@@ -379,10 +386,10 @@ class Run:
 
 
 def main():
-    # llamacpp-base11 llama-3.3-70b-instruct-q4_k_m
-    # llamacpp-phi4_f16 llamacpp-3.2-3 llamacpp-gemma3-1b llamacpp-gemma3-4b
-    # mistral-nemo-instruct-2407-q4_k_m
-    runs = [Run('llama-3.3-70b-instruct-q4_k_m', '.7:800:2048:empty', 'empty', 'space'), ]
+    # ollama-base11 ollama-gemma3-1b
+    # llamacpp-base11 llamacpp-base11 llamacpp-llama-3.3-70b-instruct-q4_k_m
+    # llamacpp-phi4_f16 llamacpp-3.2-3 llamacpp-gemma3-1b llamacpp-gemma3-4b llamacpp-mistral-nemo-instruct-2407-q4_k_m
+    runs = [Run('ollama-gemma3-1b', '.7:800:2048:empty', 'empty', 'space'), ]
     ####################################################
     # Run(targets, settings list, sysmsg, prompts)
     ####################################################

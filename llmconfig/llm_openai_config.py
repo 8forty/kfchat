@@ -168,12 +168,12 @@ class LLMOpenAIConfig(LLMConfig):
             endpoint = providers_config[self._provider]['kfAZURE_ENDPOINT']
             key = providers_config[self._provider]['key']
             api_version = providers_config[self._provider]['kfAZURE_API_VERSION']
-            log.info(f'building LLM API for [{self._provider}]: {endpoint=} key={redact(key)} {api_version=}')
+            log.warning(f'building LLM API for [{self._provider}]: {endpoint=} key={redact(key)} {api_version=}')
             self._api_client = openai.AzureOpenAI(azure_endpoint=endpoint, api_key=key, api_version=api_version)
         elif self._provider in config.llm_data.providers:
             endpoint = providers_config[self._provider][f'kf{self._provider.upper()}_ENDPOINT'].format(self.model_name)
             key = providers_config[self._provider]['key']
-            log.info(f'building LLM API for [{self._provider}]: {endpoint=} key={redact(key)}')
+            log.warning(f'building LLM API for [{self._provider}]: {endpoint=} key={redact(key)}')
             # timeout_httpx_client = httpx.Client(timeout=httpx.Timeout(10.0))
             self._api_client = openai.OpenAI(base_url=endpoint, api_key=key)
         # elif self._provider == 'openai':
