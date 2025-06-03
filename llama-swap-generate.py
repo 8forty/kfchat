@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import yaml
+import sys
 
 
 def run(base_yaml_filename: str, dump_input=True):
@@ -51,5 +52,5 @@ def run(base_yaml_filename: str, dump_input=True):
 
 
 if __name__ == "__main__":
-    gen_filename = 'llama-swap-generate.yml'
+    gen_filename = sys.argv[1] # 'llama-swap-generate.yml'
     run(gen_filename, dump_input=True)

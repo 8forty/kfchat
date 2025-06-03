@@ -5,10 +5,10 @@ metadata:
 
 anchors:
   d0: &default-hc-timeout-secs 12000
-  d1: &default-proxy http://0.0.0.0:27272
+  d1: &default-proxy http://localhost:27272
 
   c1: &cmd-default-server /home/kf/llamacpp/llama-b5558-bin-ubuntu-vulkan-x64/build/bin/llama-server
-  c2: &cmd-default-extra --port 27272
+  c2: &cmd-default-extra --host 0.0.0.0 --port 27272
   c3: &cmd-ngl-999 -ngl 999
   c4: &cmd-ctx-2048 -c 2048
   v0:
