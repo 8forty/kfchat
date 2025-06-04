@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import math
 import os
 import sys
 import time
@@ -8,7 +9,6 @@ import traceback
 from dataclasses import dataclass
 
 import dotenv
-import ollama
 import requests
 
 import llmdata
@@ -94,30 +94,34 @@ class Run:
         #     'n_params': 999885952, 'size': 799525120}}]}
         endpoint = (llmconfig.llm_openai_config.providers_config['LLAMACPP']['kfLLAMACPP_LLAMASERVER_ENDPOINT'].format(f'{model_spec.name}')
                     + '/models')
-        response = requests.get(endpoint)
         retval = ''
-        for info in response.json()['data']:
-            model_id = info['id']  # e.g. z:/huggingface.co/converted/gemma-3-4b-it-Q4_K_M.gguf
-            # model_spec.name e.g. gemma-3-4b-it-Q4_K_M
-            if model_spec.name.lower() in model_id.lower() or str(os.path.basename(model_id)).lower() in model_spec.name.lower():
-                parmsb: int = int(round(int(info['meta']['n_params']) / 1000000000.0, 1))
-                quant: str = ''
-                model_base_size: float = float(info['meta']['size']) / (1024.0 * 1024.0 * 1024.0)
-                model_ctx: int = int(info['meta']['n_ctx_train'])
-                run_size = ''
-                vram = ''
-                load: str = ''
-                retval += (f'{parmsb},'
-                           f'{quant},'
-                           f'{model_base_size:.1f},'
-                           f'{target.ctx_size},'
-                           f'{model_ctx},'
-                           f'{run_size},'
-                           f'{vram},'
-                           f'{load} ')
+        try:
+            response = requests.get(endpoint)
+            for info in response.json()['data']:
+                model_id = info['id']  # e.g. z:/huggingface.co/converted/gemma-3-4b-it-Q4_K_M.gguf
+                # model_spec.name e.g. gemma-3-4b-it-Q4_K_M
+                if model_spec.name.lower() in model_id.lower() or str(os.path.basename(model_id)).lower() in model_spec.name.lower():
+                    parmsb: int = int(round(int(info['meta']['n_params']) / 1000000000.0, 1))
+                    quant: str = ''
+                    model_base_size: float = float(info['meta']['size']) / (1024.0 * 1024.0 * 1024.0)
+                    model_ctx: int = int(info['meta']['n_ctx_train'])
+                    run_size = ''
+                    vram = ''
+                    load: str = ''
+                    retval += (f'{parmsb},'
+                               f'{quant},'
+                               f'{model_base_size:.1f},'
+                               f'{target.ctx_size},'
+                               f'{model_ctx},'
+                               f'{run_size},'
+                               f'{vram},'
+                               f'{load} ')
+
+        except (Exception,) as e:
+            print(f'!!!! llamacpp_model_info: Exception! (skipping) {model_spec.name}: {e.__class__.__name__}: {e}')
 
         if retval == '':
-            print(f'!!!! llamacpp_model_info: no model info found! {model_spec.name}: {response.json()["data"]}')
+            print(f'!!!! llamacpp_model_info: no model info found! {model_spec.name}')
         return retval
 
     @classmethod
@@ -126,7 +130,13 @@ class Run:
 
         # the only way to clear GPU memory of any previous ollama runs
         # https://github.com/ollama/ollama/issues/10597#issuecomment-2887586741
-        OllamaUtils.kill_ollama_servers()
+        ollama_host = os.getenv('kfOLLAMA_OPENAI_ENDPOINT').split(':')[1][2:]
+        if ollama_host in ['localhost', '127.0.0.1']:
+            print(f'{util.secs_string(all_start)}: killing ollama on {ollama_host}')
+            OllamaUtils.kill_ollama_servers()
+        else:
+            print(f'{util.secs_string(all_start)}: be sure to RESTART ollama on {ollama_host} if Windows')
+            time.sleep(10)
 
         warmup_retries = 0
         warmup_retry_wait_secs = 1.0
@@ -228,7 +238,7 @@ class Run:
         run_start_time = timeit.default_timer()
         target: CPTarget
         csv_data.append(['provider', 'model', 'temp', 'max_tokens', 'sysmsg', 'prompt-set', 'tokens-in', 'tokens-out',
-                         'warmup-secs', 'run-secs', 'parmsB', 'quant', 'modelGB', 'run-ctxt', 'model-ctxt',
+                         'warmup-secs', 'run-secs', 'tk/s', 'parmsB', 'quant', 'modelGB', 'run-ctxt', 'model-ctxt',
                          'run-sizeGB', 'vramGB', 'cpu/gpu', 'last-response-1line'])
 
         # run-setup: targets loop
@@ -363,14 +373,17 @@ class Run:
 
                     run_secs = ms_end - ploop_start
                     total_run_secs += run_secs
+                    toks_per_sec: float = float(ploop_input_tokens + ploop_output_tokens) / run_secs
                     csv_data.append([llm_config.provider(), llm_config.model_name,
                                      str(llm_config.settings().value('temp')),
                                      str(llm_config.settings().value('max_tokens')),
                                      str(llm_config.settings().value('system_message_name')),
                                      f'{prompt_list_name}',
-                                     str(ploop_input_tokens), str(ploop_output_tokens),
+                                     str(ploop_input_tokens),
+                                     str(ploop_output_tokens),
                                      f'{warmup_secs:.1f}',
                                      f'{run_secs:.1f}',
+                                     f'{toks_per_sec:.{int(2 - math.log10(toks_per_sec))}f}',  # round to min 2 sig figs
                                      f'{model_info}',
                                      f'"{response_line}"']
                                     )
@@ -386,10 +399,12 @@ class Run:
 
 
 def main():
-    # ollama-base11 ollama-gemma3-1b
-    # llamacpp-base11 llamacpp-base11 llamacpp-llama-3.3-70b-instruct-q4_k_m
-    # llamacpp-phi4_f16 llamacpp-3.2-3 llamacpp-gemma3-1b llamacpp-gemma3-4b llamacpp-mistral-nemo-instruct-2407-q4_k_m
-    runs = [Run('ollama-gemma3-1b', '.7:800:2048:empty', 'empty', 'space'), ]
+    # # prompts: space benchmark-awesome-prompts-20 bm1
+    # # ollama: ollama-base11 ollama-gemma3-1b
+    # # lcpp: llamacpp-base11 llamacpp-llama-3.3-70b-instruct-q4_k_m
+    # # lcpp: llamacpp-phi4_f16 llamacpp-gemma3-1b llamacpp-gemma3-4b llamacpp-mistral-nemo-instruct-2407-q4_k_m
+    # runs = [Run('llamacpp-base11', '.7:800:2048:empty', 'empty', 'space'), ]
+    runs = [Run('ollama-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'), ]
     ####################################################
     # Run(targets, settings list, sysmsg, prompts)
     ####################################################
