@@ -376,6 +376,8 @@ class CPData:
                           'Antibiotics are usually taken orally in the form of pills, capsules, or liquid solutions, or sometimes '
                           'administered intravenously. They are not effective against viral infections, and using them '
                           'inappropriately can lead to antibiotic resistance. Explain the above in one sentence:')
+    # Antibiotics are a type of medication used to treat bacterial infections. They work by either killing the bacteria or preventing them from reproducing, allowing the body’s immune system to fight off the infection. Antibiotics are usually taken orally in the form of pills, capsules, or liquid solutions, or sometimes administered intravenously. They are not effective against viral infections, and using them inappropriately can lead to antibiotic resistance. Explain the above in one sentence:
+    # Antibiotics are a type of medication used to treat bacterial infections. They work by killing the bacteria. Explain the above in one sentence:
     info_prompt = ('Author-contribution statements and acknowledgements in research papers should state clearly and specifically '
                    'whether, and to what extent, the authors used AI technologies such as ChatGPT in the preparation of their '
                    'manuscript and analysis. They should also indicate which LLMs were used. This will alert editors and reviewers '

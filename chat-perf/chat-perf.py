@@ -404,7 +404,7 @@ def main():
     # # lcpp: llamacpp-base11 llamacpp-llama-3.3-70b-instruct-q4_k_m
     # # lcpp: llamacpp-phi4_f16 llamacpp-gemma3-1b llamacpp-gemma3-4b llamacpp-mistral-nemo-instruct-2407-q4_k_m
     # runs = [Run('llamacpp-base11', '.7:800:2048:empty', 'empty', 'space'), ]
-    runs = [Run('ollama-base11', '.7:800:2048:empty', 'empty', 'benchmark-awesome-prompts-20'), ]
+    runs = [Run('llamacpp-gemma3-1b', '.7:800:2048:empty', 'empty', 'simple'), ]
     ####################################################
     # Run(targets, settings list, sysmsg, prompts)
     ####################################################
