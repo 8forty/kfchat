@@ -41,6 +41,12 @@ LLAMACPP:
     api: openai
   llama-3.2-3b-instruct-q4_k_m:
     api: openai
+  llama-3.2-3b-instruct-q4_0:
+    api: openai
+  llama-3.2-3b-instruct-q4_1:
+    api: openai
+  llama-3.2-3b-instruct-q4_k_s:
+    api: openai
   llama-3.3-70b-instruct-q4_k_m:
     api: openai
   llama-3.3-70b-instruct-q8_0:
