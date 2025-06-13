@@ -19,15 +19,21 @@ AZURE:
 LLAMACPP:
   c4ai-command-r7b-12-2024-q4_k_m:
     api: openai
+  c4ai-command-r7b-12-2024-q4_0:
+    api: openai
   c4ai-command-r7b-12-2024-q4_k_m-fa:
     api: openai
   deepseek-r1-distill-qwen-32b-q4_k_m:
+    api: openai
+  deepseek-r1-distill-qwen-32b-q4_0:
     api: openai
   deepseek-r1-distill-qwen-32b-q4_k_m-fa:
     api: openai
   gemma-3-1b-it-q4_k_m:
     api: openai
   gemma-3-4b-it-q4_k_m:
+    api: openai
+  gemma-3-4b-it-q4_0:
     api: openai
   gemma-3-4b-it-q4_k_m-fa:
     api: openai
@@ -36,6 +42,8 @@ LLAMACPP:
   gemma-3-12b-it-q4_k_m-fa:
     api: openai
   gemma-3-27b-it-q4_k_m:
+    api: openai
+  gemma-3-27b-it-q4_0:
     api: openai
   gemma-3-27b-it-q4_k_m-fa:
     api: openai
@@ -49,6 +57,8 @@ LLAMACPP:
     api: openai
   llama-3.3-70b-instruct-q4_k_m:
     api: openai
+  llama-3.3-70b-instruct-q4_0:
+    api: openai
   llama-3.3-70b-instruct-q8_0:
     api: openai
   llama-3.2-3b-instruct-q4_k_m-fa:
@@ -56,6 +66,8 @@ LLAMACPP:
   llama-3.3-70b-instruct-q4_k_m-fa:
     api: openai
   phi-4-q4_k_m:
+    api: openai
+  phi-4-q4_0:
     api: openai
   phi-4-f16:
     api: openai
@@ -65,11 +77,17 @@ LLAMACPP:
     api: openai
   mistral-nemo-instruct-2407-q4_k_m:
     api: openai
+  mistral-nemo-instruct-2407-q4_0:
+    api: openai
   mistral-nemo-instruct-2407-q4_k_m-fa:
     api: openai
   qwen3-14b-q4_k_m:
     api: openai
   qwen3-32b-q4_k_m:
+    api: openai
+  qwen3-14b-q4_0:
+    api: openai
+  qwen3-32b-q4_0:
     api: openai
   qwen3-14b-q4_k_m-fa:
     api: openai
