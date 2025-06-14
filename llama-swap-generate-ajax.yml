@@ -72,6 +72,11 @@ hw-configs:
     cmd:
       <<: *default-gpu-cmd
       dev: *dev-vulkan0
+  defaults-vulkan0-48gb:
+    proxy: *default-proxy
+    cmd:
+      <<: *default-gpu-cmd
+      dev: *dev-vulkan0
   # vulkan1
   defaults-vulkan1-16gb:
     proxy: *default-proxy
