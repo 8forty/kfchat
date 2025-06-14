@@ -2,15 +2,15 @@ metadata:
   version: 2025-05-26.00:00:00PDT
   models_dir: /mnt/data/ggufs
   swap_dir: ./lswap
+  c1: &llamacpp_server /home/kf/llamacpp/current/build/bin/llama-server
 
 anchors:
   d0: &default-hc-timeout-secs 12000
   d1: &default-proxy http://localhost:27272
 
-  c1: &cmd-default-server /home/kf/llamacpp/current/build/bin/llama-server
-  c2: &cmd-default-extra --host 0.0.0.0 --port 27272
-  c3: &cmd-ngl-999 -ngl 999
-  c4: &cmd-ctx-2048 -c 2048
+  c1: &cmd-default-extra --host 0.0.0.0 --port 27272
+  c2: &cmd-ngl-999 -ngl 999
+  c3: &cmd-ctx-2048 -c 2048
   v0:
     dev: &dev-vulkan0 -dev Vulkan0
   v1:
@@ -19,114 +19,152 @@ anchors:
     dev: &dev-vulkan01 -dev Vulkan0,Vulkan1
   v12:
     dev: &dev-vulkan12 -dev Vulkan1,Vulkan2
-  cmd: &default-cmd
-    server: *cmd-default-server
+  cmd1: &default-gpu-cmd
+    server: *llamacpp_server
+    ngl: *cmd-ngl-999
+    ctx: *cmd-ctx-2048
+    extra: *cmd-default-extra
+  cmd2: &default-cpu-cmd
+    server: *llamacpp_server
     ctx: *cmd-ctx-2048
     extra: *cmd-default-extra
 
+# things that are put in every generated yaml
 all-yml:
   healthCheckTimeout: *default-hc-timeout-secs
 
-all-gguf:
+# settings for each hardware configuration
+hw-configs:
+  # cpu
   defaults-cpu:
     proxy: *default-proxy
     cmd:
-      <<: *default-cmd
-      extra: --port 27272
-  defaults-vulkan0-32gb:
+      <<: *default-cpu-cmd
+  # vulkan0
+  defaults-vulkan0-16gb:
     proxy: *default-proxy
     cmd:
-      <<: *default-cmd
+      <<: *default-gpu-cmd
       dev: *dev-vulkan0
-      ngl: *cmd-ngl-999
-      extra: --port 27272
+  defaults-vulkan0-16gb-fa:
+    proxy: *default-proxy
+    cmd:
+      <<: *default-gpu-cmd
+      dev: *dev-vulkan0
   defaults-vulkan0-24gb:
     proxy: *default-proxy
     cmd:
-      <<: *default-cmd
+      <<: *default-gpu-cmd
       dev: *dev-vulkan0
-      ngl: *cmd-ngl-999
-      extra: --port 27272
   defaults-vulkan0-24gb-fa:
     proxy: *default-proxy
     cmd:
-      <<: *default-cmd
+      <<: *default-gpu-cmd
       dev: *dev-vulkan0
-      ngl: *cmd-ngl-999
-      extra: --port 27272 --flash-attn
+  defaults-vulkan0-32gb:
+    proxy: *default-proxy
+    cmd:
+      <<: *default-gpu-cmd
+      dev: *dev-vulkan0
+  defaults-vulkan0-32gb-fa:
+    proxy: *default-proxy
+    cmd:
+      <<: *default-gpu-cmd
+      dev: *dev-vulkan0
+  # vulkan1
+  defaults-vulkan1-16gb:
+    proxy: *default-proxy
+    cmd:
+      <<: *default-gpu-cmd
+      dev: *dev-vulkan1
+  defaults-vulkan1-16gb-fa:
+    proxy: *default-proxy
+    cmd:
+      <<: *default-gpu-cmd
+      dev: *dev-vulkan1
   defaults-vulkan1-24gb:
     proxy: *default-proxy
     cmd:
-      <<: *default-cmd
+      <<: *default-gpu-cmd
       dev: *dev-vulkan1
-      ngl: *cmd-ngl-999
-      extra: --port 27272
   defaults-vulkan1-24gb-fa:
     proxy: *default-proxy
     cmd:
-      <<: *default-cmd
+      <<: *default-gpu-cmd
       dev: *dev-vulkan1
-      ngl: *cmd-ngl-999
-      extra: --port 27272 --flash-attn
+  # vulkan01
   defaults-vulkan01:
     proxy: *default-proxy
     cmd:
-      <<: *default-cmd
+      <<: *default-gpu-cmd
       dev: *dev-vulkan01
-      ngl: *cmd-ngl-999
-      extra: --port 27272
   defaults-vulkan01-fa:
     proxy: *default-proxy
     cmd:
-      <<: *default-cmd
+      <<: *default-gpu-cmd
       dev: *dev-vulkan01
-      ngl: *cmd-ngl-999
-      extra: --port 27272 --flash-attn
+  # vulkan12
   defaults-vulkan12:
     proxy: *default-proxy
     cmd:
-      <<: *default-cmd
+      <<: *default-gpu-cmd
       dev: *dev-vulkan12
-      ngl: *cmd-ngl-999
-      extra: --port 27272
   defaults-vulkan12-fa:
     proxy: *default-proxy
     cmd:
-      <<: *default-cmd
+      <<: *default-gpu-cmd
       dev: *dev-vulkan12
-      ngl: *cmd-ngl-999
-      extra: --port 27272 --flash-attn
 
-custom-gguf:
+hw-configs-customizations:
   "phi-4-f16":
-    swaps: [ 'defaults-vulkan0-24gb', 'defaults-vulkan0-24gb-fa', 'defaults-vulkan1-24gb', 'defaults-vulkan1-24gb-fa' ]
-    cmd:
-      ngl: -ngl 33
+    16g:
+      hw-configs: [ 'defaults-vulkan0-16gb', 'defaults-vulkan0-16gb-fa', 'defaults-vulkan1-16gb', 'defaults-vulkan1-16gb-fa' ]
+      cmd:
+        ngl: -ngl 22
+    24g:
+      hw-configs: [ 'defaults-vulkan0-24gb', 'defaults-vulkan0-24gb-fa', 'defaults-vulkan1-24gb', 'defaults-vulkan1-24gb-fa' ]
+      cmd:
+        ngl: -ngl 33
+    32g:
+      hw-configs: [ 'defaults-vulkan0-32gb', 'defaults-vulkan0-32gb-fa', 'defaults-vulkan1-32gb', 'defaults-vulkan1-32gb-fa' ]
+      cmd:
+        ngl: -ngl 44
   "llama-3.3-70b-instruct-q4_k_m":
-    swaps: [ 'defaults-vulkan0-24gb', 'defaults-vulkan0-24gb-fa', 'defaults-vulkan1-24gb', 'defaults-vulkan1-24gb-fa' ]
-    cmd:
-      ngl: -ngl 45
+    16g:
+      hw-configs: [ 'defaults-vulkan0-16gb', 'defaults-vulkan0-16gb-fa', 'defaults-vulkan1-16gb', 'defaults-vulkan1-16gb-fa' ]
+      cmd:
+        ngl: -ngl 30
+    24g:
+      hw-configs: [ 'defaults-vulkan0-24gb', 'defaults-vulkan0-24gb-fa', 'defaults-vulkan1-24gb', 'defaults-vulkan1-24gb-fa' ]
+      cmd:
+        ngl: -ngl 45
+    32g:
+      hw-configs: [ 'defaults-vulkan0-32gb', 'defaults-vulkan0-32gb-fa', 'defaults-vulkan1-32gb', 'defaults-vulkan1-32gb-fa' ]
+      cmd:
+        ngl: -ngl 60
   "llama-3.3-70b-instruct-q8_0":
-    swaps: [ 'defaults-vulkan0-24gb', 'defaults-vulkan0-24gb-fa', 'defaults-vulkan1-24gb', 'defaults-vulkan1-24gb-fa' ]
-    cmd:
-      ngl: -ngl 45
+    16g:
+      hw-configs: [ 'defaults-vulkan0-16gb', 'defaults-vulkan0-16gb-fa', 'defaults-vulkan1-16gb', 'defaults-vulkan1-16gb-fa' ]
+      cmd:
+        ngl: -ngl 30
+    24g:
+      hw-configs: [ 'defaults-vulkan0-24gb', 'defaults-vulkan0-24gb-fa', 'defaults-vulkan1-24gb', 'defaults-vulkan1-24gb-fa' ]
+      cmd:
+        ngl: -ngl 45
+    32g:
+      hw-configs: [ 'defaults-vulkan0-32gb', 'defaults-vulkan0-32gb-fa', 'defaults-vulkan1-32gb', 'defaults-vulkan1-32gb-fa' ]
+      cmd:
+        ngl: -ngl 60
   "llama-3.3-70b-instruct":
-    swaps: [ 'defaults-vulkan0-24gb', 'defaults-vulkan0-24gb-fa', 'defaults-vulkan1-24gb', 'defaults-vulkan1-24gb-fa' ]
-    cmd:
-      ngl: -ngl 45
-  "phi-4-f16":
-    swaps: [ 'defaults-vulkan0-32gb', 'defaults-vulkan0-32gb-fa', 'defaults-vulkan1-32gb', 'defaults-vulkan1-32gb-fa' ]
-    cmd:
-      ngl: -ngl 44
-  "llama-3.3-70b-instruct-q4_k_m":
-    swaps: [ 'defaults-vulkan0-32gb', 'defaults-vulkan0-32gb-fa', 'defaults-vulkan1-32gb', 'defaults-vulkan1-32gb-fa' ]
-    cmd:
-      ngl: -ngl 60
-  "llama-3.3-70b-instruct-q8_0":
-    swaps: [ 'defaults-vulkan0-32gb', 'defaults-vulkan0-32gb-fa', 'defaults-vulkan1-32gb', 'defaults-vulkan1-32gb-fa' ]
-    cmd:
-      ngl: -ngl 60
-  "llama-3.3-70b-instruct":
-    swaps: [ 'defaults-vulkan0-32gb', 'defaults-vulkan0-32gb-fa', 'defaults-vulkan1-32gb', 'defaults-vulkan1-32gb-fa' ]
-    cmd:
-      ngl: -ngl 60
+    16g:
+      hw-configs: [ 'defaults-vulkan0-16gb', 'defaults-vulkan0-16gb-fa', 'defaults-vulkan1-16gb', 'defaults-vulkan1-16gb-fa' ]
+      cmd:
+        ngl: -ngl 30
+    24g:
+      hw-configs: [ 'defaults-vulkan0-24gb', 'defaults-vulkan0-24gb-fa', 'defaults-vulkan1-24gb', 'defaults-vulkan1-24gb-fa' ]
+      cmd:
+        ngl: -ngl 45
+    32g:
+      hw-configs: [ 'defaults-vulkan0-32gb', 'defaults-vulkan0-32gb-fa', 'defaults-vulkan1-32gb', 'defaults-vulkan1-32gb-fa' ]
+      cmd:
+        ngl: -ngl 60
